@@ -1,7 +1,7 @@
 DEIMoS Visualization
 =======
 
-
+## Variables
 Indicate 
 * the file name of the raw data of interest (full1)
 * peak data placeholder, which will be replaced with the actual peak data (peak1)
@@ -27,12 +27,12 @@ retention_spacing = 0.15
 mz_spacing = 0.02
 ```
 
-Install DEIMoS
+## Install DEIMoS
 
 Follow all directions at https://deimos.readthedocs.io/en/latest/getting_started/installation.html
 
 
-Install additonal packages
+## Install additonal packages
 
 ``` 
 conda install colorcet holoviews panel xarray hvplot datashader pandas
