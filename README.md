@@ -48,6 +48,8 @@ Run app
 python run_app.py
 ```
 
+## Funding
+This research was supported by the National Institutes of Health, National Institute of Environmental Health Sciences grant U2CES030170 and is a contribution of the Pacific Northwest Advanced Compound Identification Core. Pacific Northwest National Laboratory is a multi-program national laboratory operated by Battelle for the DOE under Contract DE-AC05-76RLO 1830.
 
 Citing DEIMoS
 -------------
