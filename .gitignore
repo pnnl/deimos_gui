@@ -119,3 +119,7 @@ deimos/*
 app/deimos2
 archive/*
 archive/app/deimos2/*
+data/peak_folder/*data.h5
+data/*01.h5
+data/*data.h5
+data/created_data/*

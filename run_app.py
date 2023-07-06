@@ -12,8 +12,10 @@ peak_folder = 'data/peak_folder/'
 data_folder = 'data/'
 align_endswith = "example.h5"
 
-# peak_ref = 'BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01_threshold_100_peak_radius_2-10-0_feature2_retention_time_new_peak_data.h5'
-# full1 =  'BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01.h5'
+
+align_endswith = "data.h5"
+peak_ref = 'created_data/BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01_threshold_500_peak_radius_2-10-0_feature2_retention_time_new_peak_data.h5'
+full1 =  'BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01.h5'
 
 feature1 = 'drift_time'
 feature2 = 'retention_time'
@@ -127,7 +129,7 @@ class Deimos_app(pm.Parameterized):
         default=peak1, doc='A string', label='Peak Data'
     )
 
-    threshold_slider = pm.Integer(default=100, label='Threshold')
+    threshold_slider = pm.Integer(default=500, label='Threshold')
 
     smooth_radius = pm.String(
         default='0-1-0', doc='A string', label='Smoothing radius by ' + feature3.default + ', ' + feature1.default + ', and ' + feature2.default
@@ -897,10 +899,10 @@ class Align_plots(pm.Parameterized):
     feature3 = pm.String(default = feature3, label = 'Feature 3')
     feature_intensity = pm.String(default = feature_intensity, label = 'Intensity Feature')
 
-    @pm.depends('full_ref', 'peak_folder',  'tolerance_text', 'relative_text', 'menu_kernel',  'threshold_text','feature1', 'feature2', 'feature3')
+    @pm.depends('full_ref', 'peak_folder', 'file_folder', 'align_endswith', 'tolerance_text', 'relative_text', 'menu_kernel',  'threshold_text', 'feature1', 'feature2', 'feature3', 'feature_intensity')
     def viewable(self):
         # if just test, lower threshold
-        if self.full_ref == "small_full1.h5":
+        if self.full_ref == "small_full1.h5" or self.align_endswith == "example.h5":
             self.threshold_text = "0"
         tolerance_text = [float(i) for i in list(self.tolerance_text.split('-'))]
         relative_text = [bool(i) for i in list(self.relative_text.split('-'))]
@@ -909,9 +911,11 @@ class Align_plots(pm.Parameterized):
         except:
             # old load
             ms1 = deimos.io._load_hdf(os.path.join(self.file_folder, self.full_ref), level='ms1')
+            ms2 = deimos.io._load_hdf(os.path.join(self.file_folder, self.full_ref), level='ms2')
             
             # new save
             deimos.io.save_hdf(os.path.join(self.file_folder, self.full_ref), ms1, key='ms1', mode='w')
+            deimos.io.save_hdf(os.path.join(self.file_folder, self.full_ref), ms2, key='ms2', mode='a')
             
             # new load
             full_ref = deimos.load(os.path.join(self.file_folder, self.full_ref), key='ms1')
@@ -936,10 +940,10 @@ class Align_plots(pm.Parameterized):
                     full_two = deimos.load(os.path.join(self.peak_folder,file), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
                 except:
                     # old load
-                    ms2 = deimos.io._load_hdf(os.path.join(self.peak_folder,file), level='ms1')
+                    ms1 = deimos.io._load_hdf(os.path.join(self.peak_folder,file), level='ms1')
                     
                     # new save
-                    deimos.io.save_hdf(file, ms2, key='ms1', mode='w')
+                    deimos.io.save_hdf(file, ms1, key='ms1', mode='w')
                     
                     # new load
                     full_two = deimos.load(file, key='ms1')
