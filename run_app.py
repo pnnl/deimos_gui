@@ -12,9 +12,9 @@ peak_folder = 'data/peak_folder/'
 data_folder = 'data/'
 align_endswith = "example.h5"
 
-# #align_endswith = "data.h5"
-# #peak_ref = 'created_data/BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01_threshold_500_peak_radius_2-10-0_feature2_retention_time_new_peak_data.h5'
-# full1 =  'BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01.h5'
+align_endswith = "data.h5"
+peak_ref = 'created_data/BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01_threshold_500_peak_radius_2-10-0_feature2_retention_time_new_peak_data.h5'
+full1 =  'BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01.h5'
 
 feature1 = 'drift_time'
 feature2 = 'retention_time'
@@ -168,7 +168,7 @@ class Deimos_app(pm.Parameterized):
             # old load
             ms1 = deimos.io._load_hdf(os.path.join(self.file_folder,  self.file_name_raw), level='ms1')
             ms2 = deimos.io._load_hdf(os.path.join(self.file_folder,  self.file_name_raw), level='ms2')
-            
+            self.file_name_raw = os.path.splitext(self.file_name_raw)[0] + "_new.h5"
             # new save
             deimos.io.save_hdf(os.path.join(self.file_folder,  self.file_name_raw), ms1, key='ms1', mode='w')
             deimos.io.save_hdf(os.path.join(self.file_folder,  self.file_name_raw), ms2, key='ms2', mode='a')
@@ -912,6 +912,7 @@ class Align_plots(pm.Parameterized):
             ms1 = deimos.io._load_hdf(os.path.join(self.file_folder, self.full_ref), level='ms1')
             ms2 = deimos.io._load_hdf(os.path.join(self.file_folder, self.full_ref), level='ms2')
             
+            self.full_ref = os.path.splitext(self.full_ref)[0] + "_new.h5"
             # new save
             deimos.io.save_hdf(os.path.join(self.file_folder, self.full_ref), ms1, key='ms1', mode='w')
             deimos.io.save_hdf(os.path.join(self.file_folder, self.full_ref), ms2, key='ms2', mode='a')
@@ -939,8 +940,9 @@ class Align_plots(pm.Parameterized):
                     full_two = deimos.load(os.path.join(self.peak_folder,file), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
                 except:
                     # old load
-                    ms1 = deimos.io._load_hdf(os.path.join(self.peak_folder,file), level='ms1')
+                    ms1 = deimos.io._load_hdf(os.path.join(self.peak_folder, file), level='ms1')
                     
+                    file = os.path.splitext(file)[0] + "_new.h5"
                     # new save
                     deimos.io.save_hdf(file, ms1, key='ms1', mode='w')
                     
@@ -983,7 +985,7 @@ class Align_plots(pm.Parameterized):
                
                 
                 spl = deimos.alignment.fit_spline( two_matched, ref_matched, align= dim, kernel=self.menu_kernel, C=1000)
-                newx = np.linspace(0, ref_matched[ dim].max(), 1000)
+                newx = np.linspace(0, max(ref_matched[ dim].max(), two_matched[ dim].max()), 1000)
 
                 two_matched_aligned["aligned_" + dim] = spl(two_matched_aligned[dim])
                 # save by peak in peak name
@@ -1054,11 +1056,7 @@ if __name__ == '__main__':
 
 
 
-    app1 = pn.Tabs(('Filter Graphs', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.raw_viewable())
-        )))),('Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable(),  
-        )))),('Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable(),  
-        )))), ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.pane.PNG('box_select.png'), pn.Row( param_decon, Deimos_app.decon_viewable(),  
-        )))), ('Align Plots', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))).servable(title='Deimos App')
+    app1 = pn.Tabs(('Align Plots', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))).servable(title='Deimos App')
 
 
 
