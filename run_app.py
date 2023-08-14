@@ -1056,8 +1056,11 @@ if __name__ == '__main__':
 
 
 
-    app1 = pn.Tabs(('Align Plots', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))).servable(title='Deimos App')
-
+    app1 = pn.Tabs(('Filter Graphs', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.raw_viewable())
+        )))),('Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable(),  
+        )))),('Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable(),  
+        )))), ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.pane.PNG('box_select.png'), pn.Row( param_decon, Deimos_app.decon_viewable(),  
+        )))), ('Align Plots', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))).servable(title='Deimos App')
 
 
     pn.serve(app1)
