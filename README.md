@@ -67,7 +67,7 @@ for the
 UNITED STATES DEPARTMENT OF ENERGY
 under Contract DE-AC05-76RL01830
 
-Simplified BSD
+## Simplified BSD
 ____________________________________________
 Copyright 2023 Battelle Memorial Institute
 
