@@ -12,9 +12,9 @@ peak_folder = 'data/peak_folder/'
 data_folder = 'data/'
 align_endswith = "example.h5"
 
-# align_endswith = "data.h5"
-# peak_ref = 'created_data/BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01_threshold_500_peak_radius_2-10-0_feature2_retention_time_new_peak_data.h5'
-# full1 =  'BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01.h5'
+align_endswith = "data.h5"
+peak_ref = 'created_data/BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01_threshold_500_peak_radius_2-10-0_feature2_retention_time_new_peak_data.h5'
+full1 =  'BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01.h5'
 
 feature1 = 'drift_time'
 feature2 = 'retention_time'
