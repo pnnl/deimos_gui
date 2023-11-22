@@ -1,6 +1,9 @@
 DEIMoS Visualization
 =======
 
+## User Guide
+[User Guide](user_guide_deimos.docx)
+
 
 ## Install DEIMoS
 
@@ -9,7 +12,7 @@ Follow all directions at https://deimos.readthedocs.io/en/latest/getting_started
 ## Clone Repository
 
 ``` 
-git clone https://stash.pnnl.gov/scm/~oost464/deimos_gui.git
+git clone https://github.com/pnnl/deimos_gui
 ``` 
 
 ## Install additonal packages
