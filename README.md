@@ -1,36 +1,16 @@
 DEIMoS Visualization
 =======
 
-## Variables
-Indicate 
-* the file name of the raw data of interest (full1)
-* peak data placeholder, which will be replaced with the actual peak data (peak1)
-* the reference peak data the other files will align with (peak_ref), * the folder of the files you will align (peak_folder)
-* the folder where the raw data will be located and where outputs of the application will be saved under "created_data" (data_folder)
-* the string end of the files used in the folder of files you will align (align_endswith) in the first lines of the main.py file.  
-You can also set the path of the data after launching the application
-```
-full1 = 'small_full1.h5'
-peak1 = 'small_peak1.h5'
-
-peak_ref = 'small_full1.h5'
-
-peak_folder = 'data/peak_folder/'
-data_folder = 'data/'
-align_endswith = "data.h5"
-```
-
-This is also where you can set the minimum tile size for the vizualizations.
-```
-drift_spacing = 0.15
-retention_spacing = 0.15
-mz_spacing = 0.02
-```
 
 ## Install DEIMoS
 
 Follow all directions at https://deimos.readthedocs.io/en/latest/getting_started/installation.html
 
+## Clone Repository
+
+``` 
+git clone https://stash.pnnl.gov/scm/~oost464/deimos_gui.git
+``` 
 
 ## Install additonal packages
 
@@ -38,15 +18,28 @@ Follow all directions at https://deimos.readthedocs.io/en/latest/getting_started
 conda install colorcet holoviews panel xarray hvplot datashader pandas
 ```
 
+
+``` 
+pip install -r requirements.txt
+```
+
 In the terminal, cd to the the downloaded folder
 ```
-cd /path/to/downloaded/folder
+cd ./deimos_gui
 ```
 
 Run app
 ```
 python run_app.py
 ```
+
+Use example data (rather than placeholder data)
+
+Follow instructions here to download the data: 
+https://deimos.readthedocs.io/en/latest/getting_started/example_data.html
+
+Provide path to data within the application (default: data folder within DEIMOS_GUI folder)
+
 
 ## Funding
 This research was supported by the National Institutes of Health, National Institute of Environmental Health Sciences grant U2CES030170 and is a contribution of the Pacific Northwest Advanced Compound Identification Core. Pacific Northwest National Laboratory is a multi-program national laboratory operated by Battelle for the DOE under Contract DE-AC05-76RLO 1830.

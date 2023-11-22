@@ -1,27 +1,3 @@
-drift_spacing = 0.15
-retention_spacing = 0.15
-mz_spacing = 0.02
-
-# bokeh serve --show run_app.py
-full1 = 'small_full1.h5'
-peak1 = 'small_peak1.h5'
-
-peak_ref = 'small_full1.h5'
-
-peak_folder = 'data/peak_folder/'
-data_folder = 'data/'
-align_endswith = "example.h5"
-
-align_endswith = "data.h5"
-peak_ref = 'created_data/BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01_threshold_500_peak_radius_2-10-0_feature2_retention_time_new_peak_data.h5'
-full1 =  'BRAVE_SC_E027_night_F_M_131_POS_40V_23Aug19_Fiji_ZIC119-06-01.h5'
-
-feature1 = 'drift_time'
-feature2 = 'retention_time'
-feature3 = 'mz'
-feature_intensity = 'intensity'
-
-# conda create -n deimos -c conda-forge -c bioconda python=3.7 numpy scipy pandas matplotlib snakemake pymzml h5py statsmodels scikit-learn colorcet holoviews panel xarray hvplot datashader
 
 import pandas as pd
 import holoviews as hv
@@ -29,24 +5,55 @@ import numpy as np
 import panel as pn
 import math
 import ast
-
+import colorcet as cc
 import dask.dataframe as dd
 import hvplot.xarray  # noqa: API import
 import hvplot.dask  # noqa: API import
 import hvplot.pandas
-
 from holoviews import opts
 from holoviews.operation.datashader import aggregate, datashade, rasterize
 from datashader.colors import Sets1to3
-
 import deimos
-
 import multiprocessing as mp
-
 import os, param as pm, holoviews as hv, panel as pn, datashader as ds
+import logging
+from pathlib import Path
+import additional_functions
+from pyinstrument import Profiler
+
+
+TESTS_ROOT = os.path.join(Path.cwd(), "profile_output")
+
+profiler = Profiler()
+profiler.start()
+
+file_name_initial_name = "placeholder.csv"  #example_data.h5
+file_name_smooth_name = "placeholder.csv"
+file_name_peak_name = "placeholder.csv"
+calibration_input_name = "placeholder.csv" #cal_input.csv
+example_tune_file_name = "placeholder.csv" #example_tune_pos.h5
+file_to_calibrate_name = "placeholder.csv" #example_tune_pos.h5
+peak_ref_name = "placeholder.csv" #example_alignment.h5
+
+file_name_initial_name = "example_data.h5"  #example_data.h5
+file_name_smooth_name = "placeholder.csv"
+file_name_peak_name = "placeholder.csv"
+# file_name_smooth_name = "example_data_threshold_1000_smooth_radius_0-1-0_smooth_iterations_7_feature_rt_retention_time_new_smooth_data.h5" 
+# file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
+calibration_input_name = "cal_input.csv"
+example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
 
 hv.extension('bokeh', 'matplotlib')
-pn.extension()
+
+# view general exception 
+def exception_handler(ex):
+    logging.error("Error", exc_info=ex)
+    
+    pn.state.notifications.error(ex, duration=0)
+pn.extension(exception_handler=exception_handler, notifications=True)
+
 
 # linked selection places constants on all dimensions at once
 # linked brushing supports both the box_select and lasso_select tools.
@@ -55,586 +62,528 @@ ls2 = hv.link_selections.instance()
 ls3 = hv.link_selections.instance()
 ls4 = hv.link_selections.instance()
 
-# https://github.com/holoviz/datashader/issues/698
 hv.output(backend='bokeh')
 
-def offset_correction_model(dt_ms2, mz_ms2, mz_ms1, ce=0,
-                            params=[1.02067031, -0.02062323,  0.00176694]):
-    # Cast params as array
-    params = np.array(params).reshape(-1, 1)
-    
-    # Convert collision energy to array
-    ce = np.ones_like(dt_ms2) * np.log(ce)
-    
-    # Create constant vector
-    const = np.ones_like(dt_ms2)
-    
-    # Sqrt
-    mu_ms1 = np.sqrt(mz_ms1)
-    mu_ms2 = np.sqrt(mz_ms2)
-    
-    # Ratio
-    mu_ratio = mu_ms2 / mu_ms1
-    
-    # Create dependent array
-    x = np.stack((const, mu_ratio, ce), axis=1)
-    
-    # Predict
-    y = np.dot(x, params).flatten() * dt_ms2
-    
-    return y
-
 class Deimos_app(pm.Parameterized):
-
-    file_name_raw = pm.String(
-        default=full1, doc='A string', label='Initial Data'
-    )
-
+    '''Class to create a parameterized functions that only updated'''
+    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5' )
     file_folder =  pm.String(
-        default= data_folder, doc='A string', label='Location of data folder'
-    )
-
+        default= "data", doc='Either relative path to file or absolute path to folder with Initial Files', label='Location of data folder')
+    rt_mzML_name = pm.Selector(["scan start time"], doc='Only adjust if mz file selected. Select the retention time column name')
+    dt_mzML_name = pm.Selector(["ion mobility drift time"], doc='Only adjust if mz file selected. Select the drift time column name')
     # reset the manual filters to the data bounds and reset the rangexy of the plot
     reset_filter = pm.Action(
-        lambda x: x.param.trigger('reset_filter'),
-        label='Refresh Axis (necessary with new data)',
-    )
-
-    # use the manual filter
-    manual_filter = pm.Boolean(
-        True, label='Set axis width and bin values based on axis below'
-    )
+        lambda x: x.param.trigger('reset_filter'), doc = 'Refresh axis ranges to data input min and max',
+        label='Reset axis ranges (necessary with new data)')
+    reset_filter_iso = pm.Action(
+        lambda x: x.param.trigger('reset_filter_iso'),
+        label='Refresh HeatMap Axis (necessary for new Isotopes Row)')
     
-    feature1 = pm.String(default = feature1, label = 'Feature 1')
-    feature2 = pm.String(default = feature2, label = 'Feature 2')
-    feature3 = pm.String(default = feature3, label = 'Feature 3')
-    feature_intensity = pm.String(default = feature_intensity, label = 'Intensity Feature')
+    feature_dt = pm.Selector(default='drift_time', objects = ["drift_time", 'retention_time', 'mz'], label="Drift Time")
+    feature_rt = pm.Selector(default='retention_time', objects = ["drift_time", 'retention_time', 'mz'], label="Retention Time")
+    feature_mz = pm.Selector(default='mz', objects = ["drift_time", 'retention_time', 'mz'], label="mz")
 
-    # manual filter centers
-    feature1_axis_width = pm.Range(bounds=(0, 200), label = "Axis width: " + feature1.default)
-    feature2_axis_width = pm.Range(bounds=(0, 200), label = "Axis width: " + feature2.default)
-    feature3_axis_width = pm.Range(bounds=(0, 2000), label = "Axis width: " + feature3.default)
+    feature_intensity = pm.String(default = 'intensity', label='Intensity Feature')
 
-    # set the min spacing for all the dimensions
-    min_feature1_bin_size = pm.Number(default=0.2, label = "Min bin size: " + feature1.default)
-    min_feature2_bin_size = pm.Number(default=0.2, label = "Min bin size: " + feature1.default)
-    min_feature3_bin_size = pm.Number(default=0.02, label = "Min bin size: " + feature1.default)
+    # manual filter bounds of plots
+    feature_dt_axis_width = pm.Range(bounds=(0.0, 200.0), step=0.1, label="Axis width: " + feature_dt.default)
+    feature_rt_axis_width = pm.Range(bounds=(0.0, 200.0), step=0.1, label="Axis width: " + feature_rt.default)
+    feature_mz_axis_width = pm.Range(bounds=(0.0, 200.0), step=0.1, label="Axis width: " + feature_mz.default)
 
-    file_name_smooth = pm.String(
-        default=peak1, doc='A string', label='Smooth Data'
-    )
+    # set the min spacing for all the dimensions for rasterizing
+    min_feature_dt_bin_size = pm.Number(default=0.2, label="Min bin size: " + feature_dt.default)
+    min_feature_rt_bin_size = pm.Number(default=0.2, label="Min bin size: " + feature_rt.default)
+    min_feature_mz_bin_size = pm.Number(default=0.02, label="Min bin size: " + feature_mz.default)
 
-    file_name_peak = pm.String(
-        default=peak1, doc='A string', label='Peak Data'
-    )
+    # manual filter centers for the graphs in isotopes (smaller range than the full_plot, so don't want use the same bounds)
+    
+    feature_dt_axis_width_iso = pm.Range(bounds=(0.0, 200.0), step=0.1, label="Axis width: " + feature_dt.default)
+    feature_rt_axis_width_iso = pm.Range(bounds=(0.0, 200.0), step=0.1, label="Axis width: " + feature_rt.default)
+    feature_mz_axis_width_iso = pm.Range(bounds=(0.0, 200.0), step=0.1, label="Axis width: " + feature_mz.default)
 
-    threshold_slider = pm.Integer(default=500, label='Threshold')
+    # set the min spacing for all the dimensions for isotopes
+    min_feature_dt_bin_size_iso = pm.Number(default=0.2, label="Min bin size: " + feature_dt.default)
+    min_feature_rt_bin_size_iso = pm.Number(default=0.2, label="Min bin size: " + feature_rt.default)
+    min_feature_mz_bin_size_iso = pm.Number(default=0.02, label="Min bin size: " + feature_mz.default)
 
+    min_feature_rt_spacing = pm.Number(default=1, label="Spacing: " + feature_rt.default)
+    min_feature_dt_spacing = pm.Number(default=1, label="Spacing: " + feature_rt.default)
+    min_feature_mz_spacing = pm.Number(default=10, label="Spacing: " + feature_rt.default)
+
+    file_name_smooth = pm.FileSelector(default = os.path.join(os.path.dirname(__file__), "created_data", file_name_smooth_name),\
+                                        path=os.path.join(os.path.dirname(__file__), "created_data", "*"),  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data')
+    file_name_peak = pm.FileSelector(default = os.path.join(os.path.dirname(__file__), "created_data", file_name_peak_name), \
+                                     path=os.path.join(os.path.dirname(__file__), "created_data", "*"),  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data')
+    threshold_slider = pm.Integer(default=1000, label='Threshold')
     smooth_radius = pm.String(
-        default='0-1-0', doc='A string', label='Smoothing radius by ' + feature3.default + ', ' + feature1.default + ', and ' + feature2.default
-    )
-
+        default='0-1-0', doc='Keep - between numbers. Best practice is to increase number of iterations', label='Smoothing radius by mz, drift time, and retention time')
     smooth_iterations = pm.String(
-        default='7', doc='A string', label='Smoothing iterations'
-    )
-
+        default='7', doc='Best practice is to increase number of iterations by mz, drift time, and retention time', label='Smoothing iterations')
     peak_radius = pm.String(
-        default='2-10-0', doc='A string', label='Weighted mean kernel size by ' + feature3.default + ', ' + feature1.default + ', and ' + feature2.default
-    )
-    run_peak = pm.Action(lambda x: x.param.trigger('run_peak'), label='Run peak')
-    run_smooth = pm.Action(lambda x: x.param.trigger('run_smooth'), label='Run smooth') 
-    run_decon = pm.Action(lambda x: x.param.trigger('run_decon'), label='Run deconvolution')
+        default='2-10-0', doc='A radius per dimension by mz, drift time, and retention time', label='Weighted mean kernel size')
+    #
+    rerun_peak = pm.Action(lambda x: x.param.trigger('rerun_peak'), doc="Click to rerun after changing inputs", label='Re-run peak')
+    rerun_smooth = pm.Action(lambda x: x.param.trigger('rerun_smooth'), doc="Click to rerun after changing inputs", label='Re-run smooth') 
+    rerun_decon = pm.Action(lambda x: x.param.trigger('rerun_decon'), doc="Click to rerun after changing inputs", label='Re-run deconvolution') 
+    rerun_iso = pm.Action(lambda x: x.param.trigger('rerun_iso'), doc="Click to rerun after changing inputs", label='Re-run ison')
+    rerun_calibrate = pm.Action(lambda x: x.param.trigger('rerun_calibrate'), doc="Click to rerun after changing inputs", label='Re-run calibrate')
+    Recreate_plots_with_below_values = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values'), doc="Set axis ranges to ranges below")
+    Recreate_plots_with_below_values_iso = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values_iso'), doc="Set axis ranges to ranges below")
+    # only show the placeholder
+    placehold_data_initial = pm.Boolean(False, label='Placeholder initial data')
+    placehold_data_smooth = pm.Boolean(False, label='Placeholder smooth')
+    placehold_data_peak = pm.Boolean(False, label='Placeholder peak')
+    placehold_data_decon = pm.Boolean(False, label='Placeholder decon')
+    placehold_data_iso = pm.Boolean(False, label='Placeholder iso')
+    placehold_data_calibrate = pm.Boolean(False, label='Placeholder')
 
+    # set the min spacing for all the dimensions for rasterizing 
+    slice_distance_dt = pm.Number(default=0.2, label="Slice isotopes drift time")
+    slice_distance_rt = pm.Number(default=0.2, label="Slice isotopes retention time")
+    slice_distance_mz = pm.Number(default=5, label="Slice isotopes mz left")
 
-    # load the h5 files and load to dask
-    @pm.depends('file_name_raw', 'feature1', 'feature2', 'feature3', 'feature_intensity')
-    def hvdata_raw(self):
-        if not os.path.exists(os.path.join(self.file_folder, "created_data")):
-            os.makedirs(os.path.join(self.file_folder, "created_data"))
-        print('load raw data')
-        # changing the label requires changing the parameter class
-        self.param.feature1_axis_width.label = "Axis width: " + self.feature1
-        self.param.feature2_axis_width.label = "Axis width: " + self.feature2
-        self.param.feature3_axis_width.label = "Axis width: " + self.feature3
-        self.param.min_feature1_bin_size.label = "Min bin size: " + self.feature1
-        self.param.min_feature2_bin_size.label = "Min bin size: " + self.feature2
-        self.param.min_feature3_bin_size.label = "Min bin size: " + self.feature3
-        self.param.smooth_radius.label = 'Smoothing radius by ' + self.feature3 + ', ' + self.feature1 + ', and ' + self.feature2
-        self.param.peak_radius.label = 'Weighted mean kernel size by ' + self.feature3 + ', ' + self.feature1 + ', and ' + self.feature2
+    calibration_input = pm.FileSelector(default = os.path.join("data", calibration_input_name), path="data/*",  doc='Data must include mz, ccs, charge, and, if not tune mix, a ta column. File in .h5, .mzML, .mzML.gz or csv format. Default: cal_input.csv', label='Calibration Input. Default: cal_input.csv')
+    example_tune_file = pm.FileSelector(default = os.path.join("data", example_tune_file_name), path="data/*",  doc='File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='Example Tune Data, Default: example_tune_pos.h5')
+    file_to_calibrate = pm.FileSelector(default = os.path.join("data", file_to_calibrate_name), path="data/*",  doc='Data must include mz, ta, and q values. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='File to Calib. Default: example_tune_pos.h5')
+    beta = pm.String(default = "0.12991516042484708", label='beta')
+    tfix = pm.String(default = "-0.03528247661068562", label='tfix')
+    traveling_wave = pm.Boolean(False, label='traveling_wave')
+    calibrate_type = pm.Selector(default = "targeted_feature_detection", objects=["load_all_values", "targeted_feature_detection","fix_parameters"])
 
-        try:
-            full_data_1 = deimos.load(os.path.join(self.file_folder,  self.file_name_raw), key='ms1')
-        except:
-            # old load
-            ms1 = deimos.io._load_hdf(os.path.join(self.file_folder,  self.file_name_raw), level='ms1')
-            ms2 = deimos.io._load_hdf(os.path.join(self.file_folder,  self.file_name_raw), level='ms2')
-            self.file_name_raw = os.path.splitext(self.file_name_raw)[0] + "_new.h5"
-            # new save
-            deimos.io.save_hdf(os.path.join(self.file_folder,  self.file_name_raw), ms1, key='ms1', mode='w')
-            deimos.io.save_hdf(os.path.join(self.file_folder,  self.file_name_raw), ms2, key='ms2', mode='a')
+    
+    @pn.depends("file_folder", watch=True)
+    def update_param(self):
+        '''with new file folder update the files available in file selector files'''
+        new_path = os.path.abspath(self.file_folder)
+        # update all files if updating file folder
+
+        self.param.file_name_initial.path = os.path.join(new_path, "*")
+        self.param.calibration_input.path = os.path.join(new_path, "*")
+        self.param.example_tune_file.path = os.path.join(new_path, "*")
+        self.param.file_to_calibrate.path = os.path.join(new_path, "*")
+
+        self.param.file_name_initial.update()
+        self.param.calibration_input.update()
+        self.param.example_tune_file.update()
+        self.param.file_to_calibrate.update()
+
+        if self.file_name_initial not in self.param.file_name_initial.objects:
+            self.file_name_initial = self.param.file_name_initial.objects[0]
+
+        if self.calibration_input not in self.param.calibration_input.objects:
+            self.calibration_input = self.param.calibration_input.objects[0]
+
+        if self.example_tune_file not in self.param.example_tune_file.objects:
+            self.example_tune_file = self.param.example_tune_file.objects[0]
+
+        if self.file_to_calibrate not in self.param.file_to_calibrate.objects:
+            self.file_to_calibrate = self.param.file_to_calibrate.objects[0]
+
+    @pn.depends("file_name_initial", watch=True)
+    def update_mz_accession(self):
+        '''if using mzML allow users to chose name from accession file'''
+        extension = Path(self.file_name_initial).suffix
+        if extension == ".mzML" or extension == ".mzML.gz" :
+            accessin_list = list(deimos.get_accessions(self.file_name_initial).keys())
+            self.param.rt_mzML_name.objects = accessin_list
+            if self.rt_mzML_name not in self.param.rt_mzML_name.objects:
+                self.rt_mzML_name = self.param.rt_mzML_name.objects[0]
+            self.param.dt_mzML_name.objects = accessin_list
+            if self.dt_mzML_name not in self.param.dt_mzML_name.objects:
+                self.dt_mzML_name = self.param.dt_mzML_name.objects[0]
+
+ # load the h5 files and load to dask
+    @pm.depends('file_name_initial', 'placehold_data_initial', 'feature_dt', 'feature_rt', 'feature_mz', 'feature_intensity')
+    def hvdata_initial(self):
+        '''Start initial data by loading data. Restart if using different file or feature names changed '''
+        pn.state.notifications.clear()
+        if not os.path.exists(os.path.join(os.path.dirname(__file__), "created_data")):
+            os.makedirs(os.path.join(os.path.dirname(__file__), "created_data"))
             
-            # new load
-            full_data_1 = deimos.load(os.path.join(self.file_folder,  self.file_name_raw), key='ms1')
- 
-        full_data_1.rename(
-            columns={'inverse_reduced_ion_mobility': self.feature1}, inplace=True
-        )
-        full_data_1 = full_data_1[[self.feature1, self.feature2, self.feature3, self.feature_intensity]]
-        full_data_1.reset_index(drop = True, inplace=True)
-
-
-        self.data_raw = dd.from_pandas(full_data_1, npartitions=mp.cpu_count())
-        self.data_raw.persist()
-
+        pn.state.notifications.position = 'top-center'
+        self.update_mz_accession()
+        # changing the label requires changing the parameter class
+        self.param.feature_dt_axis_width.label = "Axis width: " + self.feature_dt
+        self.param.feature_rt_axis_width.label = "Axis width: " + self.feature_rt
+        self.param.feature_mz_axis_width.label = "Axis width: " + self.feature_mz
+        self.param.min_feature_dt_bin_size.label = "Min bin size: " + self.feature_dt
+        self.param.min_feature_rt_bin_size.label = "Min bin size: " + self.feature_rt
+        self.param.min_feature_mz_bin_size.label = "Min bin size: " + self.feature_mz
+        self.param.smooth_radius.label = 'Smoothing radius by ' + self.feature_mz + ', ' + self.feature_dt + ', and ' + self.feature_rt
+        self.param.peak_radius.label = 'Weighted mean kernel size by ' + self.feature_mz + ', ' + self.feature_dt + ', and ' + self.feature_rt
+        if self.placehold_data_initial:
+                pn.state.notifications.info('Load initial data placeholder. Uncheck to run with selected data', duration=0)
+                self.data_initial = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
+        else:
+            pn.state.notifications.info('In progress: Loading initial data ' + str(self.file_name_initial), duration=0)
+            try:
+                full_data_1 = additional_functions.load_initial_deimos_data(self.file_name_initial, \
+                                                    self.feature_dt, self.feature_rt, self.feature_mz, self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+            except Exception as e:
+                pn.state.notifications.error(str(e), duration=0)
+            self.data_initial = dd.from_pandas(full_data_1, npartitions=mp.cpu_count())
+        self.data_initial.persist()
         self.refresh_axis_values()
-        return hv.Dataset(self.data_raw)
+        return hv.Dataset(self.data_initial)
 
-
-    # resets the axis the the data's min and max
+    # resets the axis to the data's min and max
     @pm.depends('reset_filter',  watch=True)
     def refresh_axis_values(self):
-
-        print('get min and max of data')
+        '''Let axis ranges based on the data'''
         self.reset_xy_stream()
 
-        current_manual_filter_value =  self.manual_filter
-
-        # since manual filter is true, tthis will reset xy stream 
-        # and set the x and y range to the min and max of the new data via the rasterize functon
-        self.manual_filter = True
-
         mz_range = (
-            int(self.data_raw.mz.min().compute()),
-            int(self.data_raw.mz.max().compute()) + 1,
+            float(self.data_initial.mz.min().compute()),
+            float(self.data_initial.mz.max().compute()) + 1.0,
         )
         #self.param sets the features within the param, while self.x sets actual value of x
-        self.param.feature3_axis_width.bounds = mz_range
-        self.feature3_axis_width = mz_range
-
+        self.param.feature_mz_axis_width.bounds = mz_range
+        self.feature_mz_axis_width = mz_range
         retention_range = (
-            int(self.data_raw[self.feature2].min().compute()),
-            int(self.data_raw[self.feature2].max().compute()) + 1,
+            float(self.data_initial[self.feature_rt].min().compute()),
+            float(self.data_initial[self.feature_rt].max().compute()) + 1.0,
         )
-        self.param.feature2_axis_width.bounds = retention_range
-        self.feature2_axis_width = retention_range
-
+        self.param.feature_rt_axis_width.bounds = retention_range
+        self.feature_rt_axis_width = retention_range
         drift_range = (
-            int(self.data_raw[self.feature1].min().compute()),
-            int(self.data_raw[self.feature1].max().compute()) + 1,
+            float(self.data_initial[self.feature_dt].min().compute()),
+            float(self.data_initial[self.feature_dt].max().compute()) + 1.0,
         )
-        self.param.feature1_axis_width.bounds = drift_range
-        self.feature1_axis_width = drift_range
+        self.param.feature_dt_axis_width.bounds = drift_range
+        self.feature_dt_axis_width = drift_range
 
-        # back to original value
-        self.manual_filter = current_manual_filter_value
+        pn.state.notifications.info("Click 'Recreate plots with below values' to use new axis range", duration=0)
+        pn.state.notifications.info('Reset axis range to min and max of data for data bounds', duration=0)
+        pn.state.notifications.info('mz_range: ' + str(mz_range) + \
+                                    ' retention_range: ' + str(retention_range) + ' drift_range: ' + str(drift_range), duration=0)
         return
+    
 
-
-    # function that adjusts the x_range and y_range with either x y stream or user input
-    # this work-arround is necessary due to the x_range and y_range streams being set to none with new data
-    # if not set to none, old data ranges from previous data are still used
-    # when range is set to none, need to explicitely set the x and y range of the of the rasterization level and plot limits, else it will rasterize over whole image: 
-    # trying to avoid this bug https://github.com/holoviz/holoviews/issues/4396
-    # keep an eye on this, as likely will fix in datashader, which would make this work around unnecessary
-    def rasterize(
+    def rasterize_md(
         self,
         element,
-        x_range=None,
-        y_range=None,
-        x_filter=None,
-        y_filter=None,
-        x_spacing=0,
-        y_spacing=0,
+        Recreate_plots_with_below_values
     ):
-        # if the manual_filter is true, filter by range input
-        # else reasterize by zoom box
-        if self.manual_filter:
-            x_range_input = x_filter
-            y_range_input = y_filter
-        else:
-            x_range_input = x_range
-            y_range_input = y_range
-
-        # dynmaic false to allow the x_range and y_range to be adjusted by either
-        #xy stream or manual filter rather than automaically
-        rasterize_plot = datashade(
-            element,
-            width=800,
-            height=600,
-            aggregator=ds.sum(self.feature_intensity),
-            x_sampling=x_spacing,
-            y_sampling=y_spacing,
-            x_range=x_range_input,
-            y_range=y_range_input,
-            dynamic=False,
-        )
-
-        # actually changes the x and y limits seen, not just the rasterization levels
-        if y_range_input != None and x_range_input != None:
-            rasterize_plot.apply.opts(
-                xlim=x_range_input, ylim=y_range_input, framewise=True
-            )
-        else:
-            pass
+        '''Return rasterized mz and drift retention plot'''
+        rasterize_plot = additional_functions.rasterize_plot(
+        element = element,
+        feature_intensity = self.feature_intensity, 
+        x_filter= self.feature_mz_axis_width,
+        y_filter=self.feature_dt_axis_width,
+        x_spacing=self.min_feature_dt_bin_size,
+        y_spacing=self.min_feature_mz_bin_size)
         return rasterize_plot
+    
 
+    def rasterize_dr(
+        self,
+        element,
+        Recreate_plots_with_below_values
+    ):
+        '''Return rasterized drift time vs retention time plot'''
+        rasterize_plot = additional_functions.rasterize_plot(
+        element = element,
+        feature_intensity = self.feature_intensity, 
+        x_filter= self.feature_dt_axis_width,
+        y_filter=self.feature_rt_axis_width,
+        x_spacing=self.min_feature_dt_bin_size,
+        y_spacing=self.min_feature_rt_bin_size)
+        
+        pn.state.notifications.info('New drift time vs retention time plot', duration=0)
+        return rasterize_plot
+    
 
-    # create the hv plots
-    def hvplot_md(self, ds):
-        element = ds.data.hvplot.points(x=self.feature3, y=self.feature1, c=self.feature_intensity)
-        return element
+    def rasterize_rm(
+        self,
+        element,
+        Recreate_plots_with_below_values
+    ):
+        '''Return rasterized retention time vs mz plot'''
+        rasterize_plot = additional_functions.rasterize_plot(
+        element = element,
+        feature_intensity = self.feature_intensity, 
+        x_filter= self.feature_rt_axis_width,
+        y_filter=self.feature_mz_axis_width,
+        x_spacing=self.min_feature_rt_bin_size,
+        y_spacing=self.min_feature_mz_bin_size)
+        
+        pn.state.notifications.info('New retention time vs mz plot', duration=0)
+        return rasterize_plot
+    
         # create the hv plots 
-
-    def hvplot_dr(self, ds):
-        element = ds.data.hvplot.points(x=self.feature1, y=self.feature2, c=self.feature_intensity)
+    def hvplot_md(self, ds):
+        '''Return initial points plot mz and drift retention plot'''
+        element = ds.data.hvplot.points(x=self.feature_mz, y=self.feature_dt, c=self.feature_intensity)
         return element
-
+    
+    def hvplot_dr(self, ds):
+        '''Return initial points drift time vs retention time plot'''
+        element = ds.data.hvplot.points(x=self.feature_dt, y=self.feature_rt, c=self.feature_intensity)
+        return element
+    
     # create the hv plots
     def hvplot_rm(self, ds):
-        element = ds.data.hvplot.points(x=self.feature2, y=self.feature3, c=self.feature_intensity)
+        '''Return initial points drift time vs retention time plot'''
+        element = ds.data.hvplot.points(x=self.feature_rt, y=self.feature_mz, c=self.feature_intensity)
         return element
     
-    # show plots of raw data before any smoothing, peakfinding, etc.
-    def raw_viewable(self, **kwargs):
-        print('view raw data plots')
+    # show plots of initial data before any smoothing, peakfinding, etc.
+    @pm.depends('placehold_data_initial',  watch=True)
+    def initial_viewable(self, **kwargs):
+        '''full function to return the initial data in a graph'''
+        # profiler = Profiler()
+        # profiler.start()
+        # update file selector widget with new names from folder
+        self.param.file_name_initial.update()
+        self.param.file_name_smooth.update()
+        self.param.file_name_peak.update()
+    
+        pn.state.notifications.info('Loading initial data plots', duration=0)
         # dynamic map to return hvdata after loading it with deimos - hvplot because needs to be a holoview to be returned with dynamicmap
-        hvdata_full = hv.DynamicMap(self.hvdata_raw)
-
+        hvdata_full = hv.DynamicMap(self.hvdata_initial)
         # return the hvplot for mz and retention_time
-        hvplot_md_raw = hvdata_full.apply(self.hvplot_md)
-        hvplot_dr_raw = hvdata_full.apply(self.hvplot_dr)
-        hvplot_rm_raw = hvdata_full.apply(self.hvplot_rm)
+        hvplot_md_initial = hvdata_full.apply(self.hvplot_md)
+        hvplot_dr_initial = hvdata_full.apply(self.hvplot_dr)
+        hvplot_rm_initial = hvdata_full.apply(self.hvplot_rm)
         
         # stream to rasterize the plot. any change will cause the whole plot to reload
-        md_stream_raw = hv.streams.Params(
-            self, ['feature3_axis_width', 'feature1_axis_width', 'min_feature3_bin_size', 'min_feature1_bin_size'], \
-                rename = {'feature3_axis_width': 'x_filter', 'feature1_axis_width': 'y_filter', \
-                    'min_feature3_bin_size': 'x_spacing', 'min_feature1_bin_size': 'y_spacing'})
-
-        dr_stream_raw = hv.streams.Params(
-            self, ['feature1_axis_width', 'feature2_axis_width', 'min_feature1_bin_size', 'min_feature2_bin_size'], \
-                rename = {'feature1_axis_width': 'x_filter', 'feature2_axis_width': 'y_filter', \
-                    'min_feature1_bin_size': 'x_spacing', 'min_feature2_bin_size': 'y_spacing'})
-
-        rm_stream_raw = hv.streams.Params(
-            self, ['feature2_axis_width', 'feature3_axis_width', 'min_feature2_bin_size', 'min_feature3_bin_size'], \
-                rename = {'feature2_axis_width': 'x_filter', 'feature3_axis_width': 'y_filter', \
-                    'min_feature2_bin_size': 'x_spacing', 'min_feature3_bin_size': 'y_spacing'})
-
+        stream_initial = hv.streams.Params(
+            self, ['Recreate_plots_with_below_values'])
         # normally would use rasterize(hv.DynamicMap(self.elem)) but using dynamic for a more complicated function
         # the changes to the x and y axis will also be an input due to rangexy stream
-        self.rasterized_md_raw = hv.util.Dynamic(
-            hvplot_md_raw,
-            operation=self.rasterize,
-            streams=[hv.streams.RangeXY(), md_stream_raw],
-        )
-
-        self.rasterized_dr_raw = hv.util.Dynamic(
-                    hvplot_dr_raw,
-                    operation=self.rasterize,
-                    streams=[hv.streams.RangeXY(), dr_stream_raw],
+        
+        self.rasterized_md_initial = hv.util.Dynamic(
+                    hvplot_md_initial,
+                    operation=self.rasterize_md,
+                    streams=[stream_initial],
                 )
-
-        self.rasterized_rm_raw = hv.util.Dynamic(
-                    hvplot_rm_raw,
-                    operation=self.rasterize,
-                    streams=[hv.streams.RangeXY(), rm_stream_raw],
+        
+        self.rasterized_dr_initial = hv.util.Dynamic(
+                    hvplot_dr_initial,
+                    operation=self.rasterize_dr,
+                    streams=[stream_initial],
                 )
-        return ls(self.rasterized_rm_raw + self.rasterized_dr_raw +  self.rasterized_md_raw).opts(shared_axes=True)
+        
+        self.rasterized_rm_initial = hv.util.Dynamic(
+                    hvplot_rm_initial,
+                    operation=self.rasterize_rm,
+                    streams=[stream_initial],
+                )
+        # profiler.stop()
+        # results_file = os.path.join(TESTS_ROOT, "initial_" + str(self.placehold_data_initial) + Path(self.file_name_initial).name + ".html")
+        # profiler.write_html(results_file)
+        return ls(self.rasterized_md_initial + self.rasterized_dr_initial + self.rasterized_rm_initial).opts(shared_axes=True)
     
 
-
     # does not automatically reset xy axis (keeps at originally loaded, so have to do so automatically)
-    @pm.depends('manual_filter', 'file_name_raw',  watch=True)
+    @pm.depends('file_name_initial',  watch=True)
     def reset_xy_stream(self):
-        # plots have streams, first streams are rangexy, which needs to be rest
-        print('start resetting')
+        '''reset streams from hvplots so reset isn't set at original data range'''
+        # plots have streams, first streams are rangexy, which
         try:
-            self.rasterized_md_raw.streams[0].reset()
-            self.rasterized_dr_raw.streams[0].reset()
-            self.rasterized_rm_raw.streams[0].reset()
-            print('reset default stream value for xy stream')
+            self.rasterized_md_initial.streams[0].reset()
+            self.rasterized_dr_initial.streams[0].reset()
+            self.rasterized_rm_initial.streams[0].reset()
         except:
-            print('raw does not exist')
+              pass
         try:
             self.rasterized_md_peak.streams[0].reset()
             self.rasterized_dr_peak.streams[0].reset()
             self.rasterized_rm_peak.streams[0].reset()
-            print('reset default stream value for xy stream')
         except:
-            print('peak plots does not exist')
+              pass
         try:
             self.rasterized_md_smooth.streams[0].reset()
             self.rasterized_dr_smooth.streams[0].reset()
             self.rasterized_rm_smooth.streams[0].reset()
-            print('reset default stream value for xy stream')
         except:
-            print('smooth plots does not exist')
-        print('done with reseting')
+              pass
+        try:
+            self.rasterized_md_iso.streams[0].reset()
+            self.rasterized_dr_iso.streams[0].reset()
+            self.rasterized_rm_iso.streams[0].reset()
+        except:
+              pass
+        try:
+            self.md_decon.streams[0].reset()
+            self.dr_decon.streams[0].reset()
+            self.mr_decon.streams[0].reset()
+        except:
+             pass
 
-
-    @pm.depends('run_smooth')
+    @pm.depends('rerun_smooth', 'placehold_data_smooth')
     def create_smooth_data(self):
-        print('create smooth data')
-        print(os.path.join(self.file_folder,  self.file_name_raw))
-        self.file_name_smooth = self.file_name_raw[:-3] + '_threshold_' + str(self.threshold_slider) + \
-             '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature2_" + str(self.feature2) +\
-                '_new_smooth_data.h5'
+        '''run deimos functions to get the smoothed data returned'''
         
-        if os.path.isfile(os.path.join(self.file_folder,  "created_data", self.file_name_smooth)):
-            ms1_smooth = deimos.load(os.path.join(self.file_folder,  "created_data", self.file_name_smooth), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-        
-            ms1 = deimos.load(os.path.join(self.file_folder,  self.file_name_raw), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-            ms2 = deimos.load(os.path.join(self.file_folder,  self.file_name_raw), key='ms2', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-
-            factors = deimos.build_factors(ms1, dims='detect')
-                    
-            # Nominal threshold
-            ms1 = deimos.threshold(ms1, threshold=int(self.threshold_slider))
-            # Build index
-            self.index_ms1_peaks = deimos.build_index(ms1, factors)
-            
-
-            factors = deimos.build_factors(ms2, dims='detect')
-                    
-            # Nominal threshold
-            ms2 = deimos.threshold(ms2, threshold=int(self.threshold_slider))
-            # Build index
-            self.index_ms2_peaks = deimos.build_index(ms2, factors)
-
+        # name will be saved as
+        new_smooth_name =  os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).name[:-3] + '_threshold_' + str(self.threshold_slider) + \
+             '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
+                '_new_smooth_data.h5')
+        if self.placehold_data_smooth:
+                pn.state.notifications.info('In progress: Placeholder data, uncheck to use own data', duration=0)
+                self.data_smooth_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
         else:
-            ms1 = deimos.load(os.path.join(self.file_folder,  self.file_name_raw), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-            ms2 = deimos.load(os.path.join(self.file_folder,  self.file_name_raw), key='ms2', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-
-            factors = deimos.build_factors(ms1, dims='detect')
-                    
-            # Nominal threshold
-            ms1 = deimos.threshold(ms1, threshold=int(self.threshold_slider))
-            # Build index
-            self.index_ms1_peaks = deimos.build_index(ms1, factors)
-            # Smooth data
-            smooth_radius= [int(i) for i in list(self.smooth_radius.split('-'))]
-            iterations = int(self.smooth_iterations)
-
-            ms1_smooth = deimos.filters.smooth(ms1, index=self.index_ms1_peaks, dims=[self.feature3, self.feature1, self.feature2],
-                                        radius=smooth_radius, iterations=iterations)
-            
-            # Save ms1 to new file
-            deimos.save(os.path.join(self.file_folder,  "created_data", self.file_name_smooth), ms1_smooth, key='ms1', mode='w')
-
-                    # append peak ms2
-            factors = deimos.build_factors(ms2, dims='detect')
-                    
-            # Nominal threshold
-            ms2 = deimos.threshold(ms2, threshold=int(self.threshold_slider))
-            # Build index
-            self.index_ms2_peaks = deimos.build_index(ms2, factors)
-
-            # Smooth data
-            smooth_radius= [int(i) for i in list(self.smooth_radius.split('-'))]
-            iterations = int(self.smooth_iterations)
-            # Smooth data
-            ms2_smooth = deimos.filters.smooth(ms2, index=self.index_ms2_peaks, dims=[self.feature3, self.feature1, self.feature2],
-                                        radius=smooth_radius, iterations=iterations)
-
-            # Save ms1 to new file
-            deimos.save(os.path.join(self.file_folder,  "created_data", self.file_name_smooth), ms2_smooth, key='ms2', mode='a')
-
-            
-        self.data_smooth_ms1  = dd.from_pandas(ms1_smooth, npartitions=mp.cpu_count())
+            pn.state.notifications.info('In progress: Create smooth data from ' + str(self.file_name_initial), duration=0)
+            try:
+                ms1_smooth, self.index_ms1_peaks, self.index_ms2_peaks = additional_functions.create_smooth(self.file_name_initial, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity, self.threshold_slider, self.smooth_radius, \
+                                                                                                            self.smooth_iterations, new_smooth_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+            except Exception as e:
+                pn.state.notifications.error(str(e), duration=0)
+            # update file selector widget with new names from folder
+            self.param.file_name_smooth.update()
+            # set the file_folder and name of smooth data
+            self.file_name_smooth = new_smooth_name
+            self.data_smooth_ms1  = dd.from_pandas(ms1_smooth, npartitions=mp.cpu_count())
+            pn.state.notifications.clear()
+            pn.state.notifications.info('Finished: Created smooth data from ' + str(self.file_name_smooth), duration=0)
         self.data_smooth_ms1.persist()
         return hv.Dataset(self.data_smooth_ms1)
-    
-    @pm.depends('run_peak')
-    def create_peak_data(self):
-        print('create peak data')
-        print(os.path.join(self.file_folder,  "created_data", self.file_name_smooth))
-        self.file_name_peak = self.file_name_raw[:-3] + '_threshold_' + str(self.threshold_slider) + \
-             '_peak_radius_' + str(self.peak_radius) +  "_feature2_" +str(self.feature2) +\
-                '_new_peak_data.h5'
-        if os.path.isfile(os.path.join(self.file_folder,  "created_data", self.file_name_peak)) :
-            ms1_peaks = deimos.load(os.path.join(self.file_folder,  "created_data", self.file_name_peak), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-     
-        else:
-             # if have smooth data
-            if  self.file_name_raw[:-3] + '_threshold_' + str(self.threshold_slider) + \
-             '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations)  +  "_feature2_" + str(self.feature2) +\
-                '_new_smooth_data.h5' == self.file_name_smooth:
-
-                ms1_smooth = deimos.load(os.path.join(self.file_folder,  "created_data", self.file_name_smooth), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-                ms2_smooth = deimos.load(os.path.join(self.file_folder,  "created_data", self.file_name_smooth), key='ms2', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-
-
-                peak_radius= [int(i) for i in list(self.peak_radius.split('-'))]
-
-                # Perform peak detection
-                ms1_peaks = deimos.peakpick.persistent_homology(ms1_smooth, index=self.index_ms1_peaks,
-                                                                dims=[self.feature3, self.feature1, self.feature2],
-                                                                radius=peak_radius)
-
-                # Sort by persistence
-                ms1_peaks = ms1_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
-
-                # Save ms1 to new file
-                deimos.save(os.path.join(self.file_folder,  "created_data", self.file_name_peak), ms1_peaks, key='ms1', mode='w')
-
-
-                # Perform peak detection
-                ms2_peaks = deimos.peakpick.persistent_homology(ms2_smooth, index=self.index_ms2_peaks,
-                                                                dims=[self.feature3, self.feature1, self.feature2],
-                                                                radius=peak_radius)
-
-                # Sort by persistence
-                ms2_peaks = ms2_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
-
-                # Save ms2 to new file with _new_peak_data.h5 suffix
-                deimos.save(os.path.join(self.file_folder,  "created_data", self.file_name_peak), ms2_peaks, key='ms2', mode='a')
-
-            else:
-
-                ms1_peaks = deimos.load(os.path.join(self.file_folder,  'small_peak1.h5'), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-      
-            
-
-        self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
-        self.data_peak_ms1.persist()
-
-        return hv.Dataset(self.data_peak_ms1)
-
-
+  
+  
     def smooth_viewable(self, **kwargs):
-        print('view smooth data')
+        '''full function to load and process smooth function and return graphs'''
+        
+        # profiler = Profiler()
+        # profiler.start()
+        
+        pn.state.notifications.info('Loading smooth data' + str(self.file_name_smooth), duration=0)
         # dynamic map to return hvdata after loading it with deimos
         hvdata_smooth = hv.DynamicMap(self.create_smooth_data)
 
         # return the hvplot for mz and retention_time
-        hvplot_md = hvdata_smooth.apply(self.hvplot_md)
-        hvplot_dr = hvdata_smooth.apply(self.hvplot_dr)
-        hvplot_rm = hvdata_smooth.apply(self.hvplot_rm)
+        hvplot_md_smooth = hvdata_smooth.apply(self.hvplot_md)
+        hvplot_dr_smooth = hvdata_smooth.apply(self.hvplot_dr)
+        hvplot_rm_smooth = hvdata_smooth.apply(self.hvplot_rm)
         
         # stream to rasterize the plot. any change will cause the whole plot to reload
-        md_stream= hv.streams.Params(
-            self, ['feature3_axis_width', 'feature1_axis_width', 'min_feature3_bin_size', 'min_feature1_bin_size'], \
-                rename = {'feature3_axis_width': 'x_filter', 'feature1_axis_width': 'y_filter', \
-                    'min_feature3_bin_size': 'x_spacing', 'min_feature1_bin_size': 'y_spacing'})
-
-        dr_stream = hv.streams.Params(
-            self, ['feature1_axis_width', 'feature2_axis_width', 'min_feature1_bin_size', 'min_feature2_bin_size'], \
-                rename = {'feature1_axis_width': 'x_filter', 'feature2_axis_width': 'y_filter', \
-                    'min_feature1_bin_size': 'x_spacing', 'min_feature2_bin_size': 'y_spacing'})
-
-        rm_stream = hv.streams.Params(
-            self, ['feature2_axis_width', 'feature3_axis_width', 'min_feature2_bin_size', 'min_feature3_bin_size'], \
-                rename = {'feature2_axis_width': 'x_filter', 'feature3_axis_width': 'y_filter', \
-                    'min_feature2_bin_size': 'x_spacing', 'min_feature3_bin_size': 'y_spacing'})
-
+        stream_smooth = hv.streams.Params(
+            self, ['Recreate_plots_with_below_values'])
         # normally would use rasterize(hv.DynamicMap(self.elem)) but using dynamic for a more complicated function
-        # the changes to the x and y axis will also be an input due to rangexy
+        # the changes to the x and y axis will also be an input due to rangexy stream
+        
         self.rasterized_md_smooth = hv.util.Dynamic(
-            hvplot_md,
-            operation=self.rasterize,
-            streams=[hv.streams.RangeXY(), md_stream],
-        )
-
+                    hvplot_md_smooth,
+                    operation=self.rasterize_md,
+                    streams=[stream_smooth],
+                )
+        
         self.rasterized_dr_smooth = hv.util.Dynamic(
-                    hvplot_dr,
-                    operation=self.rasterize,
-                    streams=[hv.streams.RangeXY(), dr_stream],
+                    hvplot_dr_smooth,
+                    operation=self.rasterize_dr,
+                    streams=[stream_smooth],
                 )
-
+        
         self.rasterized_rm_smooth = hv.util.Dynamic(
-                    hvplot_rm,
-                    operation=self.rasterize,
-                    streams=[hv.streams.RangeXY(), rm_stream],
+                    hvplot_rm_smooth,
+                    operation=self.rasterize_rm,
+                    streams=[stream_smooth],
                 )
 
-        return ls2(self.rasterized_rm_smooth + self.rasterized_dr_smooth +  self.rasterized_md_smooth ).opts(shared_axes=True)
+        # profiler.stop()
+        # results_file = os.path.join(TESTS_ROOT, "just_loading_smooth_"  + str(self.placehold_data_smooth)  +  Path(self.file_name_smooth).name + ".html")
+        # profiler.write_html(results_file)
+        return ls(self.rasterized_md_smooth + self.rasterized_dr_smooth + self.rasterized_rm_smooth).opts(shared_axes=True)
+    
+    @pm.depends('rerun_peak', 'placehold_data_peak')
+    def create_peak_data(self):
+        '''get peak data using deimos functions'''
+        # name will be saved as, check if already exists, if so don't rerun
+        new_peak_name = os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).name[:-3]  + '_threshold_' + str(self.threshold_slider) + \
+             '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
+                '_new_peak_data.h5')
+        if self.placehold_data_peak:
+            pn.state.notifications.info('In progress: Create peak data: Placeholder', duration=0)
+            self.data_peak_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
+        else:
+            pn.state.notifications.info('In progress: Create peak data: ' + str(self.file_name_smooth), duration=0)
+            if os.path.isfile(new_peak_name):
+                try:
+                    ms1_peaks = additional_functions.load_mz_h5(new_peak_name, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+                except Exception as e:
+                    pn.state.notifications.error(str(e), duration=0)
+            else:
+                # if have smooth data from previous step
+                # add boolean to use created threshold data and created smooth data or redo entiremely
+                try:
+                    ms1_peaks = additional_functions.create_peak(self.file_name_smooth, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity, self.peak_radius, self.index_ms1_peaks, self.index_ms2_peaks,\
+                                                                new_peak_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+                except Exception as e:
+                    pn.state.notifications.error(str(e), duration=0)
+            self.param.file_name_peak.update()
+            self.file_name_peak = new_peak_name
+            self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
+            
+            pn.state.notifications.clear()
+            pn.state.notifications.info('Finished: Peak data at ' + str(self.file_name_peak), duration=0)
 
-
+        self.data_peak_ms1.persist()
+        return hv.Dataset(self.data_peak_ms1)
+    
     def peak_viewable(self, **kwargs):
+        '''run full function to load smooth data, run peak function and return heatmaps'''
         # dynamic map to return hvdata after loading it with deimos
-        print('view peak data')
+        
+        # profiler = Profiler()
+        # profiler.start()
+        
+        self.param.file_name_initial.update()
+        self.param.file_name_smooth.update()
+        self.param.file_name_peak.update()
+        pn.state.notifications.info('Loading peak data: ' + str(self.file_name_peak), duration=0)
         hvdata_peak = hv.DynamicMap(self.create_peak_data)
+        # return the hvplot for mz and retention_time
 
         # return the hvplot for mz and retention_time
-        hvplot_md = hvdata_peak.apply(self.hvplot_md)
-        hvplot_dr = hvdata_peak.apply(self.hvplot_dr)
-        hvplot_rm = hvdata_peak.apply(self.hvplot_rm)
+        hvplot_md_peak = hvdata_peak.apply(self.hvplot_md)
+        hvplot_dr_peak = hvdata_peak.apply(self.hvplot_dr)
+        hvplot_rm_peak = hvdata_peak.apply(self.hvplot_rm)
         
         # stream to rasterize the plot. any change will cause the whole plot to reload
-        md_stream= hv.streams.Params(
-            self, ['feature3_axis_width', 'feature1_axis_width', 'min_feature3_bin_size', 'min_feature1_bin_size'], \
-                rename = {'feature3_axis_width': 'x_filter', 'feature1_axis_width': 'y_filter', \
-                    'min_feature3_bin_size': 'x_spacing', 'min_feature1_bin_size': 'y_spacing'})
-
-        dr_stream = hv.streams.Params(
-            self, ['feature1_axis_width', 'feature2_axis_width', 'min_feature1_bin_size', 'min_feature2_bin_size'], \
-                rename = {'feature1_axis_width': 'x_filter', 'feature2_axis_width': 'y_filter', \
-                    'min_feature1_bin_size': 'x_spacing', 'min_feature2_bin_size': 'y_spacing'})
-
-        rm_stream = hv.streams.Params(
-            self, ['feature2_axis_width', 'feature3_axis_width', 'min_feature2_bin_size', 'min_feature3_bin_size'], \
-                rename = {'feature2_axis_width': 'x_filter', 'feature3_axis_width': 'y_filter', \
-                    'min_feature2_bin_size': 'x_spacing', 'min_feature3_bin_size': 'y_spacing'})
-
+        stream_peak = hv.streams.Params(
+            self, ['Recreate_plots_with_below_values'])
         # normally would use rasterize(hv.DynamicMap(self.elem)) but using dynamic for a more complicated function
-        # the changes to the x and y axis will also be an input due to rangexy
+        # the changes to the x and y axis will also be an input due to rangexy stream
+        
         self.rasterized_md_peak = hv.util.Dynamic(
-            hvplot_md,
-            operation=self.rasterize,
-            streams=[hv.streams.RangeXY(), md_stream],
-        )
-
+                    hvplot_md_peak,
+                    operation=self.rasterize_md,
+                    streams=[stream_peak],
+                )
+        
         self.rasterized_dr_peak = hv.util.Dynamic(
-                    hvplot_dr,
-                    operation=self.rasterize,
-                    streams=[hv.streams.RangeXY(), dr_stream],
+                    hvplot_dr_peak,
+                    operation=self.rasterize_dr,
+                    streams=[stream_peak],
                 )
-
+        
         self.rasterized_rm_peak = hv.util.Dynamic(
-                    hvplot_rm,
-                    operation=self.rasterize,
-                    streams=[hv.streams.RangeXY(), rm_stream],
+                    hvplot_rm_peak,
+                    operation=self.rasterize_rm,
+                    streams=[stream_peak],
                 )
 
-        return ls3(self.rasterized_rm_peak + self.rasterized_dr_peak +  self.rasterized_md_peak ).opts(shared_axes=True)
-
-    @pm.depends('run_decon')
-    def load_decon_data(self):
-
-        print('load new decon  data')
-        self.ms1 = deimos.load(os.path.join(self.file_folder,  self.file_name_raw), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-        self.ms2 = deimos.load(os.path.join(self.file_folder,  self.file_name_raw), key='ms2', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-
-        
-        self.ms2_peaks = deimos.load(os.path.join(self.file_folder,  "created_data", self.file_name_peak), key='ms2', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-        self.ms1_peaks = deimos.load(os.path.join(self.file_folder,  "created_data", self.file_name_peak), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-
-        ms1_peaks_dd = dd.from_pandas(self.ms1_peaks, npartitions=mp.cpu_count())
-        ms1_peaks_dd.persist()
-
-        return hv.Dataset(ms1_peaks_dd)
+        # profiler.stop()
+        # results_file = os.path.join(TESTS_ROOT, "peak"  + str(self.placehold_data_peak)  + Path(self.file_name_peak).name + ".html")
+        # profiler.write_html(results_file)
+        return ls(self.rasterized_md_peak + self.rasterized_dr_peak + self.rasterized_rm_peak).opts(shared_axes=True)
     
-    @pm.depends('run_decon')
+    
+    @pm.depends('rerun_decon', 'placehold_data_decon')
     def ms2_decon(self):
-        print("run decon; shouldn't run")
-        print(os.path.join(self.file_folder,  "created_data", self.file_name_peak))
-        print(os.path.join(self.file_folder,  self.file_name_raw))
-
-        self.file_name_res = self.file_name_raw[:-3] + self.file_name_peak[:-3].split('_threshold_')[-1] + self.file_name_smooth[:-3].split('_threshold_')[-1] + '_res.csv'
         
-        if os.path.isfile(os.path.join(self.file_folder,  "created_data", self.file_name_res)):
-            res = pd.read_csv(os.path.join(self.file_folder,  "created_data", self.file_name_res))
-     
+        
+        file_name_res = os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).name[:-3]  + '_threshold_' + str(self.threshold_slider) + \
+             '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" +str(self.feature_rt) +\
+                '_res.csv')
+        if self.placehold_data_decon:
+                pn.state.notifications.info("Run placeholder", duration=0)
+                res = pd.DataFrame([[1,1,2,3,1,1,2,3],[2,1,3,4,1,1,2,3], [20,10,30,100,1,1,2,3]], \
+                                   columns = ["mz_ms1","drift_time_ms1","retention_time_ms1",\
+                                              "intensity_ms1","mz_ms2","drift_time_ms2","retention_time_ms2","intensity_ms2"])
         else:
-            # if using the default data, use easy filters, or haven't processed peak data yet from full
-            if self.file_name_raw[:-3] + '_threshold_' + str(self.threshold_slider) + \
-             '_peak_radius_' + str(self.peak_radius) +  "_feature2_" + str(self.feature2) +\
-                '_new_peak_data.h5' != self.file_name_peak or not os.path.isfile(os.path.join(self.file_folder,  "created_data", self.file_name_peak)):
-
-                res = pd.read_csv(os.path.join(self.file_folder,  "small_full1_res.csv"))
-
-
+            pn.state.notifications.info("In progress: Run deconvolution", duration=0)
+            if os.path.isfile(file_name_res):
+                res = pd.read_csv(file_name_res)
             else:
                 threshold_peak_ms1 = 10000
                 threshold_peak_ms2 = 1000
@@ -642,134 +591,137 @@ class Deimos_app(pm.Parameterized):
                 threshold_full_m2 = int(self.threshold_slider)
                 require_ms1_greater_than_ms2 = True
                 drift_score_min = True
-
-                ms1 = deimos.load(os.path.join(self.file_folder,  self.file_name_raw), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-                ms2 = deimos.load(os.path.join(self.file_folder,  self.file_name_raw), key='ms2', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-
-                
-                ms2_peaks = deimos.load(os.path.join(self.file_folder,  "created_data", self.file_name_peak), key='ms2', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-                ms1_peaks = deimos.load(os.path.join(self.file_folder,  "created_data", self.file_name_peak), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-
-
-
+                try:
+                    ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+                    ms2 = additional_functions.load_mz_h5(self.file_name_initial, key='ms2', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+                    
+                    ms2_peaks = additional_functions.load_mz_h5(self.file_name_peak, key='ms2', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+                    ms1_peaks = additional_functions.load_mz_h5(self.file_name_peak, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+                except Exception as e:
+                    pn.state.notifications.error(str(e), duration=0)
                 # get thresholds of ms1 and ms2 peak and full data
                 ms1 = deimos.threshold(ms1, threshold= threshold_full_m1)
                 ms2 = deimos.threshold(ms2, threshold= threshold_full_m2)  
-
                 
                 ms1_peaks = deimos.threshold(ms1_peaks, threshold=threshold_peak_ms1)
                 ms2_peaks = deimos.threshold(ms2_peaks, threshold=threshold_peak_ms2)
 
-
                 decon = deimos.deconvolution.MS2Deconvolution(ms1_peaks, ms1, ms2_peaks, ms2)
                 # use false .loc[res['drift_time_score']
-                decon.construct_putative_pairs(dims=[self.feature1, self.feature2],
+                decon.construct_putative_pairs(dims=[self.feature_dt, self.feature_rt],
                                     low=[-0.12, -0.1], high=[1.4, 0.1], ce=20,
-                                    model=offset_correction_model,
+                                    model=additional_functions.offset_correction_model,
                                     require_ms1_greater_than_ms2=require_ms1_greater_than_ms2,
                                     error_tolerance=0.12)
                 
-                decon.configure_profile_extraction(dims=[self.feature3, self.feature1, self.feature2],
+                decon.configure_profile_extraction(dims=[self.feature_mz, self.feature_dt, self.feature_rt],
                                         low=[-200E-6, -0.05, -0.1],
                                         high=[600E-6, 0.05, 0.1],
                                         relative=[True, True, False])
             
-                res = decon.apply(dims=self.feature1, resolution=0.01)
-
+                res = decon.apply(dims=self.feature_dt, resolution=0.01)
                 if drift_score_min:
-                    res = res.loc[res[self.feature1 + '_score'] > .9].groupby(by=[x for x in res.columns if x.endswith('_ms1')],
+                    res = res.loc[res[self.feature_dt + '_score'] > .9].groupby(by=[x for x in res.columns if x.endswith('_ms1')],
                                                             as_index=False).agg(list)
                 else: 
+                    
                     res = res.groupby(by=[x for x in res.columns if x.endswith('_ms1')],
                                                             as_index=False).agg(list)
                 
-                res.to_csv( os.path.join(self.file_folder,  "created_data", self.file_name_res))
+                res.to_csv(file_name_res)
+                pn.state.notifications.clear()
+                pn.state.notifications.info("Finished running deconvolution", duration=0)
         return hv.Dataset(res)
         
 # create the hv plots
     def hvplot_md_decon(self, ds):
         plot_df = ds.data.rename(columns = {self.feature_intensity + '_ms1': self.feature_intensity})
-        element = plot_df.hvplot.points(x=self.feature3 + '_ms1', y=self.feature1 + '_ms1', c=self.feature_intensity)
+        element = plot_df.hvplot.points(x=self.feature_mz + '_ms1', y=self.feature_dt + '_ms1', c=self.feature_intensity)
         return element# create the hv plots
     
         # create the hv plots
     def hvplot_dr_decon(self, ds):
         plot_df = ds.data.rename(columns = {self.feature_intensity + '_ms1': self.feature_intensity})
-        element = plot_df.hvplot.points(x=self.feature1 + '_ms1', y=self.feature2 + '_ms1', c=self.feature_intensity)
+        element = plot_df.hvplot.points(x=self.feature_dt + '_ms1', y=self.feature_rt + '_ms1', c=self.feature_intensity)
         return element
     
     def hvplot_rm_decon(self, ds):
         plot_df = ds.data.rename(columns = {self.feature_intensity + '_ms1': self.feature_intensity})
-        element = plot_df.hvplot.points(x=self.feature2 + '_ms1', y=self.feature3 + '_ms1', c=self.feature_intensity)
+        element = plot_df.hvplot.points(x=self.feature_rt + '_ms1', y=self.feature_mz + '_ms1', c=self.feature_intensity)
         return element
+    
+    def hvplot_mi_decon(self, ds):
+        
+        
+        pn.state.notifications.info("Create new plots with data length: " + str(len(ds.data)), duration=0)
+        data_collapse = deimos.collapse(ds.data, keep='mz')
+        element2 = hv.Spikes(data_collapse , self.feature_mz, self.feature_intensity).opts(framewise = True, width=600)
+        return  element2 
     
     # input data is the selection on the  dt vs rt time for ms1 data plot
     def function_return_m2_subset_decon(self, ds, m1, d1, d2, r2, r3, m3):
-        print('run return ms2 subset')
-        print( m1, d1, d2, r2, r3, m3)
-        if m1 != None and d1 != None:
-            x_column_plot = self.feature3 + '_ms1'
-            y_column_plot = self.feature1 + '_ms1'
-            space_x = self.min_feature3_bin_size
-            space_y = self.min_feature1_bin_size
+        example_ms2= pd.DataFrame([[np.random.randint(0,9), np.random.randint(0,9)], [np.random.randint(0,9), np.random.randint(0,9)]],\
+                                   columns = [self.feature_mz, self.feature_intensity])
+        if self.placehold_data_decon:
+            return hv.Dataset(example_ms2)
+        # get the decon plots if necessary
+        self.md_decon_stream.reset()
+        self.dr_decon_stream.reset()
+        self.rm_decon_stream.reset()
+        
+        
 
-        elif d2 != None and r2 != None:
-            x_column_plot = self.feature1 + '_ms1'
-            y_column_plot = self.feature2 + '_ms1'
-            space_x = self.min_feature1_bin_size
-            space_y = self.min_feature2_bin_size
-
+        #get dimensions depending on which depending on which plot were selected
+        if m1 != self.m1 and d1 != self.d1:
+            x_column_plot = self.feature_mz + '_ms1'
+            y_column_plot = self.feature_dt + '_ms1'
+            #todo: make this space its own input
+            space_x = self.min_feature_mz_spacing
+            space_y = self.min_feature_dt_spacing
+            x_range = m1
+            y_range = d1
+        elif d2 != self.d2 and r2 != self.r2:
+            x_column_plot = self.feature_dt + '_ms1'
+            y_column_plot = self.feature_rt + '_ms1'
+            space_x = self.min_feature_dt_spacing
+            space_y = self.min_feature_rt_spacing
+            x_range = d2
+            y_range = r2
         else:
-            x_column_plot = self.feature2 + '_ms1'
-            y_column_plot = self.feature3 + '_ms1'
-            space_x = self.min_feature2_bin_size
-            space_y = self.min_feature3_bin_size
-
+            x_column_plot = self.feature_rt + '_ms1'
+            y_column_plot = self.feature_mz + '_ms1'
+            space_x = self.min_feature_rt_spacing
+            space_y = self.min_feature_mz_spacing
+            x_range = r3
+            y_range = m3
+        # save current values to see which values have changes and use that as input
+        self.m1, self.d1, self.d2, self.r2, self.r3, self.m3 = m1, d1, d2, r2, r3, m3
         # should only be one range to use from y and x, else use none
         # using range of last selection
-        y_list = [d1, r2, m3]
-        list_y_range = [x for x in y_list if x!=None]
-        if len(list_y_range) != 1:
-            print('two filters y')
-            y_range = None
-        else:
-            y_range = list_y_range[0]
 
-        x_list = [m1, d2, r3]
-        list_x_range = [x for x in x_list if x!=None]
-        if len(list_x_range) != 1:
-            x_range = None
-        else:
-            x_range = list_x_range[0]
-        
-        # get the decon plots if necessary
-        self.md_decon.reset()
-        self.dr_decon.reset()
-        self.rm_decon.reset()
-
-        #reset value to none
-        m1, d1, d2, r2, r3, m3 = None, None, None, None, None, None
-
+        pn.state.notifications.info('Slice data: ' + str(x_range) + " " + str(y_range), duration=0)
         res = ds.data
-
         def lit_list(x):
             try:
                 return ast.literal_eval(str(x))   
             except Exception as e:
-                print(e)
+                
+                
+                pn.state.notifications.info(e, duration=0)
                 return x
             
         # if string, convert to list. if list, string and back to list (does nothing)
-        res[self.feature3 + '_ms2'] = res[self.feature3 + '_ms2'].apply(lambda x: lit_list(x))
+        res[self.feature_mz + '_ms2'] = res[self.feature_mz + '_ms2'].apply(lambda x: lit_list(x))
         res[self.feature_intensity + '_ms2'] = res[self.feature_intensity + '_ms2'].apply(lambda x: lit_list(x))
-
         # just getting example of the first ms2 location data to use if haven't selected anything yet
-        example_ms2= pd.DataFrame([[1,1],[2,2]], columns = [self.feature3, self.feature_intensity])
+
+        
+        example_default= pd.DataFrame([[1, 1], [2, 4]],\
+                                   columns = [self.feature_mz, self.feature_intensity])
        
         # if no range selected 
-        if (x_range == None or math.isnan(float(x_range)) or self.file_name_peak == 'placeholder_full.h5'
-        ): 
-            return hv.Dataset(example_ms2)
+        if (x_range == None or math.isnan(float(x_range))): 
+            return hv.Dataset(example_default)
         else:
             # slice data to get subset of ms1 data, of which will pick the highest intensity to get ms2 data
             x_range = float(x_range)
@@ -781,286 +733,595 @@ class Deimos_app(pm.Parameterized):
                 high=[x_range + space_x, y_range + space_y],
             )
             if isinstance(ms2_subset, type(None)):
-                print(example_ms2.head())
-                return hv.Dataset(example_ms2)
+                return hv.Dataset(example_default)
             else:
                 # of the subset, get maximum intensity of ms1 data
                 max_idx =  pd.to_numeric(ms2_subset[self.feature_intensity + '_ms1']).idxmax()
-                if len(res.loc[max_idx, self.feature3 + '_ms2']) == 1:
-                    # use location of maximum intensity ms1 data to get 
-                    numpy_dataframe = np.hstack((np.array(res.loc[max_idx, self.feature3 + '_ms2']),
+                if len(res.loc[max_idx, self.feature_mz + '_ms2']) == 1:
+                    # if just one value of ms2 in list, convert to pandas dataframe rather than a series
+                    numpy_dataframe = np.hstack((np.array(res.loc[max_idx, self.feature_mz + '_ms2']),
                     np.array(res.loc[max_idx, self.feature_intensity + '_ms2'])))
             
-                    highest_ms2  = pd.DataFrame(numpy_dataframe.reshape(-1, len(numpy_dataframe)), columns = [self.feature3, self.feature_intensity])
+                    highest_ms2  = pd.DataFrame(numpy_dataframe.reshape(-1, len(numpy_dataframe)), columns = [self.feature_mz, self.feature_intensity])
                 else:
-                    highest_ms2 = pd.DataFrame({self.feature3: np.array(res.loc[max_idx, self.feature3 + '_ms2']),
+                    highest_ms2 = pd.DataFrame({self.feature_mz: np.array(res.loc[max_idx, self.feature_mz + '_ms2']),
                     self.feature_intensity: np.array(res.loc[max_idx, self.feature_intensity + '_ms2'])})
-                print(x_range)
-                print(y_range)
-                print(highest_ms2.head())
+
                 return hv.Dataset(highest_ms2)
  
-    # create the hv plots with intenisty and ms2 data
-    def hvplot_mi_decon(self, ds):
-        print(ds.data)
-        element2 = hv.Spikes( ds.data, self.feature3, self.feature_intensity).opts(framewise = True, width=600)
-        return element2 
 
     # create the hv plots with intenisty and ms2 data
-
-
+    @pm.depends('placehold_data_decon', watch= True)
     def decon_viewable(self, **kwargs):
-        print('return decon viewable')
+        
+        # profiler = Profiler()
+        # profiler.start()
+
+        self.param.file_name_initial.update()
+        self.param.file_name_smooth.update()
+        self.param.file_name_peak.update()
+
+        pn.state.notifications.info('In progress: start deconvolution of data: ' + str(self.ms2_decon), duration=0)
         # dynamic map to return hvdata after loading it with deimos
         # trigger with 'run decon' button
-       
+        self.m1, self.d1, self.d2, self.r2, self.r3, self.m3 = None, None, None, None, None, None
         #get ms2 convoluted data from peak and ms2 data
         ms2_decon = hv.DynamicMap(self.ms2_decon)
-       
+    
         # return the hvplot for mz and retention_time
-        hvplot_md = ms2_decon.apply(self.hvplot_md_decon)
-        hvplot_dr = ms2_decon.apply(self.hvplot_dr_decon)
-        hvplot_rm = ms2_decon.apply(self.hvplot_rm_decon)
-        
-        # stream to rasterize the plot. any change will cause the whole plot to reload
-        md_stream= hv.streams.Params(
-            self, ['feature3_axis_width', 'feature1_axis_width', 'min_feature3_bin_size', 'min_feature1_bin_size'], \
-                rename = {'feature3_axis_width': 'x_filter', 'feature1_axis_width': 'y_filter', \
-                    'min_feature3_bin_size': 'x_spacing', 'min_feature1_bin_size': 'y_spacing'})
-
-        dr_stream = hv.streams.Params(
-            self, ['feature1_axis_width', 'feature2_axis_width', 'min_feature1_bin_size', 'min_feature2_bin_size'], \
-                rename = {'feature1_axis_width': 'x_filter', 'feature2_axis_width': 'y_filter', \
-                    'min_feature1_bin_size': 'x_spacing', 'min_feature2_bin_size': 'y_spacing'})
-
-        rm_stream = hv.streams.Params(
-            self, ['feature2_axis_width', 'feature3_axis_width', 'min_feature2_bin_size', 'min_feature3_bin_size'], \
-                rename = {'feature2_axis_width': 'x_filter', 'feature3_axis_width': 'y_filter', \
-                    'min_feature2_bin_size': 'x_spacing', 'min_feature3_bin_size': 'y_spacing'})
-
-        # normally would use rasterize(hv.DynamicMap(self.elem)) but using dynamic for a more complicated function
-        # the changes to the x and y axis will also be an input due to rangexy
-        self.rasterized_md_smooth = hv.util.Dynamic(
-            hvplot_md,
-            operation=self.rasterize,
-            streams=[hv.streams.RangeXY(), md_stream],
-        )
-
-        self.rasterized_dr_smooth = hv.util.Dynamic(
-                    hvplot_dr,
-                    operation=self.rasterize,
-                    streams=[hv.streams.RangeXY(), dr_stream],
-                )
-
-        self.rasterized_rm_smooth = hv.util.Dynamic(
-                    hvplot_rm,
-                    operation=self.rasterize,
-                    streams=[hv.streams.RangeXY(), rm_stream],
-                )
-
+        self.md_decon = ms2_decon.apply(self.hvplot_md_decon)
+        self.dr_decon = ms2_decon.apply(self.hvplot_dr_decon)
+        self.rm_decon = ms2_decon.apply(self.hvplot_rm_decon)
+   
         # xy is using the plot of ms1 data as the source of the pointer
-        self.md_decon = hv.streams.Tap(source=self.rasterized_md_smooth, rename = {'x': 'm1', 'y': 'd1'})
-
-        self.dr_decon = hv.streams.Tap(source=self.rasterized_dr_smooth, rename = {'x': 'd2', 'y': 'r2'})
-
-        self.rm_decon = hv.streams.Tap(source=self.rasterized_rm_smooth, rename = {'x': 'r3', 'y': 'm3'})
-
+        self.md_decon_stream = hv.streams.Tap(source=self.md_decon, rename = {'x': 'm1', 'y': 'd1'})
+        self.dr_decon_stream = hv.streams.Tap(source=self.dr_decon, rename = {'x': 'd2', 'y': 'r2'})
+        self.rm_decon_stream = hv.streams.Tap(source=self.rm_decon, rename = {'x': 'r3', 'y': 'm3'})
         # resample from res output stream xy_dcon is updated
-        filtered_ms2_data_decon = ms2_decon.apply(self.function_return_m2_subset_decon, streams=[self.md_decon, self.dr_decon, self.rm_decon])
+        filtered_ms2_data_decon = ms2_decon.apply(self.function_return_m2_subset_decon, streams=[self.md_decon_stream, self.dr_decon_stream, self.rm_decon_stream])
         
         # make ms plot
         full_plot_1_mi_decon = hv.util.Dynamic(filtered_ms2_data_decon,  operation= self.hvplot_mi_decon)
 
-        return hv.Layout(ls4(self.rasterized_md_smooth  + self.rasterized_dr_smooth + self.rasterized_rm_smooth).opts(shared_axes=False) + full_plot_1_mi_decon.opts(shared_axes=False)).cols(2)
+        pn.state.notifications.clear()
+        pn.state.notifications.info("Finished running deconvolution with new data", duration=0)
+
+
+        # profiler.stop()
+        # results_file = os.path.join(TESTS_ROOT, "decon_"  + str(self.placehold_data_decon) + Path(self.file_name_peak).name + ".html")
+        # profiler.write_html(results_file)
+        return hv.Layout(self.rm_decon + self.md_decon  + self.dr_decon + full_plot_1_mi_decon).cols(2)
+    
+
+        
+
+    def rasterize_md_iso(
+        self,
+        element,
+        Recreate_plots_with_below_values_iso
+    ):
+        rasterize_plot = additional_functions.rasterize_plot(
+        element = element,
+        feature_intensity = self.feature_intensity, 
+        x_filter= self.feature_mz_axis_width_iso,
+        y_filter=self.feature_dt_axis_width_iso,
+        x_spacing=self.min_feature_dt_bin_size_iso,
+        y_spacing=self.min_feature_mz_bin_size_iso)
+        
+        return rasterize_plot
+    
+
+    def rasterize_dr_iso(
+        self,
+        element,
+        Recreate_plots_with_below_values_iso
+    ):
+        rasterize_plot = additional_functions.rasterize_plot(
+        element = element,
+        feature_intensity = self.feature_intensity, 
+        x_filter= self.feature_dt_axis_width_iso,
+        y_filter=self.feature_rt_axis_width_iso,
+        x_spacing=self.min_feature_dt_bin_size_iso,
+        y_spacing=self.min_feature_rt_bin_size_iso)
+        
+        return rasterize_plot
+    
+
+    def rasterize_rm_iso(
+        self,
+        element,
+        Recreate_plots_with_below_values_iso
+    ):
+        rasterize_plot = additional_functions.rasterize_plot(
+        element = element,
+        feature_intensity = self.feature_intensity, 
+        x_filter= self.feature_rt_axis_width_iso,
+        y_filter=self.feature_mz_axis_width_iso,
+        x_spacing=self.min_feature_rt_bin_size_iso,
+        y_spacing=self.min_feature_mz_bin_size_iso)
+        
+        return rasterize_plot
+    # resets the axis to the data's min and max
+    @pm.depends('reset_filter_iso',  watch=True)
+    def refresh_axis_values_iso(self):
+        self.reset_xy_stream()
+
+        if len(self.feature_iso) > 0:
+            # since manual filter is true, tthis will reset xy stream 
+            # and set the x and y range to the min and max of the new data via the rasterize functon
+            mz_range = (
+                int(self.feature_iso.mz.min()),
+                int(self.feature_iso.mz.max() + 1),
+            )
+            #self.param sets the features within the param, while self.x sets actual value of x
+            self.param.feature_mz_axis_width_iso.bounds = mz_range
+            self.feature_mz_axis_width_iso = mz_range
+            retention_range = (
+                int(self.feature_iso[self.feature_rt].min()),
+                int(self.feature_iso[self.feature_rt].max() + 1),
+            )
+            self.param.feature_rt_axis_width_iso.bounds = retention_range
+            self.feature_rt_axis_width_iso = retention_range
+            drift_range = (
+                int(self.feature_iso[self.feature_dt].min()),
+                int(self.feature_iso[self.feature_dt].max() + 1),
+            )
+            self.param.feature_dt_axis_width_iso.bounds = drift_range
+            self.feature_dt_axis_width_iso = drift_range
+        return
+    
+    @pm.depends('rerun_iso', 'placehold_data_iso', watch = True)
+    def get_isotype(self):
+        # Load data
+        if self.placehold_data_iso:
+            pn.state.notifications.info('Isotope Placeholder', duration=0)
+            self.isotopes_head = pd.DataFrame([[1,1,2,[3,2],[3,4],[3,3]],[2,2,3,[3,5],[3,6],[3,3]]], \
+                                   columns = ["mz","idx","intensity","mz_iso","intensity_iso","idx_iso"])
+            self.ms1_peaks = pd.DataFrame([[3,10,12,3],[4,12,13,4], [2,12,314,2]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
+        else:
+            pn.state.notifications.info('In progress: Get Isotopes', duration=0)
+            ms1_peaks = deimos.load(self.file_name_peak, key='ms1',
+                                    columns=['mz', 'drift_time', 'retention_time', 'intensity'])
+            self.ms1_peaks = deimos.threshold(ms1_peaks, threshold=1000)
+            # Partition the data
+            partitions = deimos.partition(self.ms1_peaks, size=1000, overlap=5.1)
+            # Map isotope detection over partitions
+            isotopes = partitions.map(deimos.isotopes.detect,
+                                    dims=['mz', 'drift_time', 'retention_time'],
+                                    tol=[0.1, 0.7, 0.15],
+                                    delta=1.003355,
+                                    max_isotopes=5,
+                                    max_charge=1,
+                                    max_error=50E-6)
+            
+            self.isotopes_head = isotopes.sort_values(by=['intensity', 'n'], ascending=False)
+            self.isotopes_head.reset_index(inplace = True)
+            pn.state.notifications.clear()
+            pn.state.notifications.info('Finished getting isotopes', duration=0)  
+        return hv.Dataset(self.isotopes_head)
+    
+    def get_ids(self, table, index):
+        pn.state.notifications.info('Get index: ' + str(index) + " Click 'Refresh Heatmaps' to view with correct axis range", duration=0) 
+        if self.placehold_data_iso:
+            mz1 = np.random.randint(0,9)
+            mz2 = np.random.randint(0,9)
+            mz3 = np.random.randint(0,9)
+            feature = pd.DataFrame([[mz1,10,12,3],[mz2,12,13,4], [mz3,12,314,3]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
+            self.mz_iso = [mz1, mz2]
+            self.mz = mz3
+        else:
+            if index== None or str(index) == '[]':
+                index = 0
+            else:
+                index = index[0]
+            # should it include the idx column too (Plus idx iso)
+            self.mz_iso = self.isotopes_head.iloc[index]['mz_iso']
+            self.mz = self.isotopes_head.iloc[index]['mz']
+
+            idx = self.isotopes_head.iloc[index]['idx']
+            # get values from original mz using idx from isotopes table
+            mz_idx = self.ms1_peaks.iloc[int(idx)]['mz']
+            rt_idx = self.ms1_peaks.iloc[int(idx)]['retention_time']
+            dt_idx = self.ms1_peaks.iloc[int(idx)]['drift_time']
+            # slice based on inputs
+            feature = deimos.slice(table.data, by=['mz', 'drift_time', 'retention_time'],
+                        low=[mz_idx-self.slice_distance_mz, dt_idx-self.slice_distance_dt, rt_idx-self.slice_distance_rt],
+                        high=[mz_idx+5*1.003355, dt_idx+self.slice_distance_dt, rt_idx+self.slice_distance_rt])
+            
+        self.feature_iso = feature
+        self.refresh_axis_values_iso()
+        # to do return slice of table from mz retention time drift time values
+        return hv.Dataset(feature)
+    
+    def hvplot_datatable_iso(self, ds):
+        element2 = hv.Table(ds.data.applymap(str).to_dict('list'), list(ds.data.columns)).opts(framewise = True, width=600)
+        return element2
+       
+    # create the hv plots
+    def hvplot_md_iso(self, ds):
+        element = ds.data.hvplot.points(x=self.feature_mz, y=self.feature_dt, c=self.feature_intensity)
+        return element
+        # create the hv plots 
+    def hvplot_dr_iso(self, ds):
+        element = ds.data.hvplot.points(x=self.feature_dt, y=self.feature_rt, c=self.feature_intensity)
+        return element
+    # create the hv plots
+    def hvplot_rm_iso(self, ds):
+        element = ds.data.hvplot.points(x=self.feature_rt, y=self.feature_mz, c=self.feature_intensity)
+        return element
+        # create the hv plots with intenisty and ms2 data
+    def hvplot_mi_iso(self, ds):
+        data_collapse = deimos.collapse(ds.data, keep='mz')
+        element2 = hv.Spikes(data_collapse , self.feature_mz, self.feature_intensity).opts(framewise = True, width=600)
+        iso_points = hv.Points(np.array([(x, 0) for x in self.mz_iso])).opts(size=5)
+        points = hv.Points(np.array([(self.mz, 0)])).opts(size=20)
+        return  (element2 * iso_points * points).opts(xlim=(data_collapse.mz.min(), data_collapse.mz.min()), ylim=(data_collapse.intensity.min(), data_collapse.intensity.max()))
+    
+    def iso_viewable(self, **kwargs):
+        
+        # profiler = Profiler()
+        # profiler.start()
+        
+        self.param.file_name_initial.update()
+        self.param.file_name_smooth.update()
+        self.param.file_name_peak.update()
+
+        pn.state.notifications.info('Return Isotope data', duration=0)
+        # dynamic map to return hvdata after loading it with deimos
+        #get isotype data from peak
+        iso_data = hv.DynamicMap(self.get_isotype)
+        
+        # turn data into datatables
+        iso_dataframe = hv.util.Dynamic(iso_data, operation= self.hvplot_datatable_iso)
+        stream_ids = hv.streams.Selection1D(source=iso_dataframe)
+        # get all ms1 data
+        try:
+            ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+        except Exception as e:
+                pn.state.notifications.error(str(e), duration=0)
+        # filter the ms1 data by the values of the selected isotye data
+        iso_dataframe_filtered = hv.Dataset(ms1).apply(self.get_ids, streams=[stream_ids])
+
+        
+        # return the hvplot for mz, drift time and retention time retention_time
+        hvplot_md_iso = iso_dataframe_filtered.apply(self.hvplot_md_iso)
+        hvplot_dr_iso = iso_dataframe_filtered.apply(self.hvplot_dr_iso)
+        hvplot_rm_iso = iso_dataframe_filtered.apply(self.hvplot_rm_iso)
+        hvplot_mi_iso = iso_dataframe_filtered.apply(self.hvplot_mi_iso)
+        
+  
+        # stream to rasterize the plot. any change will cause the whole plot to reload
+        stream_iso = hv.streams.Params(
+            self, ['Recreate_plots_with_below_values_iso'])
+        # normally would use rasterize(hv.DynamicMap(self.elem)) but using dynamic for a more complicated function
+        # the changes to the x and y axis will also be an input due to rangexy stream
+        
+        self.rasterized_md_iso = hv.util.Dynamic(
+                    hvplot_md_iso,
+                    operation=self.rasterize_md_iso,
+                    streams=[stream_iso],
+                )
+        
+        self.rasterized_dr_iso = hv.util.Dynamic(
+                    hvplot_dr_iso,
+                    operation=self.rasterize_dr_iso,
+                    streams=[stream_iso],
+                )
+        
+        self.rasterized_rm_iso = hv.util.Dynamic(
+                    hvplot_rm_iso,
+                    operation=self.rasterize_rm_iso,
+                    streams=[stream_iso],
+                )
+
+        
+        pn.state.notifications.clear()
+        pn.state.notifications.info('Finished getting isotopes', duration=0)  
 
 
 
+        # profiler.stop()
+        # results_file = os.path.join(TESTS_ROOT, "iso_"  + str(self.placehold_data_iso)  + Path(self.file_name_peak).name + ".html")
+        # profiler.write_html(results_file)
+        return hv.Layout(iso_dataframe + iso_dataframe_filtered \
+            +  self.rasterized_md_iso +  self.rasterized_dr_iso  + self.rasterized_rm_iso \
+                + hvplot_mi_iso).opts(shared_axes=False).cols(2)
+    
+    @pm.depends('placehold_data_calibrate', 'rerun_calibrate')
+    def calibrate(self):
+
+        if self.placehold_data_calibrate:
+            cal_values = pd.DataFrame({'reduced_ccs': np.array([1,1]), 'ta': np.array([1,1])}, columns=['reduced_ccs', 'ta'])
+        
+            #https://panel.holoviz.org/reference/global/Notifications.html
+            pn.state.notifications.info('Placehold data', duration=10000)
+        # Load tune data
+        #load_deimos_data
+        else:
+            pn.state.notifications.info('In progress: Start calibrating data', duration=0)
+            try:
+                cal_input = additional_functions.load_mz_h5(self.calibration_input, key='ms1', \
+                                                            columns= ["mz", "ta", "ccs", "charge"])
+                tune = additional_functions.load_mz_h5(self.example_tune_file, key='ms1', \
+                                                            columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
+                to_calibrate = additional_functions.load_mz_h5(self.file_to_calibrate, key='ms1', \
+                                                            columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
+            except Exception as e:
+                pn.state.notifications.error(str(e), duration=0)
+            load_values = self.calibrate_type
+            traveling_wave = self.traveling_wave
+            beta = float(self.beta)
+            tfix = float(self.tfix)
+            if load_values == "load_all_values":
+
+                L1 = [x for x in ['mz', 'ccs', 'charge', 'ta'] if x not in cal_input.columns]
+                L2 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in tune.columns]
+                L3 = [x for x in ['mz', 'drift_time'] if x not in to_calibrate.columns]
+                if len(L1 + L2 + L3) > 0:
+                    pn.state.notifications.error("Make sure data has columns ma, ccs, q, and ta", duration=0)
+                # Load data
+                ccs_cal = deimos.calibration.calibrate_ccs(mz=cal_input['mz'],
+                                                    ta=cal_input['ta'],
+                                                    ccs=cal_input['ccs'],
+                                                    q=cal_input['charge'],
+                                                    buffer_mass=28.013,
+                                                    power=traveling_wave)
+
+            elif load_values == "targeted_feature_detection":
+                L1 = [x for x in ['mz', 'ccs', 'charge'] if x not in cal_input.columns]
+                L2 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in tune.columns]
+                L3 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in to_calibrate.columns]
+                if len(L1 + L2 + L3) > 0:
+                    pn.state.notifications.error("Make sure data has columns ma, ccs, and q", duration=0)
+                # Load data
+                ccs_cal = deimos.calibration.tunemix(tune,
+                                                    mz=cal_input['mz'],
+                                                    ccs=cal_input['ccs'],
+                                                    q=cal_input['charge'],
+                                                    buffer_mass=28.013,
+                                                    power=traveling_wave)
+            
+            elif load_values == "fix_parameters":
+                # Calibrate positive mode
+                ccs_cal = deimos.calibration.calibrate_ccs(beta=beta,
+                                                            tfix=tfix,
+                                                    power=traveling_wave)
+
+            calibrated_values = ccs_cal.arrival2ccs(mz=to_calibrate['mz'], ta=to_calibrate['drift_time'], q=1)
+            calibration_files = os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_to_calibrate).name[:-4] + '_calibrated.csv')
+            pd.DataFrame(calibrated_values).to_csv(calibration_files)
+
+            pn.state.notifications.clear()
+            pn.state.notifications.info('Finished calibrating, file in created_data as ' + str(calibration_files), duration=0)
+            cal_values = pd.DataFrame({'reduced_ccs': ccs_cal.reduced_ccs, 'ta': ccs_cal.ta}, columns=['reduced_ccs', 'ta'])
+        return hv.Dataset(cal_values)
+   
+       
+    def hvplot_datatable_calibrate(self, ds):
+        element = ds.data.hvplot.points(x='reduced_ccs', y='ta')
+        return element
+    
+    @pm.depends('placehold_data_calibrate', watch= True)
+    def calibrate_viewable(self, **kwargs):
+
+        # profiler = Profiler()
+        # profiler.start()
+
+        self.param.calibration_input.update()
+        self.param.example_tune_file.update()
+        self.param.file_to_calibrate.update()
+
+        pn.state.notifications.info('Return calibration data', duration=0)
+        #get isotype data from peak
+        new_calibrated = hv.DynamicMap(self.calibrate)
+        # turn data into datatables
+        cal_dataframe = hv.util.Dynamic(new_calibrated, operation= self.hvplot_datatable_calibrate)
+
+
+        # profiler.stop()
+        # results_file = os.path.join(TESTS_ROOT, "cal"  + str(self.placehold_data_calibrate) + Path(self.example_tune_file).name + ".html")
+        # profiler.write_html(results_file)
+        return cal_dataframe
 
 class Align_plots(pm.Parameterized):
-    
-    full_ref = pm.String( default=peak_ref, label="Path to reference data")
-    peak_folder =  pm.String( default=peak_folder, label= "Path to folder of files to align to reference")
+    peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
-        default=data_folder, doc='A string', label='Location of data folder'
-    )
-    align_endswith =  pm.String(
-        default=align_endswith, doc='A string', label='Only use files that end with this value'
-    )
-    tolerance_text = pm.String(default = '.00002-0.015-2', label = 'Tolerances by ' + feature3 + ', ' + feature1 + ', and ' + feature2)
-    relative_text = pm.String(default = 'True-True-False', label  = 'Relevant or abs val by ' + feature3 + ', ' + feature1 + ', and ' + feature2)
-    menu_kernel = pm.Selector(['linear',  'rbf'], label = 'Support Vector Regression Kernel')
-    threshold_text = pm.String(default = '2000', label  = 'Threshold')
+        default= 'data', doc='Either relative path to file or absolute path to folder with peak refences', label='Location of data folder')
+    peak_folder =  pm.String(
+        default= "data", doc='Either relative path to file or absolute path to folder with peak files', label='Location of data folder')
+    align_endswith =  pm.String(default="*.h5", doc='Use * for wildcard (ie. *end.h5)', label='Only use files that end with this value')
+    tolerance_text = pm.String(default = '.00002-0.03-2', doc="Keep - between numbers", label='Tolerances by mz, drift, and retention time')
+    relative_text = pm.String(default = 'True-True-False',  doc="Keep - between numbers", label  = 'Relevant or abs val by mz, drift, and retention time')
+    menu_kernel = pm.Selector(['linear',  'rbf'], default = "rbf", doc="Keep - between numbers", label='Support Vector Regression Kernel')
+    threshold_text = pm.String(default = '2000', label = 'Threshold')
 
+    placehold_data_align = pm.Boolean(False, label='Placeholder align data')
+    rerun_align = pm.Action(lambda x: x.param.trigger('rerun_align'), label='Re-run align')
+    
+    feature_dt = pm.Selector(default='drift_time', objects = ["drift_time", 'retention_time', 'mz'], label="Drift Time")
+    feature_rt = pm.Selector(default='retention_time', objects = ["drift_time", 'retention_time', 'mz'], label="Retention Time")
+    feature_mz =  pm.Selector(default='mz', objects = ["drift_time", 'retention_time', 'mz'], label="mz")
+    feature_intensity = pm.String(default = 'intensity', label='Intensity Feature')
+
+    rt_mzML_name = pm.Selector(["scan start time"], label="mzML file retention time")
+    dt_mzML_name = pm.Selector(["ion mobility drift time"], label="mzML file drift time")
+
+        # def __init__(self):
+    @pn.depends("file_folder", watch=True)
+    def update_param(self):
+        new_path = os.path.abspath(self.file_folder)
+        # update all files if updating file folder
+        self.param.peak_ref.path = os.path.join(new_path, "*")
+        self.param.peak_ref.update()
+        if self.peak_ref not in self.param.peak_ref.objects:
+            self.peak_ref = self.param.peak_ref.objects[0]
 
     
-    feature1 = pm.String(default = feature1, label = 'Feature 1')
-    feature2 = pm.String(default = feature2, label = 'Feature 2')
-    feature3 = pm.String(default = feature3, label = 'Feature 3')
-    feature_intensity = pm.String(default = feature_intensity, label = 'Intensity Feature')
-
-    @pm.depends('full_ref', 'peak_folder', 'file_folder', 'align_endswith', 'tolerance_text', 'relative_text', 'menu_kernel',  'threshold_text', 'feature1', 'feature2', 'feature3', 'feature_intensity')
+    @pm.depends('placehold_data_align', 'rerun_align', watch = True)
     def viewable(self):
-        # if just test, lower threshold
-        if self.full_ref == "small_full1.h5" or self.align_endswith == "example.h5":
-            self.threshold_text = "0"
-        tolerance_text = [float(i) for i in list(self.tolerance_text.split('-'))]
-        relative_text = [bool(i) for i in list(self.relative_text.split('-'))]
-        try:
-            full_ref = deimos.load(os.path.join(self.file_folder, self.full_ref), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-        except:
-            # old load
-            ms1 = deimos.io._load_hdf(os.path.join(self.file_folder, self.full_ref), level='ms1')
-            ms2 = deimos.io._load_hdf(os.path.join(self.file_folder, self.full_ref), level='ms2')
-            
-            self.full_ref = os.path.splitext(self.full_ref)[0] + "_new.h5"
-            # new save
-            deimos.io.save_hdf(os.path.join(self.file_folder, self.full_ref), ms1, key='ms1', mode='w')
-            deimos.io.save_hdf(os.path.join(self.file_folder, self.full_ref), ms2, key='ms2', mode='a')
-            
-            # new load
-            full_ref = deimos.load(os.path.join(self.file_folder, self.full_ref), key='ms1')
 
-        theshold_presistence =  int(self.threshold_text)
-        
+        # profiler = Profiler()
+        # profiler.start()
 
-        full_ref.rename(columns = {'inverse_reduced_ion_mobility': self.feature2}, inplace = True)
-
-        peak_ref  = deimos.peakpick.persistent_homology(deimos.threshold(full_ref,  threshold = theshold_presistence),
-                                                 dims=[self.feature3, self.feature1, self.feature2])
-        
-        peak_ref['persistence_ratio'] = peak_ref['persistence'] / peak_ref[self.feature_intensity]
-        peak_ref = deimos.threshold(peak_ref, by='persistence_ratio', threshold=0.75)
-
-
-        peak_two_list = []
-        peak_file_list = []
-        for file in os.listdir(self.peak_folder):
-            if file.endswith(self.align_endswith):
-                try:
-                    full_two = deimos.load(os.path.join(self.peak_folder,file), key='ms1', columns=[self.feature3, self.feature1, self.feature2, self.feature_intensity])
-                except:
-                    # old load
-                    ms1 = deimos.io._load_hdf(os.path.join(self.peak_folder, file), level='ms1')
-                    
-                    file = os.path.splitext(file)[0] + "_new.h5"
-                    # new save
-                    deimos.io.save_hdf(file, ms1, key='ms1', mode='w')
-                    
-                    # new load
-                    full_two = deimos.load(file, key='ms1')
-
-                full_two.rename(columns = {'inverse_reduced_ion_mobility': self.feature2}, inplace = True)
-                full_two.rename(columns = {'inverse_reduced_ion_mobility': self.feature2}, inplace = True)
-
-                peak_two  = deimos.peakpick.persistent_homology(deimos.threshold(full_two,  threshold =  theshold_presistence),
-                                                            dims=[self.feature3, self.feature1, self.feature2])
-                
-                peak_two['persistence_ratio'] = peak_two['persistence'] / peak_two[self.feature_intensity]
-                peak_two = deimos.threshold(peak_two, by='persistence_ratio', threshold=0.75)
-
-                peak_two_list.append(peak_two)
-                peak_file_list.append(file)
-    
-        # deimos
-        # deimos.collapse(df, keep=mz)
+        pn.state.notifications.clear()
+        self.param.peak_ref.update()
+        pn.state.notifications.position = 'top-center'
 
         list_plots = []
-        i = 0
-        for peak_two, peak_file in zip(peak_two_list, peak_file_list):
-            # b is reference, a is peak two
-            partitions = deimos.partition(deimos.threshold(peak_two, threshold=1E3),
-            split_on=self.feature3,
-            size=1000,
-            overlap=0.25)
+        if self.placehold_data_align:
+            pn.state.notifications.info('Placeholder align', duration=0)
+            i = 0
+            for file in range(2):
+                    i=+1
+                    coords = np.random.rand(2,2)*int(self.threshold_text)
+                    plot1 = hv.Points(coords)
+                    plot2 = hv.Points(coords)
+                    list_plots.append((plot1 * plot2).opts(opts.Overlay(title="Placeholder")))
+                    self.peak_folder = "."
+                    
+        else:  
+            if self.peak_ref == os.path.join('data', 'example_alignment.h5'):
+                file_list = [self.peak_ref]
+                ref_key = 'A'
+                file_key = 'B'
 
+            else:
+                file_list = [str(f) for f in Path(os.path.abspath(self.peak_folder)).glob(self.align_endswith)]
+                ref_key = 'ms1'
+                file_key = 'ms1'
+            pn.state.notifications.info('In progress: Start alignment', duration=0)
+            theshold_presistence = 128
+            tolerance_text = [float(i) for i in list(self.tolerance_text.split('-'))]
+            relative_text = [bool(i) for i in list(self.relative_text.split('-'))]
+            try: 
+                peak_ref_initial = additional_functions.load_initial_deimos_data(self.peak_ref, self.feature_dt, self.feature_rt, self.feature_mz,\
+                                                                        self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = ref_key)
+                peak_ref = additional_functions.align_peak_create(peak_ref_initial, theshold_presistence, self.feature_mz, self.feature_dt, self.feature_rt, \
+                                                                self.feature_intensity)
+            except Exception as e:
+                pn.state.notifications.error(str(e), duration=0)
+            if len(peak_ref) == 0: 
+                    pn.state.notifications.error("No data left after thresholding: lower threshold or change data", duration=0)
+            peak_two_list = []
+            peak_file_list = []
+            for file in file_list:
+                try:
+                    full_two = additional_functions.load_initial_deimos_data(file, self.feature_dt, self.feature_rt, self.feature_mz, \
+                                                                            self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = file_key)
+                    peak_two = additional_functions.align_peak_create(full_two, theshold_presistence,  self.feature_mz, self.feature_dt, self.feature_rt,\
+                                                                    self.feature_intensity)
+                except Exception as e:
+                    pn.state.notificaitons.error("Alignment didn't work", duration=0)
+                    pn.state.notifications.error(str(e), duration=0)
+                    
+                if len(peak_two) == 0:
+                    pn.state.notifications.error("No data left after thresholding: lower threshold or change data", duration=0)
+                peak_two_list.append(peak_two)
+                peak_file_list.append(file)
+            list_plots = []
+            i = 0
+            for num, (peak_two, peak_file) in enumerate(zip(peak_two_list, peak_file_list)):
+                pn.state.notifications.info('Aligning' + peak_file + " " + str(num + 1) + " out of " + str(len(peak_file_list)), duration=0)
+                # b is reference, a is peak two
+                partitions = deimos.partition(deimos.threshold(peak_two, threshold=int(self.threshold_text)),
+                split_on=self.feature_mz,
+                size=1000,
+                overlap=0.25)
 
-            two_matched, ref_matched = partitions.zipmap(deimos.alignment.match, deimos.threshold(peak_ref, threshold=int(self.threshold_text)),
-                                        dims=[self.feature3, self.feature1, self.feature2],
-                                        tol=tolerance_text, relative=relative_text,
-                                        processes=4)
-            two_matched = two_matched.copy()
-            two_matched_aligned = two_matched.copy()
-            i= i + 1
-            for dim in [self.feature1, self.feature2]:
-               
-                
-                spl = deimos.alignment.fit_spline( two_matched, ref_matched, align= dim, kernel=self.menu_kernel, C=1000)
-                newx = np.linspace(0, max(ref_matched[ dim].max(), two_matched[ dim].max()), 1000)
-
-                two_matched_aligned["aligned_" + dim] = spl(two_matched_aligned[dim])
-                # save by peak in peak name
-                two_matched_aligned.to_csv( os.path.join(self.file_folder,  "created_data", peak_file[:-3] + "_aligned.csv"))
-
-                    # match_table includes the matched data from data a and b to compare with scatter plot (data a retention time vs data b retention time)
-                matchtable = pd.concat(
-                    [
-                        two_matched[[ dim]].reset_index(drop=True),
-                        ref_matched[[ dim]].reset_index(drop=True)
-                    ],
-                    axis=1,
-                )
-
-                matchtable.columns = [
-                    'match_a_' + dim,
-                   'match_b_' + dim
-                ]
-
-                xy_drift_retention_time = pd.DataFrame(
-                    np.hstack(
-                        (
-                            newx[:, None], # spline applied to matching
-                            spl(newx)[:, None],
-                        )
+                two_matched, ref_matched = partitions.zipmap(deimos.alignment.match, deimos.threshold(peak_ref, threshold=int(self.threshold_text)),
+                                            dims=[self.feature_mz, self.feature_dt, self.feature_rt],
+                                            tol=tolerance_text, relative=relative_text)
+                two_matched = two_matched.copy()
+                two_matched_aligned = two_matched.copy()
+                i=+1
+                for dim in [self.feature_dt, self.feature_rt]:
+                    
+                    spl = deimos.alignment.fit_spline( two_matched, ref_matched, align= dim, kernel=self.menu_kernel, C=1000)
+                    newx = np.linspace(0, max(ref_matched[ dim].max(), two_matched[ dim].max()), 1000)
+                    two_matched_aligned["aligned_" + dim] = spl(two_matched_aligned[dim])
+                    # save by peak in peak name
+                    two_matched_aligned.to_csv( peak_file[:-3] + "_aligned.csv")
+                        # match_table includes the matched data from data a and b to compare with scatter plot (data a retention time vs data b retention time)
+                    matchtable = pd.concat(
+                        [
+                            two_matched[[ dim]].reset_index(drop=True),
+                            ref_matched[[ dim]].reset_index(drop=True)
+                        ],
+                        axis=1,
                     )
-                )
-
-                # rename columns
-                xy_drift_retention_time.columns = [
-                    'x_' + dim,
-                    'y_' + dim
-                ]
-
-
-                plot1 = hv.Points(xy_drift_retention_time, kdims=['x_' + dim, 'y_' + dim]).options(color='blue')
-                plot2 = hv.Points(matchtable, kdims=['match_a_' + dim, 'match_b_' + dim]).options(color='red')
+                    matchtable.columns = ['match_a_' + dim, 'match_b_' + dim]
+                    xy_drift_retention_time = pd.DataFrame(
+                        np.hstack( ( newx[:, None], # spline applied to matching
+                                spl(newx)[:, None],)))
+                    # rename columns
+                    xy_drift_retention_time.columns = ['x_' + dim, 'y_' + dim]
+                    plot1 = hv.Points(xy_drift_retention_time, kdims=['x_' + dim, 'y_' + dim]).options(color='blue')
+                    plot2 = hv.Points(matchtable, kdims=['match_a_' + dim, 'match_b_' + dim]).options(color='red')
+            
+                    list_plots.append((plot1 * plot2).opts(opts.Overlay(title=dim + ' vs ' + dim + ' ' + str(i))))
+                
+                pn.state.notifications.info('Finished aligning' + str(peak_file), duration=0)
+            pn.state.notifications.info('Finished aligning all. Recreating plot', duration=0)
         
-                list_plots.append((plot1 * plot2).opts(opts.Overlay(title=dim + ' vs ' + dim + ' ' + str(i))))
+        profiler.stop()
+        results_file = os.path.join(TESTS_ROOT, "initial_full_data.html")
+        profiler.write_html(results_file)
 
+        # profiler.stop()
+        # results_file = os.path.join(TESTS_ROOT, "align_"  + str(self.placehold_data_align) + Path(self.peak_ref).name + ".html")
+        # profiler.write_html(results_file)
         return hv.Layout(list_plots).cols(2)
+    
 
-if __name__ == '__main__':
-    Deimos_app = Deimos_app()
-    Align_plots = Align_plots()
-
-    #using viewable() would be best practice for minimizing refresh, but need hard refresh in this case for new axis
-    instructions_view = "<ul> <li>The original data is a placeholder</li> <li>Indicate the local path of the full data below to update</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
-        <li> Data in folder</li><ul> "
-    instructions_smooth = "<ul> <li>The original data is a placeholder</li> <li>Click 'Run smooth' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
-        <li>Keeping the <b>smooth radius</b> small and increasing number of iterations <br> is preferable to a larger smoothing radius, albeit at greater computational expense.</li><ul> "
-    instructions_peaks = "<p>Feature detection, also referred to as peak detection, is the process by which local maxima that fulfill certain criteria (such as sufficient signal-to-noise ratio) are located in the signal acquired by a given analytical instrument. </p><ul> <li>The original data is a placeholder</li> <li>Click 'Run peak' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li> \
-        <li>The <b>radius per dimension</b> insures an intensity-weighted per-dimension coordinate will be returned for each feature.</li><ul> "
-    instructions_ms2 = "<p>With MS1 features of interest determined by peak detection, corresponding tandem mass spectra, if available, must be extracted and assigned to the MS1 parent ion feature. </p><ul> <li>The original data is a placeholder, clicking will not work without real data </li> <li>Click 'Run decon' after updating parameters to get new graph</li><li>Click the left plot to view highest intensity of MS2 within the minimum spacing of each feature at the click location </li> </ul> "
-    instructions_align = "<ul><li>Alignment is the process by which feature coordinates across samples are adjusted to account for instrument variation such that matching features are aligned to adjust for small differences in coordinates</li>\
-        <li>The original data is a placeholder</li> <li>Indicate the reference file and folder of files to align</li><li>Determine matches within <b>tolerance</b> per feature with the alignment determined by the <b>kernel</b> by <b>relative or absolute </b> value by <b>support vector regression kernel </b> </li></ul>"
-
-    param_full = pn.Column('<b>View Raw Data</b>', Deimos_app.param.file_name_raw, Deimos_app.param.reset_filter, Deimos_app.param.manual_filter,
-                        Deimos_app.param.feature1_axis_width, Deimos_app.param.feature2_axis_width, Deimos_app.param.feature3_axis_width, \
-                            Deimos_app.param.min_feature1_bin_size, Deimos_app.param.min_feature2_bin_size, Deimos_app.param.min_feature3_bin_size, \
-                                Deimos_app.param.feature1, Deimos_app.param.feature2, Deimos_app.param.feature3, Deimos_app.param.feature_intensity)
-
-    param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.file_name_raw,  Deimos_app.param.threshold_slider, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.run_smooth, Deimos_app.param.file_name_smooth)
-
-    param_peak = pn.Column('<b>Peak-picking</b>', Deimos_app.param.file_name_smooth, Deimos_app.param.peak_radius, Deimos_app.param.run_peak, Deimos_app.param.file_name_peak)
-
-    param_decon = pn.Column('<b>MS2 Deconvolution</b>', Deimos_app.param.file_name_raw, Deimos_app.param.file_name_peak, Deimos_app.param.run_decon)
-
-
-
-    app1 = pn.Tabs(('Filter Graphs', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.raw_viewable())
-        )))),('Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable(),  
-        )))),('Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable(),  
-        )))), ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.pane.PNG('box_select.png'), pn.Row( param_decon, Deimos_app.decon_viewable(),  
-        )))), ('Align Plots', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))).servable(title='Deimos App')
+Deimos_app = Deimos_app()
+Align_plots = Align_plots()
+#using viewable() would be best practice for minimizing refresh, but need hard refresh in this case for new axis
+instructions_view = "<ul> <li>The original data is a placeholder</li> <li>Indicate the local path of the full data below to update</li>\
+    <li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
+<li>Changing the axis widths and clicking 'Recreate plots with below values' to re-aggregrate with new widths</li>\
+<li>Toolbar's zoom and reset does not re-aggregate within this tool.</li>\
+    <ul> "
+instructions_smooth = "<ul> <li>The original data is a placeholder</li> <li>Click 'Run smooth' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
+    <li>Keeping the <b>smooth radius</b> small and increasing number of iterations <br> is preferable to a larger smoothing radius, albeit at greater computational expense.</li><ul> "
+instructions_peaks = "<p>Feature detection, also referred to as peak detection, is the process by which local maxima that fulfill certain criteria (such as sufficient signal-to-noise ratio) are located in the signal acquired by a given analytical instrument. </p><ul> <li>The original data is a placeholder</li> <li>Click 'Run peak' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li> \
+    <li>The <b>radius per dimension</b> insures an intensity-weighted per-dimension coordinate will be returned for each feature.</li><ul> "
+instructions_ms2 = "<p>With MS1 features of interest determined by peak detection, corresponding tandem mass spectra, if available, must be extracted and assigned to the MS1 parent ion feature. </p><ul> <li>The original data is a placeholder, clicking will not work without real data </li> <li>Click 'Run decon' after updating parameters to get new graph</li><li>The MS2 data associated with user-selected MS1 data, with the MS1 data with the highest intensity used if there are multiple MS1 data points within a small range of the user-click </li> </ul> "
+instructions_align = "<ul><li>Alignment is the process by which feature coordinates across samples are adjusted to account for instrument variation such that matching features are aligned to adjust for small differences in coordinates</li>\
+    <li>The original data is a placeholder</li> <li>Indicate the reference file and folder of files to align</li><li>Determine matches within <b>tolerance</b> per feature with the alignment determined by the <b>kernel</b> by <b>relative or absolute </b> value by <b>support vector regression kernel </b> </li></ul>"
+instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes</li>\
+    <li>Select a row to view the isotopes</li>\
+    <li>Graphs will show slice of MS1 data. Plot will show isotopes</li></ul>"
+param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_data_initial, Deimos_app.param.file_folder,  Deimos_app.param.file_name_initial, Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name,  '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
+                    Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
+                        Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
+                            Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
+param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.placehold_data_smooth, Deimos_app.param.file_folder, Deimos_app.param.file_folder, Deimos_app.param.file_name_initial,   Deimos_app.param.file_name_initial, Deimos_app.param.reset_filter, Deimos_app.param.threshold_slider, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
+param_peak = pn.Column('<b>Peak-picking</b>',  Deimos_app.param.placehold_data_peak, Deimos_app.param.file_folder, '<b>Adjust the plots</b>',  Deimos_app.param.file_name_smooth,  Deimos_app.param.reset_filter, Deimos_app.param.peak_radius, Deimos_app.param.rerun_peak, '<b>Result</b>', Deimos_app.param.file_name_peak)
+param_decon = pn.Column('<b>MS2 Deconvolution</b>',Deimos_app.param.placehold_data_decon, Deimos_app.param.file_folder, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon)
+param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.placehold_data_iso, Deimos_app.param.file_folder,  Deimos_app.param.file_name_initial,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
+                    Deimos_app.param.feature_dt_axis_width_iso, Deimos_app.param.feature_rt_axis_width_iso, Deimos_app.param.feature_mz_axis_width_iso, \
+                        Deimos_app.param.min_feature_dt_bin_size_iso, Deimos_app.param.min_feature_rt_bin_size_iso, Deimos_app.param.min_feature_mz_bin_size_iso, \
+                            Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
+param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.placehold_data_calibrate, Deimos_app.param.file_folder, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
+                        Deimos_app.param.tfix, Deimos_app.param.traveling_wave, Deimos_app.param.calibrate_type, Deimos_app.param.rerun_calibrate)
 
 
-    pn.serve(app1)
+# app1 = pn.Tabs(('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),\
+#                ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
+#                ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
+#                ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.pane.PNG('box_select.png'), pn.Row( param_decon, Deimos_app.decon_viewable())))),\
+#                ('Calibrate', pn.Row(param_cal, Deimos_app.calibrate_viewable())),\
+#                 ('Isotope', pn.Row(param_iso, Deimos_app.iso_viewable())),\
+#                 ('Align Plots', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable()))))).servable(title='Deimos App')
+app1 = pn.Tabs(
+    ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),        
+                ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
+               ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
+               ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.pane.PNG('box_select.png'), pn.Row( param_decon, Deimos_app.decon_viewable())))),\
+               ('Calibration', pn.Row(param_cal, Deimos_app.calibrate_viewable())),\
+                ('Isotope Detection', pn.Row(param_iso, Deimos_app.iso_viewable())),\
+                ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
+                ).servable(title='Deimos App')
+
+pn.serve(app1)
+
