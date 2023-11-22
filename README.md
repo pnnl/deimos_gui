@@ -15,14 +15,15 @@ Follow all directions at https://deimos.readthedocs.io/en/latest/getting_started
 git clone https://github.com/pnnl/deimos_gui
 ``` 
 
-## Install additonal packages
+## Install additional packages
 
 ``` 
 conda install colorcet holoviews panel xarray hvplot datashader pandas
 ```
 
-
+If conda doesn't work:
 ``` 
+conda create -n deimos_env python=3.8
 pip install -r requirements.txt
 ```
 
