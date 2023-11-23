@@ -284,8 +284,6 @@ class Deimos_app(pm.Parameterized):
         y_filter=self.feature_rt_axis_width,
         x_spacing=self.min_feature_dt_bin_size,
         y_spacing=self.min_feature_rt_bin_size)
-        
-        pn.state.notifications.info('New drift time vs retention time plot', duration=0)
         return rasterize_plot
     
 
@@ -303,7 +301,6 @@ class Deimos_app(pm.Parameterized):
         x_spacing=self.min_feature_rt_bin_size,
         y_spacing=self.min_feature_mz_bin_size)
         
-        pn.state.notifications.info('New retention time vs mz plot', duration=0)
         return rasterize_plot
     
         # create the hv plots 
@@ -1124,9 +1121,9 @@ class Align_plots(pm.Parameterized):
     placehold_data_align = pm.Boolean(True, label='Placeholder align data')
     peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
-        default= 'data', doc='Either relative path to file or absolute path to folder with peak refences', label='Location of data folder')
+        default= 'data', doc='Either relative path to file or absolute path to folder with peak references', label='Location of data folder')
     peak_folder =  pm.String(
-        default= "data", doc='Either relative path to file or absolute path to folder with peak files', label='Location of data folder')
+        default= "data", doc='Either relative path to file or absolute path to folder with peak files', label='Location of peak folder')
     align_endswith =  pm.String(default="*.h5", doc='Use * for wildcard (ie. *end.h5)', label='Only use files that end with this value')
     tolerance_text = pm.String(default = '.00002-0.03-2', doc="Keep - between numbers", label='Tolerances by mz, drift, and retention time')
     relative_text = pm.String(default = 'True-True-False',  doc="Keep - between numbers", label  = 'Relevant or abs val by mz, drift, and retention time')
