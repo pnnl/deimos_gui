@@ -19,13 +19,9 @@ import os, param as pm, holoviews as hv, panel as pn, datashader as ds
 import logging
 from pathlib import Path
 import additional_functions
-from pyinstrument import Profiler
+# from pyinstrument import Profiler
 
 
-# TESTS_ROOT = os.path.join(Path.cwd(), "profile_output")
-
-# profiler = Profiler()
-# profiler.start()
 
 file_name_initial_name = "placeholder.csv"  #example_data.h5
 file_name_smooth_name = "placeholder.csv"
@@ -130,12 +126,12 @@ class Deimos_app(pm.Parameterized):
     Recreate_plots_with_below_values = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values'), doc="Set axis ranges to ranges below")
     Recreate_plots_with_below_values_iso = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values_iso'), doc="Set axis ranges to ranges below")
     # only show the placeholder
-    placehold_data_initial = pm.Boolean(False, label='Placeholder initial data')
-    placehold_data_smooth = pm.Boolean(False, label='Placeholder smooth')
-    placehold_data_peak = pm.Boolean(False, label='Placeholder peak')
-    placehold_data_decon = pm.Boolean(False, label='Placeholder decon')
-    placehold_data_iso = pm.Boolean(False, label='Placeholder iso')
-    placehold_data_calibrate = pm.Boolean(False, label='Placeholder')
+    placehold_data_initial = pm.Boolean(True, label='Placeholder initial data')
+    placehold_data_smooth = pm.Boolean(True, label='Placeholder smooth')
+    placehold_data_peak = pm.Boolean(True, label='Placeholder peak')
+    placehold_data_decon = pm.Boolean(True, label='Placeholder decon')
+    placehold_data_iso = pm.Boolean(True, label='Placeholder iso')
+    placehold_data_calibrate = pm.Boolean(True, label='Placeholder')
 
     # set the min spacing for all the dimensions for rasterizing 
     slice_distance_dt = pm.Number(default=0.2, label="Slice isotopes drift time")
@@ -148,7 +144,7 @@ class Deimos_app(pm.Parameterized):
     beta = pm.String(default = "0.12991516042484708", label='beta')
     tfix = pm.String(default = "-0.03528247661068562", label='tfix')
     traveling_wave = pm.Boolean(False, label='traveling_wave')
-    calibrate_type = pm.Selector(default = "targeted_feature_detection", objects=["load_all_values", "targeted_feature_detection","fix_parameters"])
+    calibrate_type = pm.Selector(default = "load_all_values", objects=["load_all_values", "targeted_feature_detection","fix_parameters"])
 
     
     @pn.depends("file_folder", watch=True)
@@ -333,7 +329,7 @@ class Deimos_app(pm.Parameterized):
         '''full function to return the initial data in a graph'''
         # profiler = Profiler()
         # profiler.start()
-        # update file selector widget with new names from folder
+        #update file selector widget with new names from folder
         self.param.file_name_initial.update()
         self.param.file_name_smooth.update()
         self.param.file_name_peak.update()
@@ -372,7 +368,7 @@ class Deimos_app(pm.Parameterized):
         # profiler.stop()
         # results_file = os.path.join(TESTS_ROOT, "initial_" + str(self.placehold_data_initial) + Path(self.file_name_initial).name + ".html")
         # profiler.write_html(results_file)
-        return ls(self.rasterized_md_initial + self.rasterized_dr_initial + self.rasterized_rm_initial).opts(shared_axes=True)
+        return ls(self.rasterized_rm_initial  + self.rasterized_dr_initial + self.rasterized_md_initial).opts(shared_axes=True)
     
 
     # does not automatically reset xy axis (keeps at originally loaded, so have to do so automatically)
@@ -416,7 +412,7 @@ class Deimos_app(pm.Parameterized):
         '''run deimos functions to get the smoothed data returned'''
         
         # name will be saved as
-        new_smooth_name =  os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).name[:-3] + '_threshold_' + str(self.threshold_slider) + \
+        new_smooth_name =  os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).stem + '_threshold_' + str(self.threshold_slider) + \
              '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
                 '_new_smooth_data.h5')
         if self.placehold_data_smooth:
@@ -425,7 +421,7 @@ class Deimos_app(pm.Parameterized):
         else:
             pn.state.notifications.info('In progress: Create smooth data from ' + str(self.file_name_initial), duration=0)
             try:
-                ms1_smooth, self.index_ms1_peaks, self.index_ms2_peaks = additional_functions.create_smooth(self.file_name_initial, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity, self.threshold_slider, self.smooth_radius, \
+                ms1_smooth, self.index_ms1_peaks, self.index_ms2_peaks = additional_functions.create_smooth(self.file_name_initial, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity,  self.smooth_radius, \
                                                                                                             self.smooth_iterations, new_smooth_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
             except Exception as e:
                 pn.state.notifications.error(str(e), duration=0)
@@ -482,13 +478,13 @@ class Deimos_app(pm.Parameterized):
         # profiler.stop()
         # results_file = os.path.join(TESTS_ROOT, "just_loading_smooth_"  + str(self.placehold_data_smooth)  +  Path(self.file_name_smooth).name + ".html")
         # profiler.write_html(results_file)
-        return ls(self.rasterized_md_smooth + self.rasterized_dr_smooth + self.rasterized_rm_smooth).opts(shared_axes=True)
+        return ls( self.rasterized_rm_smooth  + self.rasterized_dr_smooth + self.rasterized_md_smooth).opts(shared_axes=True)
     
     @pm.depends('rerun_peak', 'placehold_data_peak')
     def create_peak_data(self):
         '''get peak data using deimos functions'''
         # name will be saved as, check if already exists, if so don't rerun
-        new_peak_name = os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).name[:-3]  + '_threshold_' + str(self.threshold_slider) + \
+        new_peak_name = os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
              '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
                 '_new_peak_data.h5')
         if self.placehold_data_peak:
@@ -505,7 +501,7 @@ class Deimos_app(pm.Parameterized):
                 # if have smooth data from previous step
                 # add boolean to use created threshold data and created smooth data or redo entiremely
                 try:
-                    ms1_peaks = additional_functions.create_peak(self.file_name_smooth, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity, self.peak_radius, self.index_ms1_peaks, self.index_ms2_peaks,\
+                    ms1_peaks = additional_functions.create_peak(self.file_name_smooth, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity, int(self.threshold_slider), self.peak_radius, self.index_ms1_peaks, self.index_ms2_peaks,\
                                                                 new_peak_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
                 except Exception as e:
                     pn.state.notifications.error(str(e), duration=0)
@@ -565,14 +561,14 @@ class Deimos_app(pm.Parameterized):
         # profiler.stop()
         # results_file = os.path.join(TESTS_ROOT, "peak"  + str(self.placehold_data_peak)  + Path(self.file_name_peak).name + ".html")
         # profiler.write_html(results_file)
-        return ls(self.rasterized_md_peak + self.rasterized_dr_peak + self.rasterized_rm_peak).opts(shared_axes=True)
+        return ls(self.rasterized_dr_peak + self.rasterized_rm_peak + self.rasterized_md_peak).opts(shared_axes=True)
     
     
     @pm.depends('rerun_decon', 'placehold_data_decon')
     def ms2_decon(self):
         
         
-        file_name_res = os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).name[:-3]  + '_threshold_' + str(self.threshold_slider) + \
+        file_name_res = os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
              '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" +str(self.feature_rt) +\
                 '_res.csv')
         if self.placehold_data_decon:
@@ -757,9 +753,9 @@ class Deimos_app(pm.Parameterized):
         # profiler = Profiler()
         # profiler.start()
 
-        self.param.file_name_initial.update()
-        self.param.file_name_smooth.update()
-        self.param.file_name_peak.update()
+        # self.param.file_name_initial.update()
+        # self.param.file_name_smooth.update()
+        # self.param.file_name_peak.update()
 
         pn.state.notifications.info('In progress: start deconvolution of data: ' + str(self.ms2_decon), duration=0)
         # dynamic map to return hvdata after loading it with deimos
@@ -1098,7 +1094,7 @@ class Deimos_app(pm.Parameterized):
    
        
     def hvplot_datatable_calibrate(self, ds):
-        element = ds.data.hvplot.points(x='reduced_ccs', y='ta')
+        element = ds.data.hvplot.points(x='reduced_ccs', y='ta', title = "Calibration Graph")
         return element
     
     @pm.depends('placehold_data_calibrate', watch= True)
@@ -1124,6 +1120,8 @@ class Deimos_app(pm.Parameterized):
         return cal_dataframe
 
 class Align_plots(pm.Parameterized):
+
+    placehold_data_align = pm.Boolean(True, label='Placeholder align data')
     peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
         default= 'data', doc='Either relative path to file or absolute path to folder with peak refences', label='Location of data folder')
@@ -1134,8 +1132,6 @@ class Align_plots(pm.Parameterized):
     relative_text = pm.String(default = 'True-True-False',  doc="Keep - between numbers", label  = 'Relevant or abs val by mz, drift, and retention time')
     menu_kernel = pm.Selector(['linear',  'rbf'], default = "rbf", doc="Keep - between numbers", label='Support Vector Regression Kernel')
     threshold_text = pm.String(default = '2000', label = 'Threshold')
-
-    placehold_data_align = pm.Boolean(False, label='Placeholder align data')
     rerun_align = pm.Action(lambda x: x.param.trigger('rerun_align'), label='Re-run align')
     
     feature_dt = pm.Selector(default='drift_time', objects = ["drift_time", 'retention_time', 'mz'], label="Drift Time")
@@ -1262,10 +1258,7 @@ class Align_plots(pm.Parameterized):
                 
                 pn.state.notifications.info('Finished aligning' + str(peak_file), duration=0)
             pn.state.notifications.info('Finished aligning all. Recreating plot', duration=0)
-        
-        # profiler.stop()
-        # results_file = os.path.join(TESTS_ROOT, "initial_full_data.html")
-        # profiler.write_html(results_file)
+ 
 
         # profiler.stop()
         # results_file = os.path.join(TESTS_ROOT, "align_"  + str(self.placehold_data_align) + Path(self.peak_ref).name + ".html")
@@ -1295,8 +1288,8 @@ param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_
                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
                         Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.placehold_data_smooth, Deimos_app.param.file_folder, Deimos_app.param.file_folder, Deimos_app.param.file_name_initial,   Deimos_app.param.file_name_initial, Deimos_app.param.reset_filter, Deimos_app.param.threshold_slider, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
-param_peak = pn.Column('<b>Peak-picking</b>',  Deimos_app.param.placehold_data_peak, Deimos_app.param.file_folder, '<b>Adjust the plots</b>',  Deimos_app.param.file_name_smooth,  Deimos_app.param.reset_filter, Deimos_app.param.peak_radius, Deimos_app.param.rerun_peak, '<b>Result</b>', Deimos_app.param.file_name_peak)
+param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.placehold_data_smooth, Deimos_app.param.file_folder,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
+param_peak = pn.Column('<b>Peak-picking</b>',  Deimos_app.param.placehold_data_peak, Deimos_app.param.file_folder, '<b>Adjust the plots</b>',  Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak,  '<b>Result</b>', Deimos_app.param.file_name_peak)
 param_decon = pn.Column('<b>MS2 Deconvolution</b>',Deimos_app.param.placehold_data_decon, Deimos_app.param.file_folder, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon)
 param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.placehold_data_iso, Deimos_app.param.file_folder,  Deimos_app.param.file_name_initial,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
                     Deimos_app.param.feature_dt_axis_width_iso, Deimos_app.param.feature_rt_axis_width_iso, Deimos_app.param.feature_mz_axis_width_iso, \
@@ -1306,13 +1299,6 @@ param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.placehold_data_calibr
                         Deimos_app.param.tfix, Deimos_app.param.traveling_wave, Deimos_app.param.calibrate_type, Deimos_app.param.rerun_calibrate)
 
 
-# app1 = pn.Tabs(('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),\
-#                ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
-#                ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
-#                ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.pane.PNG('box_select.png'), pn.Row( param_decon, Deimos_app.decon_viewable())))),\
-#                ('Calibrate', pn.Row(param_cal, Deimos_app.calibrate_viewable())),\
-#                 ('Isotope', pn.Row(param_iso, Deimos_app.iso_viewable())),\
-#                 ('Align Plots', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable()))))).servable(title='Deimos App')
 app1 = pn.Tabs(
     ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),        
                 ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
