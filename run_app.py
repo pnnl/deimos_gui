@@ -32,11 +32,11 @@ example_tune_file_name = "placeholder.csv" #example_tune_pos.h5
 file_to_calibrate_name = "placeholder.csv" #example_tune_pos.h5
 peak_ref_name = "placeholder.csv" #example_alignment.h5
 
-file_name_initial_name = "example_data.h5"  #example_data.h5
-# file_name_smooth_name = "placeholder.csv"
-# file_name_peak_name = "placeholder.csv"
-file_name_smooth_name = "example_data_threshold_1000_smooth_radius_0-1-0_smooth_iterations_7_feature_rt_retention_time_new_smooth_data.h5" 
-file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
+# file_name_initial_name = "example_data.h5"  #example_data.h5
+# # file_name_smooth_name = "placeholder.csv"
+# # file_name_peak_name = "placeholder.csv"
+# file_name_smooth_name = "example_data_threshold_1000_smooth_radius_0-1-0_smooth_iterations_7_feature_rt_retention_time_new_smooth_data.h5" 
+# file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
 # calibration_input_name = "cal_input.csv"
 # example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
 # file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
