@@ -797,8 +797,8 @@ class Deimos_app(pm.Parameterized):
     @pm.depends('placehold_data_decon', watch= True)
     def decon_viewable(self, **kwargs):
         
-        # profiler = Profiler()
-        # profiler.start()
+        profiler = Profiler()
+        profiler.start()
 
         # self.param.file_name_initial.update()
         # self.param.file_name_smooth.update()
@@ -830,9 +830,9 @@ class Deimos_app(pm.Parameterized):
         pn.state.notifications.info("Finished running deconvolution with new data", duration=0)
 
 
-        # profiler.stop()
-        # results_file = os.path.join("profile_output", "decon_"  + str(self.placehold_data_decon) + Path(self.file_name_peak).name + ".html")
-        # profiler.write_html(results_file)
+        profiler.stop()
+        results_file = os.path.join("profile_output", "decon_"  + str(self.placehold_data_decon) + Path(self.file_name_peak).name + ".html")
+        profiler.write_html(results_file)
         return hv.Layout(self.rm_decon + self.md_decon  + self.dr_decon + full_plot_1_mi_decon).opts(shared_axes=False).cols(2)
     
 
@@ -1002,8 +1002,8 @@ class Deimos_app(pm.Parameterized):
     
     def iso_viewable(self, **kwargs):
         
-        # profiler = Profiler()
-        # profiler.start()
+        profiler = Profiler()
+        profiler.start()
         
         pn.state.notifications.info('Return Isotope data', duration=0)
         # dynamic map to return hvdata after loading it with deimos
@@ -1063,9 +1063,9 @@ class Deimos_app(pm.Parameterized):
         
         pn.state.notifications.info('Finished with Isotopes function', duration=0)  
 
-        # profiler.stop()
-        # results_file = os.path.join(TESTS_ROOT, "iso_"  + str(self.placehold_data_iso)  + Path(self.file_name_peak).name + ".html")
-        # profiler.write_html(results_file)
+        profiler.stop()
+        results_file = os.path.join(TESTS_ROOT, "iso_"  + str(self.placehold_data_iso)  + Path(self.file_name_peak).name + ".html")
+        profiler.write_html(results_file)
         return hv.Layout(iso_dataframe + iso_dataframe_filtered \
             +  self.rasterized_md_iso +  self.rasterized_dr_iso  + self.rasterized_rm_iso \
                 + hvplot_mi_iso).opts(shared_axes=False).cols(2)
