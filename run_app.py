@@ -63,7 +63,7 @@ hv.output(backend='bokeh')
 
 class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only updated'''
-    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path=os.path.join("data", "*"),  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5' )
+    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5' )
     file_folder_initial =  pm.String(
         default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
     file_folder_cal =  pm.String(
@@ -111,9 +111,9 @@ class Deimos_app(pm.Parameterized):
     min_feature_mz_spacing = pm.Number(default=10, label="Spacing: " + feature_rt.default)
 
     file_name_smooth = pm.FileSelector(default = os.path.join(os.path.dirname(__file__), "created_data", file_name_smooth_name),\
-                                        path=os.path.join(os.path.dirname(__file__), "created_data", "*"),  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data')
+                                        path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data')
     file_name_peak = pm.FileSelector(default = os.path.join(os.path.dirname(__file__), "created_data", file_name_peak_name), \
-                                     path=os.path.join(os.path.dirname(__file__), "created_data", "*"),  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data')
+                                     path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data')
     threshold_slider = pm.Integer(default=1000, label='Threshold')
     smooth_radius = pm.String(
         default='0-1-0', doc='Keep - between numbers. Best practice is to increase number of iterations', label='Smoothing radius by mz, drift time, and retention time')
@@ -122,6 +122,8 @@ class Deimos_app(pm.Parameterized):
     peak_radius = pm.String(
         default='2-10-0', doc='A radius per dimension by mz, drift time, and retention time', label='Weighted mean kernel size')
     #
+    view_plot = pm.Action(lambda x: x.param.trigger('view_plots'), doc="Click to view new file", label='View plot from files')
+    
     rerun_peak = pm.Action(lambda x: x.param.trigger('rerun_peak'), doc="Click to rerun after changing inputs", label='Re-run peak')
     rerun_smooth = pm.Action(lambda x: x.param.trigger('rerun_smooth'), doc="Click to rerun after changing inputs", label='Re-run smooth') 
     rerun_decon = pm.Action(lambda x: x.param.trigger('rerun_decon'), doc="Click to rerun after changing inputs", label='Re-run deconvolution') 
@@ -174,12 +176,21 @@ class Deimos_app(pm.Parameterized):
     def update_param_cal(self):
         '''with new file folder update the files available in file selector files'''
         
-        new_path = PurePath(PureWindowsPath(self.file_folder_cal))
-       
         # update all files if updating file folder
-        self.param.calibration_input.path = os.path.join(new_path, "*")
-        self.param.example_tune_file.path = os.path.join(new_path, "*")
-        self.param.file_to_calibrate.path = os.path.join(new_path, "*")
+        if self.calibration_input[-1] == '/':
+            self.param.calibration_input.path = self.calibration_input + "*"
+        else:
+            self.param.calibration_input.path = self.calibration_input + "/*"
+
+        if self.example_tune_file[-1] == '/':
+            self.param.example_tune_file.path = self.example_tune_file + "*"
+        else:
+            self.param.example_tune_file.path = self.example_tune_file + "/*"
+
+        if self.file_to_calibrate[-1] == '/':
+            self.param.file_to_calibrate.path = self.file_to_calibrate + "*"
+        else:
+            self.param.file_to_calibrate.path = self.file_to_calibrate + "/*"
 
         self.param.calibration_input.update()
         self.param.example_tune_file.update()
@@ -210,12 +221,12 @@ class Deimos_app(pm.Parameterized):
                 self.dt_mzML_name = self.param.dt_mzML_name.objects[0]
 
  # load the h5 files and load to dask
-    @pm.depends('file_name_initial', 'feature_dt', 'feature_rt', 'feature_mz', 'feature_intensity', watch = True)
+    @pm.depends('view_plot', 'placehold_data_initial', watch = True)
     def hvdata_initial(self):
         '''Start initial data by loading data. Restart if using different file or feature names changed '''
         #pn.state.notifications.clear()
-        if not os.path.exists(os.path.join(os.path.dirname(__file__), "created_data")):
-            os.makedirs(os.path.join(os.path.dirname(__file__), "created_data"))
+        if not os.path.exists("created_data"):
+            os.makedirs("created_data")
             
         pn.state.notifications.position = 'top-center'
         self.update_mz_accession()
@@ -239,7 +250,7 @@ class Deimos_app(pm.Parameterized):
                 full_data_1 = additional_functions.load_initial_deimos_data(self.file_name_initial, \
                                                     self.feature_dt, self.feature_rt, self.feature_mz, self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name = new_name)
                 if new_name != None:
-                    self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data")
+                    self.file_folder_initial = "created_data"
                     self.update_param(new_name)
                     pn.state.notifications.info("initial input file has changed to " + str(new_name))
             except Exception as e:
@@ -620,7 +631,7 @@ class Deimos_app(pm.Parameterized):
                     ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name=new_name)
                     ms2 = additional_functions.load_mz_h5(self.file_name_initial, key='ms2', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name=new_name)
                     if new_name != None:
-                        self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data")
+                        self.file_folder_initial = "created_data"
                         self.update_param(new_name)
                         pn.state.notifications.info("initial input file has changed to " + str(new_name))
                 
@@ -1008,7 +1019,7 @@ class Deimos_app(pm.Parameterized):
             new_name = additional_functions.new_name_if_mz(self.file_name_initial)
             ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name = new_name)
             if new_name != None:
-                    self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data")
+                    self.file_folder_initial = "created_data"
 
                     self.update_param(new_name)
                     pn.state.notifications.info("initial input file has changed to " + str(new_name))
@@ -1188,9 +1199,12 @@ class Align_plots(pm.Parameterized):
   
     @pn.depends("file_folder", watch=True)
     def update_param(self, new_name = None):
-        new_path = PurePath(PureWindowsPath(self.file_folder))
         # update all files if updating file folder
-        self.param.peak_ref.path = os.path.join(new_path, "*")
+        
+        if self.peak_ref[-1] == '/':
+            self.param.peak_ref.path = self.peak_ref + "*"
+        else:
+            self.param.peak_ref.path = self.peak_ref + "/*"
         self.param.peak_ref.update()
         if self.peak_ref not in self.param.peak_ref.objects:
             if new_name == None:
@@ -1240,7 +1254,7 @@ class Align_plots(pm.Parameterized):
                 peak_ref_initial = additional_functions.load_initial_deimos_data(self.peak_ref, self.feature_dt, self.feature_rt, self.feature_mz,\
                                                                         self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = ref_key, new_name = new_name)
                 if new_name != None:
-                    self.file_folder = os.path.join(os.path.dirname(__file__), "created_data")
+                    self.file_folder = "created_data"
                     self.update_param(new_name)
                     pn.state.notifications.info("ref file has changed to " + str(new_name))
                 peak_ref = additional_functions.align_peak_create(peak_ref_initial, theshold_presistence, self.feature_mz, self.feature_dt, self.feature_rt, \
@@ -1258,7 +1272,7 @@ class Align_plots(pm.Parameterized):
                     full_two = additional_functions.load_initial_deimos_data(file, self.feature_dt, self.feature_rt, self.feature_mz, \
                                                                             self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = file_key, new_name = new_name)
                     if new_name != None:
-                        pn.state.notifications.info("alignment file has changed to " + str(new_name))
+                        pn.state.notifications.info("alignment file h5 version is saved to " + str(new_name))
 
                     peak_two = additional_functions.align_peak_create(full_two, theshold_presistence,  self.feature_mz, self.feature_dt, self.feature_rt,\
                                                                     self.feature_intensity)
@@ -1329,18 +1343,25 @@ instructions_view = "<ul> <li>The original data is a placeholder</li> <li>Indica
     <li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
 <li>Changing the axis widths and clicking 'Recreate plots with below values' to re-aggregrate with new widths</li>\
 <li>Toolbar's zoom and reset does not re-aggregate within this tool.</li>\
+<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
     <ul> "
 instructions_smooth = "<ul> <li>The original data is a placeholder</li> <li>Click 'Run smooth' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
-    <li>Keeping the <b>smooth radius</b> small and increasing number of iterations <br> is preferable to a larger smoothing radius, albeit at greater computational expense.</li><ul> "
+    <li>Keeping the <b>smooth radius</b> small and increasing number of iterations <br> is preferable to a larger smoothing radius, albeit at greater computational expense.</li>\
+<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li><ul> "
 instructions_peaks = "<p>Feature detection, also referred to as peak detection, is the process by which local maxima that fulfill certain criteria (such as sufficient signal-to-noise ratio) are located in the signal acquired by a given analytical instrument. </p><ul> <li>The original data is a placeholder</li> <li>Click 'Run peak' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li> \
-    <li>The <b>radius per dimension</b> insures an intensity-weighted per-dimension coordinate will be returned for each feature.</li><ul> "
-instructions_ms2 = "<p>With MS1 features of interest determined by peak detection, corresponding tandem mass spectra, if available, must be extracted and assigned to the MS1 parent ion feature. </p><ul> <li>The original data is a placeholder, clicking will not work without real data </li> <li>Click 'Run decon' after updating parameters to get new graph</li><li>The MS2 data associated with user-selected MS1 data, with the MS1 data with the highest intensity used if there are multiple MS1 data points within a small range of the user-click </li> </ul> "
+    <li>The <b>radius per dimension</b> insures an intensity-weighted per-dimension coordinate will be returned for each feature.</li>\
+<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li><ul> "
+instructions_ms2 = "<p>With MS1 features of interest determined by peak detection, corresponding tandem mass spectra, if available, must be extracted and assigned to the MS1 parent ion feature. </p><ul> <li>The original data is a placeholder, clicking will not work without real data </li> <li>Click 'Run decon' after updating parameters to get new graph</li><li>The MS2 data associated with user-selected MS1 data, with the MS1 data with the highest intensity used if there are multiple MS1 data points within a small range of the user-click </li>\
+<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li><ul> "
 instructions_align = "<ul><li>Alignment is the process by which feature coordinates across samples are adjusted to account for instrument variation such that matching features are aligned to adjust for small differences in coordinates</li>\
-    <li>The original data is a placeholder</li> <li>Indicate the reference file and folder of files to align</li><li>Determine matches within <b>tolerance</b> per feature with the alignment determined by the <b>kernel</b> by <b>relative or absolute </b> value by <b>support vector regression kernel </b> </li></ul>"
+    <li>The original data is a placeholder</li> <li>Indicate the reference file and folder of files to align</li><li>Determine matches within <b>tolerance</b> per feature with the alignment determined by the <b>kernel</b> by <b>relative or absolute </b> value by <b>support vector regression kernel </b> </li>\
+<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li><ul> "
 instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes</li>\
     <li>Select a row to view the isotopes</li>\
-    <li>Graphs will show slice of MS1 data. Plot will show isotopes</li></ul>"
-param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_data_initial, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name,  '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
+    <li>Graphs will show slice of MS1 data. Plot will show isotopes</li>\
+<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li><ul> "
+param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_data_initial, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
                         Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
