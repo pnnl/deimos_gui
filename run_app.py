@@ -65,7 +65,7 @@ class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only updated'''
     file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path=os.path.join("data", "*"),  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5' )
     file_folder_initial =  pm.String(
-        default= "data", doc='Either relative path to file or absolute path to folder with Initial Files', label='Location of data folder')
+        default= "data", doc='Either relative path to file or absolute path to folder with Initial Files', label='Location of data folder.')
     file_folder_cal =  pm.String(
         default= "data", doc='Either relative path to file or absolute path to folder with calibration files', label='Location of calibration folder')
     rt_mzML_name = pm.Selector(["scan start time"], doc='Only adjust if mz file selected. Select the retention time column name')
@@ -157,7 +157,7 @@ class Deimos_app(pm.Parameterized):
         new_path = PurePath(PureWindowsPath(self.file_folder_initial))
        
         # update all files if updating file folder
-
+        # convert to glob object
         self.param.file_name_initial.path = str(os.path.join(new_path, "*")).replace('\\', '')
 
         self.param.file_name_initial.update()
