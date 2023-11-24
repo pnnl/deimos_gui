@@ -17,7 +17,7 @@ from pathlib import Path
 
 def exception_handler(ex):
     logging.error("Error", exc_info=ex)
-    raise pn.state.notifications.error('Error: %s: see command line for more information' % str(ex), duration=0)
+    pn.state.notifications.error('Error: %s: see command line for more information' % str(ex), duration=0)
 
 pn.extension(exception_handler=exception_handler, notifications=True)
 

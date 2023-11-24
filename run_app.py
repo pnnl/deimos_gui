@@ -47,7 +47,7 @@ hv.extension('bokeh', 'matplotlib')
 # view general exception 
 def exception_handler(ex):
     logging.error("Error", exc_info=ex)
-    raise pn.state.notifications.error('Error: %s: see command line for more information' % str(ex), duration=0)
+    pn.state.notifications.error('Error: %s: see command line for more information' % str(ex), duration=0)
 
 pn.extension(exception_handler=exception_handler, notifications=True)
 
@@ -110,9 +110,9 @@ class Deimos_app(pm.Parameterized):
     min_feature_dt_spacing = pm.Number(default=1, label="Spacing: " + feature_rt.default)
     min_feature_mz_spacing = pm.Number(default=10, label="Spacing: " + feature_rt.default)
 
-    file_name_smooth = pm.FileSelector(default = os.path.join(os.path.dirname(__file__), "created_data", file_name_smooth_name),\
+    file_name_smooth = pm.FileSelector(default = os.path.join("created_data", file_name_smooth_name),\
                                         path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data')
-    file_name_peak = pm.FileSelector(default = os.path.join(os.path.dirname(__file__), "created_data", file_name_peak_name), \
+    file_name_peak = pm.FileSelector(default = os.path.join("created_data", file_name_peak_name), \
                                      path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data')
     threshold_slider = pm.Integer(default=1000, label='Threshold')
     smooth_radius = pm.String(
@@ -122,7 +122,7 @@ class Deimos_app(pm.Parameterized):
     peak_radius = pm.String(
         default='2-10-0', doc='A radius per dimension by mz, drift time, and retention time', label='Weighted mean kernel size')
     #
-    view_plot = pm.Action(lambda x: x.param.trigger('view_plots'), doc="Click to view new file", label='View plot from files')
+    view_plot = pm.Action(lambda x: x.param.trigger('view_plot'), doc="Click to view new file", label='View plot from files')
     
     rerun_peak = pm.Action(lambda x: x.param.trigger('rerun_peak'), doc="Click to rerun after changing inputs", label='Re-run peak')
     rerun_smooth = pm.Action(lambda x: x.param.trigger('rerun_smooth'), doc="Click to rerun after changing inputs", label='Re-run smooth') 
@@ -448,7 +448,7 @@ class Deimos_app(pm.Parameterized):
         '''run deimos functions to get the smoothed data returned'''
         
         # name will be saved as
-        new_smooth_name =  os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).stem + '_threshold_' + str(self.threshold_slider) + \
+        new_smooth_name =  os.path.join( "created_data",  Path(self.file_name_initial).stem + '_threshold_' + str(self.threshold_slider) + \
              '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
                 '_new_smooth_data.h5')
         if self.placehold_data_smooth:
@@ -520,7 +520,7 @@ class Deimos_app(pm.Parameterized):
     def create_peak_data(self):
         '''get peak data using deimos functions'''
         # name will be saved as, check if already exists, if so don't rerun
-        new_peak_name = os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
+        new_peak_name = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
              '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
                 '_new_peak_data.h5')
         if self.placehold_data_peak:
@@ -604,7 +604,7 @@ class Deimos_app(pm.Parameterized):
     def ms2_decon(self):
         
         
-        file_name_res = os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
+        file_name_res = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
              '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" +str(self.feature_rt) +\
                 '_res.csv')
         if self.placehold_data_decon:
@@ -830,7 +830,7 @@ class Deimos_app(pm.Parameterized):
         # profiler.stop()
         # results_file = os.path.join(TESTS_ROOT, "decon_"  + str(self.placehold_data_decon) + Path(self.file_name_peak).name + ".html")
         # profiler.write_html(results_file)
-        return hv.Layout(self.rm_decon + self.md_decon  + self.dr_decon + full_plot_1_mi_decon).cols(2)
+        return hv.Layout(self.rm_decon + self.md_decon  + self.dr_decon + full_plot_1_mi_decon).opts(shared_axes=False).cols(2)
     
 
         
@@ -1082,6 +1082,7 @@ class Deimos_app(pm.Parameterized):
         
             #https://panel.holoviz.org/reference/global/Notifications.html
             pn.state.notifications.info('Placehold data', duration=10000)
+            pn.state.notifications.clear()
         # Load tune data
         #load_deimos_data
         else:
@@ -1138,7 +1139,7 @@ class Deimos_app(pm.Parameterized):
                                                     power=traveling_wave)
 
             calibrated_values = ccs_cal.arrival2ccs(mz=to_calibrate['mz'], ta=to_calibrate['drift_time'], q=1)
-            calibration_files = os.path.join(os.path.dirname(__file__),  "created_data",  Path(self.file_to_calibrate).name[:-4] + '_calibrated.csv')
+            calibration_files = os.path.join( "created_data",  Path(self.file_to_calibrate).name[:-4] + '_calibrated.csv')
             pd.DataFrame(calibrated_values).to_csv(calibration_files)
 
             pn.state.notifications.clear()
