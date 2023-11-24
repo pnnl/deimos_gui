@@ -19,6 +19,7 @@ import os, param as pm, holoviews as hv, panel as pn, datashader as ds
 import logging
 from pathlib import Path
 import additional_functions
+from pathlib import PurePath, PureWindowsPath
 # from pyinstrument import Profiler
 
 
@@ -46,8 +47,8 @@ hv.extension('bokeh', 'matplotlib')
 # view general exception 
 def exception_handler(ex):
     logging.error("Error", exc_info=ex)
-    
-    pn.state.notifications.error(ex, duration=0)
+    raise pn.state.notifications.error('Error: %s: see command line for more information' % str(ex), duration=0)
+
 pn.extension(exception_handler=exception_handler, notifications=True)
 
 
@@ -73,9 +74,7 @@ class Deimos_app(pm.Parameterized):
     reset_filter = pm.Action(
         lambda x: x.param.trigger('reset_filter'), doc = 'Refresh axis ranges to data min and max (will not update plot)',
         label='Update axis ranges below')
-    load_new_file  = pm.Action(
-        lambda x: x.param.trigger('load_new_file'), doc = 'Recreate plots with the current file',
-        label='View file in plots')
+  
     reset_filter_iso = pm.Action(
         lambda x: x.param.trigger('reset_filter_iso'), doc = 'Refresh axis ranges to data min and max (will not update plot)',
         label='Update axis ranges below')
@@ -153,22 +152,28 @@ class Deimos_app(pm.Parameterized):
 
     
     @pn.depends("file_folder_initial", watch=True)
-    def update_param(self):
+    def update_param(self, new_name = None):
         '''with new file folder update the files available in file selector files'''
-        new_path = os.path.abspath(self.file_folder_initial)
+        new_path = PurePath(PureWindowsPath(self.file_folder_initial))
+       
         # update all files if updating file folder
 
-        self.param.file_name_initial.path = os.path.join(new_path, "*")
+        self.param.file_name_initial.path = str(os.path.join(new_path, "*")).replace('\\', '')
 
         self.param.file_name_initial.update()
 
         if self.file_name_initial not in self.param.file_name_initial.objects:
-            self.file_name_initial = self.param.file_name_initial.objects[0]
+            if new_name == None:
+                self.file_name_initial = self.param.file_name_initial.objects[0]
+            else:
+                self.file_name_initial = new_name
 
     @pn.depends("file_folder_cal", watch=True)
-    def update_param(self):
+    def update_param_cal(self):
         '''with new file folder update the files available in file selector files'''
-        new_path = os.path.abspath(self.file_folder_cal)
+        
+        new_path = PurePath(PureWindowsPath(self.file_folder_cal))
+       
         # update all files if updating file folder
         self.param.calibration_input.path = os.path.join(new_path, "*")
         self.param.example_tune_file.path = os.path.join(new_path, "*")
@@ -191,7 +196,7 @@ class Deimos_app(pm.Parameterized):
     def update_mz_accession(self):
         '''if using mzML allow users to chose name from accession file'''
         if self.file_name_initial == None:
-            pn.state.notifications.error("No file selected")
+            raise Exception("No file selected")
         extension = Path(self.file_name_initial).suffix
         if extension == ".mzML" or extension == ".mzML.gz" :
             accessin_list = list(deimos.get_accessions(self.file_name_initial).keys())
@@ -203,7 +208,7 @@ class Deimos_app(pm.Parameterized):
                 self.dt_mzML_name = self.param.dt_mzML_name.objects[0]
 
  # load the h5 files and load to dask
-    @pm.depends('load_new_file', 'feature_dt', 'feature_rt', 'feature_mz', 'feature_intensity', watch = True)
+    @pm.depends('file_name_initial', 'feature_dt', 'feature_rt', 'feature_mz', 'feature_intensity', watch = True)
     def hvdata_initial(self):
         '''Start initial data by loading data. Restart if using different file or feature names changed '''
         #pn.state.notifications.clear()
@@ -232,11 +237,12 @@ class Deimos_app(pm.Parameterized):
                 full_data_1 = additional_functions.load_initial_deimos_data(self.file_name_initial, \
                                                     self.feature_dt, self.feature_rt, self.feature_mz, self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name = new_name)
                 if new_name != None:
-                    self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data", "*")
-                    self.file_name_initial = new_name
+                    self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data")
+                    self.update_param(new_name)
                     pn.state.notifications.info("initial input file has changed to " + str(new_name))
             except Exception as e:
-                pn.state.notifications.error(str(e), duration=0)
+                raise Exception(str(e))
+                
             self.data_initial = dd.from_pandas(full_data_1, npartitions=mp.cpu_count())
         self.data_initial.persist()
         self.refresh_axis_values()
@@ -441,7 +447,7 @@ class Deimos_app(pm.Parameterized):
                 ms1_smooth, self.index_ms1_peaks, self.index_ms2_peaks = additional_functions.create_smooth(self.file_name_initial, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity,  self.smooth_radius, \
                                                                                                             self.smooth_iterations, new_smooth_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
             except Exception as e:
-                pn.state.notifications.error(str(e), duration=0)
+                raise Exception(str(e))
             # update file selector widget with new names from folder
             self.param.file_name_smooth.update()
             # set the file_folder and name of smooth data
@@ -513,7 +519,7 @@ class Deimos_app(pm.Parameterized):
                 try:
                     ms1_peaks = additional_functions.load_mz_h5(new_peak_name, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
                 except Exception as e:
-                    pn.state.notifications.error(str(e), duration=0)
+                    raise Exception(str(e))
             else:
                 # if have smooth data from previous step
                 # add boolean to use created threshold data and created smooth data or redo entiremely
@@ -521,7 +527,7 @@ class Deimos_app(pm.Parameterized):
                     ms1_peaks = additional_functions.create_peak(self.file_name_smooth, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity, int(self.threshold_slider), self.peak_radius, self.index_ms1_peaks, self.index_ms2_peaks,\
                                                                 new_peak_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
                 except Exception as e:
-                    pn.state.notifications.error(str(e), duration=0)
+                    raise Exception(str(e))
             self.param.file_name_peak.update()
             self.file_name_peak = new_peak_name
             self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
@@ -612,14 +618,14 @@ class Deimos_app(pm.Parameterized):
                     ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name=new_name)
                     ms2 = additional_functions.load_mz_h5(self.file_name_initial, key='ms2', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name=new_name)
                     if new_name != None:
-                        self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data", "*")
-                        self.file_name_initial = new_name
+                        self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data")
+                        self.update_param(new_name)
                         pn.state.notifications.info("initial input file has changed to " + str(new_name))
                 
                 except Exception as e:
 
                     pn.state.notifications.error("Check if peak files have been created", duration=0)
-                    pn.state.notifications.error(str(e), duration=0)
+                    raise Exception(str(e))
                 # get thresholds of ms1 and ms2 peak and full data
                 ms1 = deimos.threshold(ms1, threshold= threshold_full_m1)
                 ms2 = deimos.threshold(ms2, threshold= threshold_full_m2)  
@@ -1000,12 +1006,13 @@ class Deimos_app(pm.Parameterized):
             new_name = additional_functions.new_name_if_mz(self.file_name_initial)
             ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name = new_name)
             if new_name != None:
-                    self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data", "*")
-                    self.file_name_initial = new_name
+                    self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data")
+
+                    self.update_param(new_name)
                     pn.state.notifications.info("initial input file has changed to " + str(new_name))
             
         except Exception as e:
-                pn.state.notifications.error(str(e), duration=0)
+                raise Exception(str(e))
         # filter the ms1 data by the values of the selected isotye data
         iso_dataframe_filtered = hv.Dataset(ms1).apply(self.get_ids, streams=[stream_ids])
 
@@ -1077,7 +1084,7 @@ class Deimos_app(pm.Parameterized):
                 to_calibrate = additional_functions.load_mz_h5(self.file_to_calibrate, key='ms1', \
                                                             columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
             except Exception as e:
-                pn.state.notifications.error(str(e), duration=0)
+                raise Exception(str(e))
             load_values = self.calibrate_type
             traveling_wave = self.traveling_wave
             beta = float(self.beta)
@@ -1088,7 +1095,7 @@ class Deimos_app(pm.Parameterized):
                 L2 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in tune.columns]
                 L3 = [x for x in ['mz', 'drift_time'] if x not in to_calibrate.columns]
                 if len(L1 + L2 + L3) > 0:
-                    pn.state.notifications.error("Make sure data has columns mz, ccs, charge, and ta", duration=0)
+                    raise Exception("Make sure data has columns mz, ccs, charge, and ta")
                 # Load data
                 ccs_cal = deimos.calibration.calibrate_ccs(mz=cal_input['mz'],
                                                     ta=cal_input['ta'],
@@ -1102,7 +1109,7 @@ class Deimos_app(pm.Parameterized):
                 L2 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in tune.columns]
                 L3 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in to_calibrate.columns]
                 if len(L1 + L2 + L3) > 0:
-                    pn.state.notifications.error("Make sure data has columns mz, ccs, and q", duration=0)
+                    raise Exception("Make sure data has columns mz, ccs, and q")
                 # Load data
                 ccs_cal = deimos.calibration.tunemix(tune,
                                                     mz=cal_input['mz'],
@@ -1176,15 +1183,18 @@ class Align_plots(pm.Parameterized):
     rt_mzML_name = pm.Selector(["scan start time"], label="mzML file retention time")
     dt_mzML_name = pm.Selector(["ion mobility drift time"], label="mzML file drift time")
 
-        # def __init__(self):
+  
     @pn.depends("file_folder", watch=True)
-    def update_param(self):
-        new_path = os.path.abspath(self.file_folder)
+    def update_param(self, new_name = None):
+        new_path = PurePath(PureWindowsPath(self.file_folder))
         # update all files if updating file folder
         self.param.peak_ref.path = os.path.join(new_path, "*")
         self.param.peak_ref.update()
         if self.peak_ref not in self.param.peak_ref.objects:
-            self.peak_ref = self.param.peak_ref.objects[0]
+            if new_name == None:
+                self.peak_ref = self.param.peak_ref.objects[0]
+            else:
+                self.peak_ref = new_name
 
     
     @pm.depends('placehold_data_align', 'rerun_align', watch = True)
@@ -1228,15 +1238,15 @@ class Align_plots(pm.Parameterized):
                 peak_ref_initial = additional_functions.load_initial_deimos_data(self.peak_ref, self.feature_dt, self.feature_rt, self.feature_mz,\
                                                                         self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = ref_key, new_name = new_name)
                 if new_name != None:
-                    self.file_folder = os.path.join(os.path.dirname(__file__), "created_data", "*")
-                    self.peak_ref = new_name
+                    self.file_folder = os.path.join(os.path.dirname(__file__), "created_data")
+                    self.update_param(new_name)
                     pn.state.notifications.info("ref file has changed to " + str(new_name))
                 peak_ref = additional_functions.align_peak_create(peak_ref_initial, theshold_presistence, self.feature_mz, self.feature_dt, self.feature_rt, \
                                                                 self.feature_intensity)
             except Exception as e:
-                pn.state.notifications.error(str(e), duration=0)
+                raise Exception(str(e))
             if len(peak_ref) == 0: 
-                    pn.state.notifications.error("No data left after thresholding: lower threshold or change data", duration=0)
+                    raise Exception("No data left after thresholding: lower threshold or change data")
             peak_two_list = []
             peak_file_list = []
             for file in file_list:
@@ -1251,11 +1261,11 @@ class Align_plots(pm.Parameterized):
                     peak_two = additional_functions.align_peak_create(full_two, theshold_presistence,  self.feature_mz, self.feature_dt, self.feature_rt,\
                                                                     self.feature_intensity)
                 except Exception as e:
-                    pn.state.notificaitons.error("Alignment didn't work", duration=0)
-                    pn.state.notifications.error(str(e), duration=0)
+                    pn.state.notifications.error("Alignment didn't work", duration=0)
+                    raise Exception(str(e))
                     
                 if len(peak_two) == 0:
-                    pn.state.notifications.error("No data left after thresholding: lower threshold or change data", duration=0)
+                    raise Exception("No data left after thresholding: lower threshold or change data")
                 peak_two_list.append(peak_two)
                 peak_file_list.append(file)
             list_plots = []
@@ -1328,7 +1338,7 @@ instructions_align = "<ul><li>Alignment is the process by which feature coordina
 instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes</li>\
     <li>Select a row to view the isotopes</li>\
     <li>Graphs will show slice of MS1 data. Plot will show isotopes</li></ul>"
-param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_data_initial, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name,  '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
+param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_data_initial, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name,  '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
                         Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)

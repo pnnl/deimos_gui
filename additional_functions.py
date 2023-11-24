@@ -17,7 +17,7 @@ from pathlib import Path
 
 def exception_handler(ex):
     logging.error("Error", exc_info=ex)
-    pn.state.notifications.error('Error: %s: see command line for more information' % str(ex), duration=0)
+    raise pn.state.notifications.error('Error: %s: see command line for more information' % str(ex), duration=0)
 
 pn.extension(exception_handler=exception_handler, notifications=True)
 
@@ -37,17 +37,18 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_
         extension = Path(file_name_initial).suffix
         if extension == ".mzML" or extension == ".gz":
                  if os.path.exists(new_name):
-                        pn.state.notifications.error(new_name + " already exists. Please rename before continuing", duration=0)
-                        return
+                        raise Exception(new_name + " already exists. Please rename before continuing")
+                     
                  else:
                         rt_name_value = deimos.get_accessions(file_name_initial)[rt_name]
                         dt_name_value = deimos.get_accessions(file_name_initial)[dt_name]
                         pn.state.notifications.clear()
-                        pn.state.notifications.info("load deimos mz using " + str({'retention_time': rt_name_value, 'drift_time': dt_name_value}), duration=0)
-                        pn.state.notifications.info("loading an mz file might take 10 minutes")
+                        pn.state.notifications.info("load deimos mz using " + str({rt_name: rt_name_value, dt_name: dt_name_value}), duration=0)
+                        pn.state.notifications.info("loading an mz file will take a while, will see 'done loading' when finished", duration=0)
+                        pn.state.notifications.info("See https://deimos.readthedocs.io/en/latest/user_guide/loading_saving.html to convert with DEIMoS directly", duration=0)
                         load_file = deimos.load(file_name_initial, accession={'retention_time': rt_name_value, 'drift_time': dt_name_value})
                         
-                        # Save ms1 to new file
+                        # Save ms1 to new file, use x so don't overwrite existing file
                         deimos.save(new_name, load_file['ms1'], key='ms1', mode='w')
 
                         # Save ms2 to same file
@@ -62,8 +63,8 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_
         else:
              if extension == "":
                      extension = "Folder"
-             pn.state.notifications.error(extension + " used. Please only use h5, mzML, or mzML.gz files", duration = 0)
-             return 
+             raise Exception(extension + " used. Please only use h5, mzML, or mzML.gz files")
+           
 def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name,  new_name = None,  key= 'ms1'):
         '''
         full function to return dataframe with load_mz_h5
@@ -81,7 +82,7 @@ def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_
                 pd DataFrame with data 
         '''
         if file_name_initial == 'data/placeholder.csv' or file_name_initial == 'data/created_data/placeholder.csv' :     
-                pn.state.notifications.error("Select files and adjust parameters before clicking 'Rerun'", duration=0)
+                raise Exception("Select files and adjust parameters before clicking 'Rerun'")
         full_data_1 = load_mz_h5(file_name_initial, key=key, columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name, new_name = new_name)
         full_data_1 = full_data_1[[feature_dt, feature_rt, feature_mz, feature_intensity]]
         full_data_1.reset_index(drop = True, inplace=True)
@@ -108,8 +109,8 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
                         pd DataFrame with data 
                 '''
                 if os.path.exists(new_smooth_name):
-                        pn.state.notifications.error(new_smooth_name + " already exists. Please rename before continuing", duration=0)
-                        return
+                        raise Exception(new_smooth_name + " already exists. Please rename before continuing")
+           
                 else:
                         ms1 = load_mz_h5(file_name_initial, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
                         ms2 = load_mz_h5(file_name_initial, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
@@ -170,8 +171,8 @@ def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_in
                         pd DataFrame with data 
                 '''
                 if os.path.exists(new_peak_name):
-                        pn.state.notifications.error(new_peak_name + " already exists. Please rename before continuing", duration=0)
-                        return
+                        raise Exception(new_peak_name + " already exists. Please rename before continuing")
+                      
                 else:
                         ms1_smooth = load_mz_h5(file_name_smooth, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
                         ms2_smooth = load_mz_h5(file_name_smooth, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
