@@ -37,7 +37,7 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_
         extension = Path(file_name_initial).suffix
         if extension == ".mzML" or extension == ".gz":
                  if os.path.exists(new_name):
-                        raise Exception(new_name + " already exists. Please rename before continuing")
+                        raise Exception("Please rename before continuing or use existing file name: " + new_name )
                      
                  else:
                         rt_name_value = deimos.get_accessions(file_name_initial)[rt_name]
@@ -171,7 +171,7 @@ def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_in
                         pd DataFrame with data 
                 '''
                 if os.path.exists(new_peak_name):
-                        raise Exception(new_peak_name + " already exists. Please rename before continuing")
+                        raise Exception(new_peak_name + " already exists. Please rename before continuing or use the existing file name in the smooth file name")
                       
                 else:
                         ms1_smooth = load_mz_h5(file_name_smooth, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
