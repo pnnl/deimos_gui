@@ -65,9 +65,9 @@ class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only updated'''
     file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path=os.path.join("data", "*"),  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5' )
     file_folder_initial =  pm.String(
-        default= "data", doc='Either relative path to file or absolute path to folder with Initial Files', label='Location of data folder.')
+        default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
     file_folder_cal =  pm.String(
-        default= "data", doc='Either relative path to file or absolute path to folder with calibration files', label='Location of calibration folder')
+        default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
     rt_mzML_name = pm.Selector(["scan start time"], doc='Only adjust if mz file selected. Select the retention time column name')
     dt_mzML_name = pm.Selector(["ion mobility drift time"], doc='Only adjust if mz file selected. Select the drift time column name')
     # reset the manual filters to the data bounds and reset the rangexy of the plot
@@ -154,11 +154,13 @@ class Deimos_app(pm.Parameterized):
     @pn.depends("file_folder_initial", watch=True)
     def update_param(self, new_name = None):
         '''with new file folder update the files available in file selector files'''
-        new_path = PurePath(PureWindowsPath(self.file_folder_initial))
-       
         # update all files if updating file folder
-        # convert to glob object
-        self.param.file_name_initial.path = str(os.path.join(new_path, "*")).replace('\\', '')
+        # convert to posix
+        if self.file_folder_initial[-1] == '/':
+
+            self.param.file_name_initial.path = self.file_folder_initial + "*"
+        else:
+            self.param.file_name_initial.path = self.file_folder_initial + "/*"
 
         self.param.file_name_initial.update()
 
@@ -1165,7 +1167,7 @@ class Align_plots(pm.Parameterized):
     placehold_data_align = pm.Boolean(True, label='Placeholder align data')
     peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
-        default= 'data', doc='Either relative path to file or absolute path to folder with peak references', label='Location of data folder')
+        default= 'data', doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
     peak_folder =  pm.String(
         default= "data", doc='Either relative path to file or absolute path to folder with peak files', label='Location of peak folder')
     align_endswith =  pm.String(default="*.h5", doc='Use * for wildcard (ie. *end.h5)', label='Only use files that end with this value')
