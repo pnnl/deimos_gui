@@ -12,7 +12,7 @@ import logging
 import colorcet as cc
 import datashader as ds
 from holoviews.operation.datashader import aggregate, datashade, rasterize
-
+import os
 from pathlib import Path
 
 def exception_handler(ex):
@@ -21,7 +21,7 @@ def exception_handler(ex):
 
 pn.extension(exception_handler=exception_handler, notifications=True)
 
-def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None):
+def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_name = None):
         '''
         load either mz, h5 or csv file
 
@@ -36,14 +36,26 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None):
         '''
         extension = Path(file_name_initial).suffix
         if extension == ".mzML" or extension == ".gz":
-                rt_name_value = deimos.get_accessions(file_name_initial)[rt_name]
-                dt_name_value = deimos.get_accessions(file_name_initial)[dt_name]
-                pn.state.notifications.clear()
-                pn.state.notifications.info("load deimos mz using " + str({'retention_time': rt_name_value, 'drift_time': dt_name_value}), duration=0)
-                load_file = deimos.load(file_name_initial, accession={'retention_time': rt_name_value, 'drift_time': dt_name_value})
+                 if os.path.exists(new_name):
+                        raise Exception("Please rename before continuing or use existing file name: " + new_name )
+                     
+                 else:
+                        rt_name_value = deimos.get_accessions(file_name_initial)[rt_name]
+                        dt_name_value = deimos.get_accessions(file_name_initial)[dt_name]
+                        pn.state.notifications.clear()
+                        pn.state.notifications.info("load deimos mz using " + str({rt_name: rt_name_value, dt_name: dt_name_value}), duration=0)
+                        pn.state.notifications.info("loading an mz file will take a while, will see 'done loading' when finished", duration=0)
+                        pn.state.notifications.info("See https://deimos.readthedocs.io/en/latest/user_guide/loading_saving.html to convert with DEIMoS directly", duration=0)
+                        load_file = deimos.load(file_name_initial, accession={'retention_time': rt_name_value, 'drift_time': dt_name_value})
+                        
+                        # Save ms1 to new file, use x so don't overwrite existing file
+                        deimos.save(new_name, load_file['ms1'], key='ms1', mode='w')
 
-                pn.state.notifications.info("done loading", duration=0)
-                return load_file[key]
+                        # Save ms2 to same file
+                        deimos.save(new_name, load_file['ms2'], key='ms2', mode='a')
+                        pn.state.notifications.info("saving as h5 file in " + str(new_name))
+                        pn.state.notifications.info("done loading", duration=0)
+                        return load_file[key]
         elif extension ==".h5":
                 return deimos.load(file_name_initial, key=key, columns=columns)
         elif extension ==".csv":
@@ -51,9 +63,9 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None):
         else:
              if extension == "":
                      extension = "Folder"
-             pn.state.notifications.error(extension + " used. Please only use h5, mzML, or mzML.gz files", duration = 0)
-                
-def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name,  key= 'ms1'):
+             raise Exception(extension + " used. Please only use h5, mzML, or mzML.gz files")
+           
+def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name,  new_name = None,  key= 'ms1'):
         '''
         full function to return dataframe with load_mz_h5
 
@@ -70,8 +82,8 @@ def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_
                 pd DataFrame with data 
         '''
         if file_name_initial == 'data/placeholder.csv' or file_name_initial == 'data/created_data/placeholder.csv' :     
-                pn.state.notifications.error("Select files and adjust parameters before clicking 'Rerun'", duration=0)
-        full_data_1 = load_mz_h5(file_name_initial, key=key, columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+                raise Exception("Select files and adjust parameters before clicking 'Rerun'")
+        full_data_1 = load_mz_h5(file_name_initial, key=key, columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name, new_name = new_name)
         full_data_1 = full_data_1[[feature_dt, feature_rt, feature_mz, feature_intensity]]
         full_data_1.reset_index(drop = True, inplace=True)
         return full_data_1
@@ -96,42 +108,46 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
                 Returns:
                         pd DataFrame with data 
                 '''
-                ms1 = load_mz_h5(file_name_initial, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
-                ms2 = load_mz_h5(file_name_initial, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+                if os.path.exists(new_smooth_name):
+                        raise Exception(new_smooth_name + " already exists. Please rename before continuing")
+           
+                else:
+                        ms1 = load_mz_h5(file_name_initial, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+                        ms2 = load_mz_h5(file_name_initial, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
 
-                factors = deimos.build_factors(ms1, dims='detect')
+                        factors = deimos.build_factors(ms1, dims='detect')
+                                
+                        # Nominal threshold
+                        ms1 = deimos.threshold(ms1, threshold=128)
+                        # Build index
+                        index_ms1_peaks = deimos.build_index(ms1, factors)
+                        # Smooth data
+                        smooth_radius= [int(i) for i in list(smooth_radius.split('-'))]
+                        iterations = int(smooth_iterations)
+                        pn.state.notifications.info('Smooth MS1 data', duration=3000)
+                        ms1_smooth = deimos.filters.smooth(ms1, index=index_ms1_peaks, dims=[feature_mz, feature_dt, feature_rt],
+                                                radius=smooth_radius, iterations=iterations)
                         
-                # Nominal threshold
-                ms1 = deimos.threshold(ms1, threshold=128)
-                # Build index
-                index_ms1_peaks = deimos.build_index(ms1, factors)
-                # Smooth data
-                smooth_radius= [int(i) for i in list(smooth_radius.split('-'))]
-                iterations = int(smooth_iterations)
-                pn.state.notifications.info('Smooth MS1 data', duration=3000)
-                ms1_smooth = deimos.filters.smooth(ms1, index=index_ms1_peaks, dims=[feature_mz, feature_dt, feature_rt],
-                                            radius=smooth_radius, iterations=iterations)
-                
-                # Save ms1 to new file
-                deimos.save(new_smooth_name, ms1_smooth, key='ms1', mode='w')
+                        # Save ms1 to new file
+                        deimos.save(new_smooth_name, ms1_smooth, key='ms1', mode='w')
 
-                        # append peak ms2
-                factors = deimos.build_factors(ms2, dims='detect')
-                
-                pn.state.notifications.info('Smooth MS2 data', duration=3000)
-                # Nominal threshold
-                ms2 = deimos.threshold(ms2, threshold=128)
-                # Build index
-                index_ms2_peaks = deimos.build_index(ms2, factors)
+                                # append peak ms2
+                        factors = deimos.build_factors(ms2, dims='detect')
+                        
+                        pn.state.notifications.info('Smooth MS2 data', duration=3000)
+                        # Nominal threshold
+                        ms2 = deimos.threshold(ms2, threshold=128)
+                        # Build index
+                        index_ms2_peaks = deimos.build_index(ms2, factors)
 
-                # Smooth data
-                iterations = int(smooth_iterations)
-                # Smooth data
-                ms2_smooth = deimos.filters.smooth(ms2, index=index_ms2_peaks, dims=[feature_mz, feature_dt, feature_rt],
-                                            radius=smooth_radius, iterations=iterations)
-                # would just have file_folder/ created_folder and file_name_smooth
-                deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
-                return ms1_smooth, index_ms1_peaks, index_ms2_peaks
+                        # Smooth data
+                        iterations = int(smooth_iterations)
+                        # Smooth data
+                        ms2_smooth = deimos.filters.smooth(ms2, index=index_ms2_peaks, dims=[feature_mz, feature_dt, feature_rt],
+                                                radius=smooth_radius, iterations=iterations)
+                        # would just have file_folder/ created_folder and file_name_smooth
+                        deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
+                        return ms1_smooth, index_ms1_peaks, index_ms2_peaks
 
 def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_intensity,  threshold_slider,  peak_radius, index_ms1_peaks, index_ms2_peaks, new_peak_name, rt_name = None, dt_name = None ):
                 '''
@@ -154,38 +170,42 @@ def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_in
                 Returns:
                         pd DataFrame with data 
                 '''
-                ms1_smooth = load_mz_h5(file_name_smooth, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
-                ms2_smooth = load_mz_h5(file_name_smooth, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+                if os.path.exists(new_peak_name):
+                        raise Exception(new_peak_name + " already exists. Please rename before continuing or use the existing file name in the smooth file name")
+                      
+                else:
+                        ms1_smooth = load_mz_h5(file_name_smooth, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+                        ms2_smooth = load_mz_h5(file_name_smooth, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
 
 
-                peak_radius= [int(i) for i in list(peak_radius.split('-'))]
+                        peak_radius= [int(i) for i in list(peak_radius.split('-'))]
 
-                # Perform peak detection
-                ms1_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms1_smooth,  threshold = 128),  index=index_ms1_peaks,
-                                                                dims=[feature_mz, feature_dt, feature_rt],
-                                                                radius=peak_radius)
-                # Sort by persistence
-                ms1_peaks = ms1_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
-                # Save ms1 to new file
-                ms1_peaks = deimos.threshold(ms1_peaks, by='persistence', threshold=int(threshold_slider))
-                ms1_peaks = deimos.threshold(ms1_peaks, by='intensity', threshold=int(threshold_slider))
-                deimos.save(new_peak_name, ms1_peaks, key='ms1', mode='w')
+                        # Perform peak detection
+                        ms1_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms1_smooth,  threshold = 128),  index=index_ms1_peaks,
+                                                                        dims=[feature_mz, feature_dt, feature_rt],
+                                                                        radius=peak_radius)
+                        # Sort by persistence
+                        ms1_peaks = ms1_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
+                        # Save ms1 to new file
+                        ms1_peaks = deimos.threshold(ms1_peaks, by='persistence', threshold=int(threshold_slider))
+                        ms1_peaks = deimos.threshold(ms1_peaks, by='intensity', threshold=int(threshold_slider))
+                        deimos.save(new_peak_name, ms1_peaks, key='ms1', mode='w')
 
 
-                # Perform peak detection
-                ms2_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms2_smooth,  threshold = 128), index=index_ms2_peaks,
-                                                                dims=[feature_mz, feature_dt, feature_rt],
-                                                                radius=peak_radius)
-                
-                ms2_peaks = deimos.threshold(ms2_peaks, by='persistence', threshold=int(threshold_slider))
-                ms2_peaks = deimos.threshold(ms2_peaks, by='intensity', threshold=int(threshold_slider))
-                # Sort by persistence
-                ms2_peaks = ms2_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
-                # update list of options in file selections
-                
-                # Save ms2 to new file with _new_peak_data.h5 suffix
-                deimos.save(new_peak_name, ms2_peaks, key='ms2', mode='a')
-                return ms1_peaks
+                        # Perform peak detection
+                        ms2_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms2_smooth,  threshold = 128), index=index_ms2_peaks,
+                                                                        dims=[feature_mz, feature_dt, feature_rt],
+                                                                        radius=peak_radius)
+                        
+                        ms2_peaks = deimos.threshold(ms2_peaks, by='persistence', threshold=int(threshold_slider))
+                        ms2_peaks = deimos.threshold(ms2_peaks, by='intensity', threshold=int(threshold_slider))
+                        # Sort by persistence
+                        ms2_peaks = ms2_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
+                        # update list of options in file selections
+                        
+                        # Save ms2 to new file with _new_peak_data.h5 suffix
+                        deimos.save(new_peak_name, ms2_peaks, key='ms2', mode='a')
+                        return ms1_peaks
 
 def align_peak_create(full_ref, theshold_presistence, feature_mz, feature_dt, feature_rt, feature_intensity):
         '''
@@ -292,3 +312,12 @@ y_spacing=0,
         else:
                 rasterize_plot.apply.opts(framewise=True, **ropts)
         return rasterize_plot
+
+def new_name_if_mz(mz_file_name):
+        extension = Path(mz_file_name).suffix
+        if extension == ".mzML" or extension == ".gz":
+                new_name = os.path.join(os.path.dirname(__file__),  "created_data",  Path(mz_file_name).stem + '.h5')
+        else:
+                new_name = None
+
+        return new_name
