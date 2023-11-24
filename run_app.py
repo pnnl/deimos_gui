@@ -62,18 +62,23 @@ hv.output(backend='bokeh')
 
 class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only updated'''
-    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5' )
-    file_folder =  pm.String(
+    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path=os.path.join("data", "*"),  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5' )
+    file_folder_initial =  pm.String(
         default= "data", doc='Either relative path to file or absolute path to folder with Initial Files', label='Location of data folder')
+    file_folder_cal =  pm.String(
+        default= "data", doc='Either relative path to file or absolute path to folder with calibration files', label='Location of calibration folder')
     rt_mzML_name = pm.Selector(["scan start time"], doc='Only adjust if mz file selected. Select the retention time column name')
     dt_mzML_name = pm.Selector(["ion mobility drift time"], doc='Only adjust if mz file selected. Select the drift time column name')
     # reset the manual filters to the data bounds and reset the rangexy of the plot
     reset_filter = pm.Action(
-        lambda x: x.param.trigger('reset_filter'), doc = 'Refresh axis ranges to data input min and max',
-        label='Reset axis ranges (necessary with new data)')
+        lambda x: x.param.trigger('reset_filter'), doc = 'Refresh axis ranges to data min and max (will not update plot)',
+        label='Update axis ranges below')
+    load_new_file  = pm.Action(
+        lambda x: x.param.trigger('load_new_file'), doc = 'Recreate plots with the current file',
+        label='View file in plots')
     reset_filter_iso = pm.Action(
-        lambda x: x.param.trigger('reset_filter_iso'),
-        label='Refresh HeatMap Axis (necessary for new Isotopes Row)')
+        lambda x: x.param.trigger('reset_filter_iso'), doc = 'Refresh axis ranges to data min and max (will not update plot)',
+        label='Update axis ranges below')
     
     feature_dt = pm.Selector(default='drift_time', objects = ["drift_time", 'retention_time', 'mz'], label="Drift Time")
     feature_rt = pm.Selector(default='retention_time', objects = ["drift_time", 'retention_time', 'mz'], label="Retention Time")
@@ -147,24 +152,31 @@ class Deimos_app(pm.Parameterized):
     calibrate_type = pm.Selector(default = "load_all_values", objects=["load_all_values", "targeted_feature_detection","fix_parameters"])
 
     
-    @pn.depends("file_folder", watch=True)
+    @pn.depends("file_folder_initial", watch=True)
     def update_param(self):
         '''with new file folder update the files available in file selector files'''
-        new_path = os.path.abspath(self.file_folder)
+        new_path = os.path.abspath(self.file_folder_initial)
         # update all files if updating file folder
 
         self.param.file_name_initial.path = os.path.join(new_path, "*")
+
+        self.param.file_name_initial.update()
+
+        if self.file_name_initial not in self.param.file_name_initial.objects:
+            self.file_name_initial = self.param.file_name_initial.objects[0]
+
+    @pn.depends("file_folder_cal", watch=True)
+    def update_param(self):
+        '''with new file folder update the files available in file selector files'''
+        new_path = os.path.abspath(self.file_folder_cal)
+        # update all files if updating file folder
         self.param.calibration_input.path = os.path.join(new_path, "*")
         self.param.example_tune_file.path = os.path.join(new_path, "*")
         self.param.file_to_calibrate.path = os.path.join(new_path, "*")
 
-        self.param.file_name_initial.update()
         self.param.calibration_input.update()
         self.param.example_tune_file.update()
         self.param.file_to_calibrate.update()
-
-        if self.file_name_initial not in self.param.file_name_initial.objects:
-            self.file_name_initial = self.param.file_name_initial.objects[0]
 
         if self.calibration_input not in self.param.calibration_input.objects:
             self.calibration_input = self.param.calibration_input.objects[0]
@@ -178,6 +190,8 @@ class Deimos_app(pm.Parameterized):
     @pn.depends("file_name_initial", watch=True)
     def update_mz_accession(self):
         '''if using mzML allow users to chose name from accession file'''
+        if self.file_name_initial == None:
+            pn.state.notifications.error("No file selected")
         extension = Path(self.file_name_initial).suffix
         if extension == ".mzML" or extension == ".mzML.gz" :
             accessin_list = list(deimos.get_accessions(self.file_name_initial).keys())
@@ -189,10 +203,10 @@ class Deimos_app(pm.Parameterized):
                 self.dt_mzML_name = self.param.dt_mzML_name.objects[0]
 
  # load the h5 files and load to dask
-    @pm.depends('file_name_initial', 'placehold_data_initial', 'feature_dt', 'feature_rt', 'feature_mz', 'feature_intensity')
+    @pm.depends('load_new_file', 'feature_dt', 'feature_rt', 'feature_mz', 'feature_intensity', watch = True)
     def hvdata_initial(self):
         '''Start initial data by loading data. Restart if using different file or feature names changed '''
-        pn.state.notifications.clear()
+        #pn.state.notifications.clear()
         if not os.path.exists(os.path.join(os.path.dirname(__file__), "created_data")):
             os.makedirs(os.path.join(os.path.dirname(__file__), "created_data"))
             
@@ -213,8 +227,14 @@ class Deimos_app(pm.Parameterized):
         else:
             pn.state.notifications.info('In progress: Loading initial data ' + str(self.file_name_initial), duration=0)
             try:
+                
+                new_name = additional_functions.new_name_if_mz(self.file_name_initial)
                 full_data_1 = additional_functions.load_initial_deimos_data(self.file_name_initial, \
-                                                    self.feature_dt, self.feature_rt, self.feature_mz, self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+                                                    self.feature_dt, self.feature_rt, self.feature_mz, self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name = new_name)
+                if new_name != None:
+                    self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data", "*")
+                    self.file_name_initial = new_name
+                    pn.state.notifications.info("initial input file has changed to " + str(new_name))
             except Exception as e:
                 pn.state.notifications.error(str(e), duration=0)
             self.data_initial = dd.from_pandas(full_data_1, npartitions=mp.cpu_count())
@@ -585,12 +605,20 @@ class Deimos_app(pm.Parameterized):
                 require_ms1_greater_than_ms2 = True
                 drift_score_min = True
                 try:
-                    ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
-                    ms2 = additional_functions.load_mz_h5(self.file_name_initial, key='ms2', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
-                    
                     ms2_peaks = additional_functions.load_mz_h5(self.file_name_peak, key='ms2', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
                     ms1_peaks = additional_functions.load_mz_h5(self.file_name_peak, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+                
+                    new_name = additional_functions.new_name_if_mz(self.file_name_initial)
+                    ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name=new_name)
+                    ms2 = additional_functions.load_mz_h5(self.file_name_initial, key='ms2', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name=new_name)
+                    if new_name != None:
+                        self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data", "*")
+                        self.file_name_initial = new_name
+                        pn.state.notifications.info("initial input file has changed to " + str(new_name))
+                
                 except Exception as e:
+
+                    pn.state.notifications.error("Check if peak files have been created", duration=0)
                     pn.state.notifications.error(str(e), duration=0)
                 # get thresholds of ms1 and ms2 peak and full data
                 ms1 = deimos.threshold(ms1, threshold= threshold_full_m1)
@@ -969,7 +997,13 @@ class Deimos_app(pm.Parameterized):
         stream_ids = hv.streams.Selection1D(source=iso_dataframe)
         # get all ms1 data
         try:
-            ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+            new_name = additional_functions.new_name_if_mz(self.file_name_initial)
+            ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name = new_name)
+            if new_name != None:
+                    self.file_folder_initial = os.path.join(os.path.dirname(__file__), "created_data", "*")
+                    self.file_name_initial = new_name
+                    pn.state.notifications.info("initial input file has changed to " + str(new_name))
+            
         except Exception as e:
                 pn.state.notifications.error(str(e), duration=0)
         # filter the ms1 data by the values of the selected isotye data
@@ -1033,10 +1067,13 @@ class Deimos_app(pm.Parameterized):
         else:
             pn.state.notifications.info('In progress: Start calibrating data', duration=0)
             try:
+                
                 cal_input = additional_functions.load_mz_h5(self.calibration_input, key='ms1', \
                                                             columns= ["mz", "ta", "ccs", "charge"])
+
                 tune = additional_functions.load_mz_h5(self.example_tune_file, key='ms1', \
                                                             columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
+                
                 to_calibrate = additional_functions.load_mz_h5(self.file_to_calibrate, key='ms1', \
                                                             columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
             except Exception as e:
@@ -1051,7 +1088,7 @@ class Deimos_app(pm.Parameterized):
                 L2 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in tune.columns]
                 L3 = [x for x in ['mz', 'drift_time'] if x not in to_calibrate.columns]
                 if len(L1 + L2 + L3) > 0:
-                    pn.state.notifications.error("Make sure data has columns ma, ccs, q, and ta", duration=0)
+                    pn.state.notifications.error("Make sure data has columns mz, ccs, charge, and ta", duration=0)
                 # Load data
                 ccs_cal = deimos.calibration.calibrate_ccs(mz=cal_input['mz'],
                                                     ta=cal_input['ta'],
@@ -1065,7 +1102,7 @@ class Deimos_app(pm.Parameterized):
                 L2 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in tune.columns]
                 L3 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in to_calibrate.columns]
                 if len(L1 + L2 + L3) > 0:
-                    pn.state.notifications.error("Make sure data has columns ma, ccs, and q", duration=0)
+                    pn.state.notifications.error("Make sure data has columns mz, ccs, and q", duration=0)
                 # Load data
                 ccs_cal = deimos.calibration.tunemix(tune,
                                                     mz=cal_input['mz'],
@@ -1186,9 +1223,14 @@ class Align_plots(pm.Parameterized):
             theshold_presistence = 128
             tolerance_text = [float(i) for i in list(self.tolerance_text.split('-'))]
             relative_text = [bool(i) for i in list(self.relative_text.split('-'))]
-            try: 
+            try:
+                new_name = additional_functions.new_name_if_mz(self.peak_ref)
                 peak_ref_initial = additional_functions.load_initial_deimos_data(self.peak_ref, self.feature_dt, self.feature_rt, self.feature_mz,\
-                                                                        self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = ref_key)
+                                                                        self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = ref_key, new_name = new_name)
+                if new_name != None:
+                    self.file_folder = os.path.join(os.path.dirname(__file__), "created_data", "*")
+                    self.peak_ref = new_name
+                    pn.state.notifications.info("ref file has changed to " + str(new_name))
                 peak_ref = additional_functions.align_peak_create(peak_ref_initial, theshold_presistence, self.feature_mz, self.feature_dt, self.feature_rt, \
                                                                 self.feature_intensity)
             except Exception as e:
@@ -1199,8 +1241,13 @@ class Align_plots(pm.Parameterized):
             peak_file_list = []
             for file in file_list:
                 try:
+                    
+                    new_name = additional_functions.new_name_if_mz(file)
                     full_two = additional_functions.load_initial_deimos_data(file, self.feature_dt, self.feature_rt, self.feature_mz, \
-                                                                            self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = file_key)
+                                                                            self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = file_key, new_name = new_name)
+                    if new_name != None:
+                        pn.state.notifications.info("alignment file has changed to " + str(new_name))
+
                     peak_two = additional_functions.align_peak_create(full_two, theshold_presistence,  self.feature_mz, self.feature_dt, self.feature_rt,\
                                                                     self.feature_intensity)
                 except Exception as e:
@@ -1281,18 +1328,18 @@ instructions_align = "<ul><li>Alignment is the process by which feature coordina
 instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes</li>\
     <li>Select a row to view the isotopes</li>\
     <li>Graphs will show slice of MS1 data. Plot will show isotopes</li></ul>"
-param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_data_initial, Deimos_app.param.file_folder,  Deimos_app.param.file_name_initial, Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name,  '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
+param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_data_initial, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name,  '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
                         Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.placehold_data_smooth, Deimos_app.param.file_folder,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
-param_peak = pn.Column('<b>Peak-picking</b>',  Deimos_app.param.placehold_data_peak, Deimos_app.param.file_folder, '<b>Adjust the plots</b>',  Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak,  '<b>Result</b>', Deimos_app.param.file_name_peak)
-param_decon = pn.Column('<b>MS2 Deconvolution</b>',Deimos_app.param.placehold_data_decon, Deimos_app.param.file_folder, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon)
-param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.placehold_data_iso, Deimos_app.param.file_folder,  Deimos_app.param.file_name_initial,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
+param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.placehold_data_smooth, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
+param_peak = pn.Column('<b>Peak-picking</b>',  Deimos_app.param.placehold_data_peak,  '<b>Adjust the plots</b>',  Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak,  '<b>Result</b>', Deimos_app.param.file_name_peak)
+param_decon = pn.Column('<b>MS2 Deconvolution</b>',Deimos_app.param.placehold_data_decon, Deimos_app.param.file_folder_initial, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon)
+param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.placehold_data_iso, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
                     Deimos_app.param.feature_dt_axis_width_iso, Deimos_app.param.feature_rt_axis_width_iso, Deimos_app.param.feature_mz_axis_width_iso, \
                         Deimos_app.param.min_feature_dt_bin_size_iso, Deimos_app.param.min_feature_rt_bin_size_iso, Deimos_app.param.min_feature_mz_bin_size_iso, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.placehold_data_calibrate, Deimos_app.param.file_folder, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
+param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.placehold_data_calibrate, Deimos_app.param.file_folder_cal, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
                         Deimos_app.param.tfix, Deimos_app.param.traveling_wave, Deimos_app.param.calibrate_type, Deimos_app.param.rerun_calibrate)
 
 
