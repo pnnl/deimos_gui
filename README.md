@@ -39,7 +39,6 @@ Install DEIMoS
 cd deimos
 pip install -r requirements.txt
 pip install . -e
-cd ../deimos_gui
 ```
 
 
