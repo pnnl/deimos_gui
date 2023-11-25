@@ -1226,7 +1226,7 @@ class Align_plots(pm.Parameterized):
                     self.peak_folder = "."
                     
         else:  
-            if self.peak_ref == os.path.join('data', 'example_alignment.h5'):
+            if Path(os.path.abspath(self.peak_ref)).stem == 'example_alignment.h5':
                 file_list = [self.peak_ref]
                 ref_key = 'A'
                 file_key = 'B'
