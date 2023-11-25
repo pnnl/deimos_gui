@@ -12,6 +12,8 @@ Follow all directions at https://deimos.readthedocs.io/en/latest/getting_started
 ## Clone Repository
 
 ``` 
+# cd next to the deimos folder
+cd ../
 git clone https://github.com/pnnl/deimos_gui
 ``` 
 
