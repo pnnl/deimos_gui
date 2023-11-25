@@ -18,24 +18,43 @@ git clone https://github.com/pnnl/deimos_gui
 ## Install additional packages
 
 ``` 
-conda install colorcet holoviews panel xarray hvplot datashader pandas
+conda install colorcet==3.0.1 holoviews==1.17.1 panel==1.2.3 xarray==2023.1.0 hvplot==0.9.0  datashader==0.15.2 pandas==2.0.3
+```
+
+```
+cd ./deimos_gui
 ```
 
 If conda doesn't work:
+
+Create environment
 ``` 
 conda create -n deimos_env python=3.8
+conda activate deimos_env
+``` 
+Install DEIMoS
+``` 
+cd deimos
 pip install -r requirements.txt
+pip install . -e
+cd ../deimos_gui
 ```
 
+
+
 In the terminal, cd to the the downloaded folder
-```
+install deimos_gui requirements
+``` 
 cd ./deimos_gui
+#if conda didn't work:
+pip install -r requirements.txt
 ```
 
 Run app
 ```
 python run_app.py
 ```
+
 
 Use example data (rather than placeholder data)
 
