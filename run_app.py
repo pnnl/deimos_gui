@@ -161,7 +161,6 @@ class Deimos_app(pm.Parameterized):
         # update all files if updating file folder
         # convert to posix
         if self.file_folder_initial[-1] == '/':
-
             self.param.file_name_initial.path = self.file_folder_initial + "*"
         else:
             self.param.file_name_initial.path = self.file_folder_initial + "/*"
@@ -180,19 +179,13 @@ class Deimos_app(pm.Parameterized):
         
         # update all files if updating file folder
         if self.calibration_input[-1] == '/':
-            self.param.calibration_input.path = self.calibration_input + "*"
+            path = self.file_folder_cal + "*"
         else:
-            self.param.calibration_input.path = self.calibration_input + "/*"
-
-        if self.example_tune_file[-1] == '/':
-            self.param.example_tune_file.path = self.example_tune_file + "*"
-        else:
-            self.param.example_tune_file.path = self.example_tune_file + "/*"
-
-        if self.file_to_calibrate[-1] == '/':
-            self.param.file_to_calibrate.path = self.file_to_calibrate + "*"
-        else:
-            self.param.file_to_calibrate.path = self.file_to_calibrate + "/*"
+            path = self.file_folder_cal + "/*"
+        
+        self.param.calibration_input.path = path
+        self.param.example_tune_file.path = path
+        self.param.file_to_calibrate.path = path
 
         self.param.calibration_input.update()
         self.param.example_tune_file.update()
@@ -1198,10 +1191,10 @@ class Align_plots(pm.Parameterized):
     def update_param(self, new_name = None):
         # update all files if updating file folder
         
-        if self.peak_ref[-1] == '/':
-            self.param.peak_ref.path = self.peak_ref + "*"
+        if self.file_folder[-1] == '/':
+            self.param.peak_ref.path = self.file_folder + "*"
         else:
-            self.param.peak_ref.path = self.peak_ref + "/*"
+            self.param.peak_ref.path = self.file_folder + "/*"
         self.param.peak_ref.update()
         if self.peak_ref not in self.param.peak_ref.objects:
             if new_name == None:
