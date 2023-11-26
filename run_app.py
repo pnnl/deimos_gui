@@ -1127,7 +1127,7 @@ class Deimos_app(pm.Parameterized):
                                                     power=traveling_wave)
 
             calibrated_values = ccs_cal.arrival2ccs(mz=to_calibrate['mz'], ta=to_calibrate['drift_time'], q=1)
-            calibration_files = os.path.join( "created_data",  Path(self.file_to_calibrate).name[:-4] + '_calibrated.csv')
+            calibration_files = os.path.join( "created_data",  Path(self.file_to_calibrate).name + '_calibrated.csv')
             pd.DataFrame(calibrated_values).to_csv(calibration_files)
 
             pn.state.notifications.clear()
@@ -1225,7 +1225,7 @@ class Align_plots(pm.Parameterized):
                     self.peak_folder = "."
                     
         else:  
-            if Path(os.path.abspath(self.peak_ref)).stem == 'example_alignment.h5':
+            if Path(os.path.abspath(self.peak_ref)).stem == 'example_alignment':
                 file_list = [self.peak_ref]
                 ref_key = 'A'
                 file_key = 'B'
