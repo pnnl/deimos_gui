@@ -116,7 +116,7 @@ class Deimos_app(pm.Parameterized):
                                      path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data Default: example_data_peak.h5')
     ##TODO this is actually a lower theshold than originally in the paper - need to update the time
     threshold_slider = pm.Integer(default=1000, label='Threshold')
-    threshold_slider_ms1_ms2 = pm.Integer(default=100, label='Threshold')
+    threshold_slider_ms1_ms2 = pm.Integer(default=100, label='Min Threshold for MS1')
     smooth_radius = pm.String(
         default='0-1-0', doc='Keep - between numbers. Best practice is to increase number of iterations', label='Smoothing radius by mz, drift time, and retention time')
     smooth_iterations = pm.String(
