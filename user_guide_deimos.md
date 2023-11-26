@@ -6,36 +6,36 @@ Check "set axis width and bin values based on axis below" to filter with
 user-input "Axis-width"
 
 ![Graphical user interface, text, application Description automatically
-generated](./myMediaFolder/media/image1.png){width="4.736111111111111in"
-height="3.9166666666666665in"}
+generated](./myMediaFolder/media/image1.png)
+
 
 If the box isn't checked, zooming is possible via the plot input "zoom"
 
 ![Icon Description automatically
-generated](./myMediaFolder/media/image2.png){width="0.5138888888888888in"
-height="0.5416666666666666in"}
+generated](./myMediaFolder/media/image2.png)
+
 
 ## Minimum grid size
 
 Min spacing input sets the minimum size of the grid during rasterizing
 
 > ![Application Description automatically generated with medium
-> confidence](./myMediaFolder/media/image3.png){width="4.555555555555555in"
-> height="2.5833333333333335in"}
+> confidence](./myMediaFolder/media/image3.png)
+
 >
 > Output:
 
-![](./myMediaFolder/media/image4.png){width="4.319444444444445in"
-height="4.0in"}
+![](./myMediaFolder/media/image4.png)
+
 
 ![Application Description automatically generated with medium
-confidence](./myMediaFolder/media/image5.png){width="4.555555555555555in"
-height="2.5833333333333335in"}
+confidence](./myMediaFolder/media/image5.png)
+
 
 Output:
 
-![](./myMediaFolder/media/image6.png){width="4.486111111111111in"
-height="4.194444444444445in"}
+![](./myMediaFolder/media/image6.png)
+
 
 You can zoom into new areas of the chart with the user-input widgets,
 and the aggregation and colormap level will automatically update,
@@ -49,24 +49,24 @@ the manual axis widths
 Linked Selection will filter on the underlying data, even if they aren't
 used in the plot
 
-![](./myMediaFolder/media/image7.emf){width="6.5in"
-height="6.6930555555555555in"}
+![](./myMediaFolder/media/image7.emf)
+
 
 ## Column Name Selection
 
 The names of the data can be updated here:
 
 ![Graphical user interface, application Description automatically
-generated](./myMediaFolder/media/image8.png){width="4.513888888888889in"
-height="3.5416666666666665in"}
+generated](./myMediaFolder/media/image8.png)
+
 
 If the initial data is mzML, the user needs to select the names from the
 file to use as the retention and drift time. If there is not mzML data,
 the input here doesn't matter.
 
 ![Graphical user interface, text, application Description automatically
-generated](./myMediaFolder/media/image9.png){width="4.527777777777778in"
-height="1.8194444444444444in"}
+generated](./myMediaFolder/media/image9.png)
+
 
 The new h5 file created from the mzML file will be located in a folder
 called "created_data" next to the deimos_gui folder. All other output
@@ -78,12 +78,12 @@ Select the files from the folder indicated in the "location of data
 folder" folder
 
 ![Graphical user interface, text, application Description automatically
-generated](./myMediaFolder/media/image10.png){width="4.305555555555555in"
-height="0.9166666666666666in"}
+generated](./myMediaFolder/media/image10.png)
+
 
 ![Graphical user interface, text, application Description automatically
-generated](./myMediaFolder/media/image11.png){width="4.402777777777778in"
-height="4.5in"}
+generated](./myMediaFolder/media/image11.png)
+
 
 The initial data is a placeholder
 
@@ -110,13 +110,12 @@ rerun to save computing time.
 
 ![Graphical user interface Description automatically generated with
 medium
-confidence](./myMediaFolder/media/image12.png){width="5.531106736657918in"
-height="1.7834503499562555in"}
+confidence](./myMediaFolder/media/image12.png)
+
 
 ![Graphical user interface, text, application, email Description
 automatically
-generated](./myMediaFolder/media/image13.png){width="4.472222222222222in"
-height="6.555555555555555in"}
+generated](./myMediaFolder/media/image13.png)
 
 # Peak data:
 
@@ -147,12 +146,12 @@ rerun to save computing time.
 
 ![Graphical user interface, diagram Description automatically generated
 with medium
-confidence](./myMediaFolder/media/image14.png){width="4.955681321084865in"
-height="1.7966382327209098in"}
+confidence](./myMediaFolder/media/image14.png)
+
 
 ![Graphical user interface, text, application Description automatically
-generated](./myMediaFolder/media/image15.png){width="4.472222222222222in"
-height="6.555555555555555in"}
+generated](./myMediaFolder/media/image15.png)
+
 
 MS deconvolution
 
@@ -180,12 +179,12 @@ deimos_gui file and will be re-used if the parameter inputs are the same
 in a rerun to save computing time.
 
 ![Chart Description automatically
-generated](./myMediaFolder/media/image16.png){width="5.841978346456693in"
-height="1.4111056430446194in"}
+generated](./myMediaFolder/media/image16.png)
+
 
 ![Graphical user interface, text, application Description automatically
-generated](./myMediaFolder/media/image17.png){width="3.261056430446194in"
-height="2.4171412948381454in"}
+generated](./myMediaFolder/media/image17.png)
+
 
 # Calibration
 
@@ -220,12 +219,12 @@ relationship between measurement and CCS must be linearized by the
 natural logarithm, then fit by linear regression.
 
 ![Chart, scatter chart Description automatically
-generated](./myMediaFolder/media/image18.png){width="3.5641863517060366in"
-height="1.6132097550306213in"}
+generated](./myMediaFolder/media/image18.png)
+
 
 ![Graphical user interface, application Description automatically
-generated](./myMediaFolder/media/image19.png){width="2.6282600612423446in"
-height="3.954300087489064in"}
+generated](./myMediaFolder/media/image19.png)
+
 
 # Isotopes
 
@@ -237,16 +236,16 @@ data around the isotopes, with the range of the slices determined by the
 user inputs for slice size
 
 ![Chart Description automatically generated with low
-confidence](./myMediaFolder/media/image20.png){width="5.183836395450569in"
-height="0.4039063867016623in"}
+confidence](./myMediaFolder/media/image20.png)
+
 
 ![Chart Description automatically generated with low
-confidence](./myMediaFolder/media/image20.png){width="5.183836395450569in"
-height="2.288597987751531in"}
+confidence](./myMediaFolder/media/image20.png)
+
 
 ![Graphical user interface, text, application Description automatically
-generated](./myMediaFolder/media/image21.png){width="2.8279779090113735in"
-height="2.2800568678915134in"}
+generated](./myMediaFolder/media/image21.png)
+
 
 # Align
 
@@ -267,13 +266,13 @@ determined by the kernel by relative or absolute value by support vector
 regression kernel.
 
 ![Chart, scatter chart Description automatically
-generated](./myMediaFolder/media/image22.png){width="4.0434831583552056in"
-height="2.188853893263342in"}
+generated](./myMediaFolder/media/image22.png)
+
 
 ![Graphical user interface, text, application, email Description
 automatically
-generated](./myMediaFolder/media/image23.png){width="3.046838363954506in"
-height="4.4072003499562555in"}
+generated](./myMediaFolder/media/image23.png)
+
 
 Extra:
 
