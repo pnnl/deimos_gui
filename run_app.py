@@ -113,7 +113,7 @@ class Deimos_app(pm.Parameterized):
     file_name_smooth = pm.FileSelector(default = os.path.join("created_data", file_name_smooth_name),\
                                         path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data')
     file_name_peak = pm.FileSelector(default = os.path.join("created_data", file_name_peak_name), \
-                                     path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data')
+                                     path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data Default: example_data_peak.h5')
     ##TODO this is actually a lower theshold than originally in the paper - need to update the time
     threshold_slider = pm.Integer(default=1000, label='Threshold')
     threshold_slider_ms1_ms2 = pm.Integer(default=100, label='Threshold')
@@ -992,21 +992,8 @@ class Deimos_app(pm.Parameterized):
         points = hv.Points(np.array([(self.mz, 0)])).opts(size=20)
         return  (element2 * iso_points * points).opts(xlim=(data_collapse.mz.min(), data_collapse.mz.min()), ylim=(data_collapse.intensity.min(), data_collapse.intensity.max()))
     
-    
-    def iso_viewable(self, **kwargs):
-        
-        # profiler = Profiler()
-        # profiler.start()
-        
-        pn.state.notifications.info('Return Isotope data', duration=0)
-        # dynamic map to return hvdata after loading it with deimos
-        #get isotype data from peak
-        iso_data = hv.DynamicMap(self.get_isotype)
-        
-        # turn data into datatables
-        iso_dataframe = hv.util.Dynamic(iso_data, operation= self.hvplot_datatable_iso)
-        stream_ids = hv.streams.Selection1D(source=iso_dataframe)
-        # get all ms1 data
+    @pm.depends('rerun_iso', 'placehold_data_iso', watch = True)
+    def get_ms1(self):
         try:
             new_name = additional_functions.new_name_if_mz(self.file_name_initial)
             ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name = new_name)
@@ -1018,7 +1005,27 @@ class Deimos_app(pm.Parameterized):
             
         except Exception as e:
                 raise Exception(str(e))
+        return hv.Dataset(ms1)
+
+    def iso_viewable(self, **kwargs):
+        
+        # profiler = Profiler()
+        # profiler.start()
+        
+        pn.state.notifications.info('Return Isotope data', duration=0)
+        # dynamic map to return hvdata after loading it with deimos
+        #get isotype data from peak  when run_iso or placeholder changes
+        iso_data = hv.DynamicMap(self.get_isotype)
+        
+        # turn data into datatables, triggered when iso_data changes
+        iso_dataframe = hv.util.Dynamic(iso_data, operation= self.hvplot_datatable_iso)
+        stream_ids = hv.streams.Selection1D(source=iso_dataframe)
+
+        # get all ms1 data again when run_iso or placeholder changes, update ms1 used in get_ids
+        ms1 = hv.DynamicMap(self.get_ms1)
+
         # filter the ms1 data by the values of the selected isotye data
+        # triggered when ms1 changes or streams change
         iso_dataframe_filtered = hv.Dataset(ms1).apply(self.get_ids, streams=[stream_ids])
 
         
@@ -1357,7 +1364,7 @@ param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_
 param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.placehold_data_smooth, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
 param_peak = pn.Column('<b>Peak-picking</b>',  Deimos_app.param.placehold_data_peak,  '<b>Adjust the plots</b>',  Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak,  '<b>Result</b>', Deimos_app.param.file_name_peak)
 param_decon = pn.Column('<b>MS2 Deconvolution</b>',Deimos_app.param.placehold_data_decon, Deimos_app.param.file_folder_initial, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.threshold_slider_ms1_ms2, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon)
-param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.placehold_data_iso, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
+param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.placehold_data_iso, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.file_name_peak,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
                     Deimos_app.param.feature_dt_axis_width_iso, Deimos_app.param.feature_rt_axis_width_iso, Deimos_app.param.feature_mz_axis_width_iso, \
                         Deimos_app.param.min_feature_dt_bin_size_iso, Deimos_app.param.min_feature_rt_bin_size_iso, Deimos_app.param.min_feature_mz_bin_size_iso, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
