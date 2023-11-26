@@ -2,7 +2,7 @@ DEIMoS Visualization
 =======
 
 ## User Guide
-[User Guide](user_guide_deimos.docx)
+[User Guide](user_guide_deimos.md)
 
 
 ## Install DEIMoS
@@ -27,7 +27,7 @@ conda install colorcet==3.0.1 holoviews==1.17.1 panel==1.2.3 xarray==2023.1.0 hv
 cd ./deimos_gui
 ```
 
-If conda doesn't work:
+## If conda doesn't work in installing DEIMoS:
 
 Create environment
 ``` 
@@ -51,7 +51,9 @@ cd ./deimos_gui
 pip install -r requirements.txt
 ```
 
-Run app
+## Run app
+
+Run app (from deimos_gui folder)
 ```
 python run_app.py
 ```
