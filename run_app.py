@@ -152,7 +152,7 @@ class Deimos_app(pm.Parameterized):
     beta = pm.String(default = "0.12991516042484708", label='beta')
     tfix = pm.String(default = "-0.03528247661068562", label='tfix')
     traveling_wave = pm.Boolean(False, label='traveling_wave')
-    calibrate_type = pm.Selector(default = "load_all_values", objects=["load_all_values", "targeted_feature_detection","fix_parameters"])
+    calibrate_type = pm.Selector(default = "load_all_values", objects=["load_all_values", "use_tunemix","fix_parameters"])
 
     
     @pn.depends("file_folder_initial", watch=True)
@@ -1095,10 +1095,9 @@ class Deimos_app(pm.Parameterized):
             if load_values == "load_all_values":
 
                 L1 = [x for x in ['mz', 'ccs', 'charge', 'ta'] if x not in cal_input.columns]
-                L2 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in tune.columns]
                 L3 = [x for x in ['mz', 'drift_time'] if x not in to_calibrate.columns]
-                if len(L1 + L2 + L3) > 0:
-                    raise Exception("Make sure data has columns mz, ccs, charge, and ta")
+                if len(L1 + L3) > 0:
+                    raise Exception("Make sure calibration input has columns mz, ccs, charge, and ta, and the 'file to calibrate' file has columns mz and drift time")
                 # Load data
                 ccs_cal = deimos.calibration.calibrate_ccs(mz=cal_input['mz'],
                                                     ta=cal_input['ta'],
@@ -1107,12 +1106,12 @@ class Deimos_app(pm.Parameterized):
                                                     buffer_mass=28.013,
                                                     power=traveling_wave)
 
-            elif load_values == "targeted_feature_detection":
+            elif load_values == "use_tunemix":
                 L1 = [x for x in ['mz', 'ccs', 'charge'] if x not in cal_input.columns]
                 L2 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in tune.columns]
-                L3 = [x for x in ['mz', 'drift_time', 'intensity'] if x not in to_calibrate.columns]
+                L3 = [x for x in ['mz', 'drift_time'] if x not in to_calibrate.columns]
                 if len(L1 + L2 + L3) > 0:
-                    raise Exception("Make sure data has columns mz, ccs, and q")
+                    raise Exception("Make sure calibration input has columns mz, ccs, and charge and mz, drift_time and intensity in the tune file, and mz and drift_time in the 'file to calibrate'")
                 # Load data
                 ccs_cal = deimos.calibration.tunemix(tune,
                                                     mz=cal_input['mz'],
