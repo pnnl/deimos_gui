@@ -20,7 +20,7 @@ import logging
 from pathlib import Path
 import additional_functions
 # from pathlib import PurePath, PureWindowsPath
-# from pyinstrument import Profiler
+#from pyinstrument import Profiler
 
 
 
@@ -33,8 +33,8 @@ file_to_calibrate_name = "placeholder.csv" #example_tune_pos.h5
 peak_ref_name = "placeholder.csv" #example_alignment.h5
 
 # file_name_initial_name = "example_data.h5"  #example_data.h5
-# # file_name_smooth_name = "placeholder.csv"
-# # file_name_peak_name = "placeholder.csv"
+# file_name_smooth_name = "placeholder.csv"
+# file_name_peak_name = "placeholder.csv"
 # file_name_smooth_name = "example_data_threshold_1000_smooth_radius_0-1-0_smooth_iterations_7_feature_rt_retention_time_new_smooth_data.h5" 
 # file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
 # calibration_input_name = "cal_input.csv"
@@ -989,7 +989,7 @@ class Deimos_app(pm.Parameterized):
         data_collapse = deimos.collapse(ds.data, keep='mz')
         element2 = hv.Spikes(data_collapse , self.feature_mz, self.feature_intensity).opts(framewise = True, width=600)
         iso_points = hv.Points(np.array([(x, 0) for x in self.mz_iso])).opts(size=5)
-        points = hv.Points(np.array([(self.mz, 0)])).opts(size=20)
+        points = hv.Points(np.array([(self.mz, 0)])).opts(size=5)
         return  (element2 * iso_points * points).opts(xlim=(data_collapse.mz.min(), data_collapse.mz.min()), ylim=(data_collapse.intensity.min(), data_collapse.intensity.max()))
     
     @pm.depends('rerun_iso', 'placehold_data_iso', watch = True)
@@ -1026,7 +1026,7 @@ class Deimos_app(pm.Parameterized):
 
         # filter the ms1 data by the values of the selected isotye data
         # triggered when ms1 changes or streams change
-        iso_dataframe_filtered = hv.Dataset(ms1).apply(self.get_ids, streams=[stream_ids])
+        iso_dataframe_filtered = ms1.apply(self.get_ids, streams=[stream_ids])
 
         
         # return the hvplot for mz, drift time and retention time retention_time
@@ -1327,7 +1327,7 @@ class Align_plots(pm.Parameterized):
  
 
         # profiler.stop()
-        # results_file = os.path.join(TESTS_ROOT, "align_"  + str(self.placehold_data_align) + Path(self.peak_ref).name + ".html")
+        # results_file = os.path.join("time_profile", "align_"  + str(self.placehold_data_align) + Path(self.peak_ref).name + ".html")
         # profiler.write_html(results_file)
         return hv.Layout(list_plots).cols(2)
     
@@ -1343,7 +1343,6 @@ instructions_view = "<ul> <li>The original data is a placeholder</li> <li>Indica
     <ul> "
 instructions_smooth = "<ul> <li>The original data is a placeholder</li> <li>Click 'Run smooth' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
     <li>Keeping the <b>smooth radius</b> small and increasing number of iterations <br> is preferable to a larger smoothing radius, albeit at greater computational expense.</li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
 <li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li><ul> "
 instructions_peaks = "<p>Feature detection, also referred to as peak detection, is the process by which local maxima that fulfill certain criteria (such as sufficient signal-to-noise ratio) are located in the signal acquired by a given analytical instrument. </p><ul> <li>The original data is a placeholder</li> <li>Click 'Run peak' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li> \
     <li>The <b>radius per dimension</b> insures an intensity-weighted per-dimension coordinate will be returned for each feature.</li>\
@@ -1381,6 +1380,8 @@ app1 = pn.Tabs(
                 ('Isotope Detection', pn.Row(param_iso, Deimos_app.iso_viewable())),\
                 ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
                 ).servable(title='Deimos App')
+if __name__ == '__main__':
+    # pn.serv(app1)
+    pn.serve(app1)
 
-pn.serve(app1)
 
