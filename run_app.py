@@ -135,7 +135,7 @@ class Deimos_app(pm.Parameterized):
     Recreate_plots_with_below_values_iso = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values_iso'), doc="Set axis ranges to ranges below")
     # only show the placeholder
     placehold_data_initial = pm.Boolean(True, label='Placeholder initial data')
-    placehold_data_smooth = pm.Boolean(True, label='Placeholder smooth')
+    placehold_data_smooth = pm.Boolean(False, label='Placeholder smooth')
     placehold_data_peak = pm.Boolean(True, label='Placeholder peak')
     placehold_data_decon = pm.Boolean(True, label='Placeholder decon')
     placehold_data_iso = pm.Boolean(True, label='Placeholder iso')
@@ -526,6 +526,8 @@ class Deimos_app(pm.Parameterized):
             pn.state.notifications.info('In progress: Create peak data: ' + str(self.file_name_smooth), duration=0)
             if os.path.isfile(new_peak_name):
                 try:
+                    pn.state.notifications.info('Loading previously created peak file', duration=0)
+                    pn.state.notifications.info('If you wish to recreate the file, delete or rename ' + str(new_peak_name), duration=0)
                     ms1_peaks = additional_functions.load_mz_h5(new_peak_name, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
                 except Exception as e:
                     raise Exception(str(e))
@@ -601,7 +603,7 @@ class Deimos_app(pm.Parameterized):
         
         
         file_name_res = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider_ms1_ms2) + \
-             '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" +str(self.feature_rt) +\
+             '_file_path_peak_' + Path(self.file_name_peak).stem  + \
                 '_res.csv')
         if self.placehold_data_decon:
                 pn.state.notifications.info("Run placeholder", duration=0)
@@ -1374,11 +1376,11 @@ param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.placehold_data_calibr
 app1 = pn.Tabs(
     ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),        
                 ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
-               ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
-               ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.pane.PNG('box_select.png'), pn.Row( param_decon, Deimos_app.decon_viewable())))),\
-               ('Calibration', pn.Row(param_cal, Deimos_app.calibrate_viewable())),\
-                ('Isotope Detection', pn.Row(param_iso, Deimos_app.iso_viewable())),\
-                ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
+            #    ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
+            #    ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.pane.PNG('box_select.png'), pn.Row( param_decon, Deimos_app.decon_viewable())))),\
+            #    ('Calibration', pn.Row(param_cal, Deimos_app.calibrate_viewable())),\
+            #     ('Isotope Detection', pn.Row(param_iso, Deimos_app.iso_viewable())),\
+            #     ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
                 ).servable(title='Deimos App')
 if __name__ == '__main__':
     # pn.serv(app1)
