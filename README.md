@@ -48,7 +48,7 @@ In the terminal, cd to the downloaded folder deimos_gui
 install deimos_gui requirements
 
 ``` 
-cd ./deimos_gui
+cd ../deimos_gui
 #if conda didn't work:
 pip install -r requirements.txt
 ```
