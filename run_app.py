@@ -168,12 +168,14 @@ class Deimos_app(pm.Parameterized):
             self.param.file_name_initial.path = self.file_folder_initial + "/*"
 
         self.param.file_name_initial.update()
-
-        if self.file_name_initial not in self.param.file_name_initial.objects:
-            if new_name == None:
+        if new_name != None:
+            self.file_name_initial = new_name
+        else:
+            if self.file_name_initial not in self.param.file_name_initial.objects:
                 self.file_name_initial = self.param.file_name_initial.objects[0]
             else:
-                self.file_name_initial = new_name
+                pass
+                
 
     @pn.depends("file_folder_cal", watch=True)
     def update_param_cal(self):
@@ -1235,11 +1237,14 @@ class Align_plots(pm.Parameterized):
         else:
             self.param.peak_ref.path = self.file_folder + "/*"
         self.param.peak_ref.update()
-        if self.peak_ref not in self.param.peak_ref.objects:
-            if new_name == None:
+
+        if new_name != None:
+            self.peak_ref = new_name
+        else:
+            if self.peak_ref not in self.param.peak_ref.objects:
                 self.peak_ref = self.param.peak_ref.objects[0]
             else:
-                self.peak_ref = new_name
+                pass
 
     
     @pm.depends('placehold_data_align', 'rerun_align', watch = True)

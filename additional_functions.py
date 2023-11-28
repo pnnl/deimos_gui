@@ -39,7 +39,7 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_
                  if os.path.exists(new_name):
                         pn.state.notifications.info("Using existing h5 file: " + new_name )
                         pn.state.notifications.info("If you wish to create a new file, rename or delete " + new_name )
-                        return deimos.load(new_name, key=key, columns=columns)
+                        return deimos.load(new_name, key=key)
                  else:
                         rt_name_value = deimos.get_accessions(file_name_initial)[rt_name]
                         dt_name_value = deimos.get_accessions(file_name_initial)[dt_name]
