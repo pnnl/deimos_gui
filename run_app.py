@@ -298,7 +298,10 @@ class Deimos_app(pm.Parameterized):
         element,
         Recreate_plots_with_below_values
     ):
-        '''Return rasterized mz and drift retention plot'''
+        '''Return rasterized mz and drift retention plot
+        with x and y range and x and y spacing
+        run if steam value of 
+        Recreate_plots_with_below_values changes'''
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -314,7 +317,10 @@ class Deimos_app(pm.Parameterized):
         element,
         Recreate_plots_with_below_values
     ):
-        '''Return rasterized drift time vs retention time plot'''
+        '''Return rasterized drift time vs retention time plot
+        with x and y range and x and y spacing
+        run if steam value of 
+        Recreate_plots_with_below_values changes'''
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -330,7 +336,10 @@ class Deimos_app(pm.Parameterized):
         element,
         Recreate_plots_with_below_values
     ):
-        '''Return rasterized retention time vs mz plot'''
+        '''Return rasterized retention time vs mz plot
+        with x and y range and x and y spacing
+        run if steam value of 
+        Recreate_plots_with_below_values changes'''
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -361,7 +370,7 @@ class Deimos_app(pm.Parameterized):
     # show plots of initial data before any smoothing, peakfinding, etc.
     @pm.depends('placehold_data_initial',  watch=True)
     def initial_viewable(self, **kwargs):
-        '''full function to return the initial data in a graph'''
+        '''full function to return the initial data in three graphs'''
         # profiler = Profiler()
         # profiler.start()
         #update file selector widget with new names from folder
@@ -474,7 +483,10 @@ class Deimos_app(pm.Parameterized):
   
   
     def smooth_viewable(self, **kwargs):
-        '''full function to load and process smooth function and return graphs'''
+        '''full function to load and process smooth function and 
+        smooth data is saved using data and time in the suffix so will need to rerun each sesson
+        if already have peak data, this step can be skipped
+        return three graphs and smooth_data.h5 in created_data'''
         
         # profiler = Profiler()
         # profiler.start()
@@ -519,7 +531,9 @@ class Deimos_app(pm.Parameterized):
     
     @pm.depends('rerun_peak', 'placehold_data_peak')
     def create_peak_data(self):
-        '''get peak data using deimos functions'''
+        '''get peak data using deimos functions
+        saves the peak value and changes the file name in the user inputs to new peak file name
+        return the peak data to use to make the graphs'''
         pn.state.notifications.clear()
         # name will be saved as, check if already exists, if so don't rerun
         new_peak_name = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
@@ -606,7 +620,9 @@ class Deimos_app(pm.Parameterized):
     
     @pm.depends('rerun_decon', 'placehold_data_decon')
     def ms2_decon(self):
-        '''Get the deconvoluted file'''
+        '''Get the deconvoluted file
+        using ms1 and ms2 data from the orignal file and peak file
+        returns file ending in _res.csv in created_data folder'''
         pn.state.notifications.clear()
         file_name_res = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider_ms1_ms2) + \
              '_file_path_peak_' + Path(self.file_name_peak).stem  + \
@@ -706,6 +722,11 @@ class Deimos_app(pm.Parameterized):
     
     # input data is the selection on the  dt vs rt time for ms1 data plot
     def function_return_m2_subset_decon(self, ds, m1, d1, d2, r2, r3, m3):
+        '''plot for mz vs intensity decon
+        inputs are the selected values from the three scatter plots
+        if there is no data associated with the scatter plot values, 
+        returns random graph with small values so it's obvious it's not real
+        otherwise select the highest intensity of the selction, and return the ms2 decon values '''
         example_ms2= pd.DataFrame([[np.random.randint(0,9), np.random.randint(0,9)], [np.random.randint(0,9), np.random.randint(0,9)]],\
                                    columns = [self.feature_mz, self.feature_intensity])
         if self.placehold_data_decon:
@@ -715,8 +736,6 @@ class Deimos_app(pm.Parameterized):
         self.dr_decon_stream.reset()
         self.rm_decon_stream.reset()
         
-        
-
         #get dimensions depending on which depending on which plot were selected
         if m1 != self.m1 and d1 != self.d1:
             x_column_plot = self.feature_mz + '_ms1'
@@ -846,7 +865,10 @@ class Deimos_app(pm.Parameterized):
         element,
         Recreate_plots_with_below_values_iso
     ):
-        '''aggregrate by grid for mz vs drift plot with min values and ranges'''
+        '''aggregrate by grid for mz vs drift plot
+        with x and y range and x and y spacing
+        run if steam value of 
+        Recreate_plots_with_below_values_iso changes'''
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -863,7 +885,10 @@ class Deimos_app(pm.Parameterized):
         element,
         Recreate_plots_with_below_values_iso
     ):
-        '''aggregrate by grid for drift vs retention plot with min values and ranges'''
+        '''aggregrate by grid for drift vs retention plot 
+        with x and y range and x and y spacing
+        run if steam value of 
+        Recreate_plots_with_below_values_iso changes'''
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -880,7 +905,10 @@ class Deimos_app(pm.Parameterized):
         element,
         Recreate_plots_with_below_values_iso
     ):
-        '''aggregrate by grid for retention vs mz plot with min values and ranges'''
+        '''aggregrate by grid for retention vs mz plot 
+        with x and y range and x and y spacing
+        run if steam value of 
+        Recreate_plots_with_below_values_iso changes'''
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -893,7 +921,7 @@ class Deimos_app(pm.Parameterized):
     # resets the axis to the data's min and max
     @pm.depends('reset_filter_iso',  watch=True)
     def refresh_axis_values_iso(self):
-        '''reset the manual filter to the min and max values from the data'''
+        '''reset the manual filter to the min and max values from the input data'''
         self.reset_xy_stream()
 
         if len(self.feature_iso) > 0:
@@ -922,7 +950,8 @@ class Deimos_app(pm.Parameterized):
     
     @pm.depends('rerun_iso', 'placehold_data_iso', watch = True)
     def get_isotype(self):
-        '''Get the isotopes from input values'''
+        '''Get the isotopes dataframe from input values of the peak data file
+        isotope dataframe will be save in created_data ending in isotopes.csv'''
         # Load data
         pn.state.notifications.clear()
         if self.placehold_data_iso:
@@ -960,7 +989,8 @@ class Deimos_app(pm.Parameterized):
         return hv.Dataset(self.isotopes_head)
     
     def get_ids(self, table, index):
-        '''get a slice of the ms1 data based on user input of range and the mz values of selected row in talbe'''
+        '''return a slice of the ms1 data based on user input of range 
+        and the mz values of selected row in table'''
         pn.state.notifications.info('Get index: ' + str(index) + " Click 'Recreate plots' to view with correct axis range", duration=0) 
         if self.placehold_data_iso:
             mz1 = np.random.randint(0,9)
@@ -1040,7 +1070,7 @@ class Deimos_app(pm.Parameterized):
         return hv.Dataset(ms1)
 
     def iso_viewable(self, **kwargs):
-        '''main function to view the isotopes and if you click on the isotopes table row, 
+        '''main function to view the isotopes and if the user clicks on the isotopes table row, 
         to see the ms1 data and the mz data from that row'''
         # profiler = Profiler()
         # profiler.start()
@@ -1105,7 +1135,8 @@ class Deimos_app(pm.Parameterized):
     
     @pm.depends('placehold_data_calibrate', 'rerun_calibrate')
     def calibrate(self):
-        '''return the calibrated values from the user input in created_data folder'''
+        '''return the calibrated values from the user input in created_data folder
+        depending on the type of calibration chosen by the user'''
         if self.placehold_data_calibrate:
             cal_values = pd.DataFrame({'reduced_ccs': np.array([1,1]), 'ta': np.array([1,1])}, columns=['reduced_ccs', 'ta'])
         
@@ -1182,7 +1213,9 @@ class Deimos_app(pm.Parameterized):
     
     @pm.depends('placehold_data_calibrate', watch= True)
     def calibrate_viewable(self, **kwargs):
-        '''main calibrate function to rerun calibration value'''
+        '''main calibrate function to rerun calibration value
+        return plot with reduced ccs to ta
+        and file with calibrated values in the created_data folder'''
         # profiler = Profiler()
         # profiler.start()
 
@@ -1249,7 +1282,12 @@ class Align_plots(pm.Parameterized):
     
     @pm.depends('placehold_data_align', 'rerun_align', watch = True)
     def viewable(self):
-        '''get the initial ms1 data and view in three plots by each dimension'''
+        '''align the folder in peak folder with the reference folder
+        returns: 
+        plots showing the alignmnent
+        csv files to create the plots ending in matchtable.csv
+        and in _xy_drift_retention_time.csv
+        csv file ending in alignment.csv with aligned drift and retention time'''
         # profiler = Profiler()
         # profiler.start()
 
