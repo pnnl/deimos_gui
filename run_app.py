@@ -120,9 +120,9 @@ class Deimos_app(pm.Parameterized):
     smooth_radius = pm.String(
         default='0-1-0', doc='Keep - between numbers. Best practice is to increase number of iterations', label='Smoothing radius by mz, drift time, and retention time')
     smooth_iterations = pm.String(
-        default='7', doc='Best practice is to increase number of iterations by mz, drift time, and retention time', label='Smoothing iterations')
+        default='3', doc='Best practice is to increase number of iterations by mz, drift time, and retention time', label='Smoothing iterations')
     peak_radius = pm.String(
-        default='2-10-0', doc='A radius per dimension by mz, drift time, and retention time', label='Weighted mean kernel size')
+        default='2-10-0', doc='Keep - between numbers. A radius per dimension by mz, drift time, and retention time', label='Weighted mean kernel size')
     #
     view_plot = pm.Action(lambda x: x.param.trigger('view_plot'), doc="Click to view new file", label='View plot from files')
     
