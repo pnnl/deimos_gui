@@ -448,7 +448,7 @@ class Deimos_app(pm.Parameterized):
         # name will be saved as
         new_smooth_name =  os.path.join( "created_data",  Path(self.file_name_initial).stem + '_threshold_' + str(self.threshold_slider) + \
              '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
-                str(datetime.now()) + '_new_smooth_data.h5')
+                datetime.now().strftime("%Y%m%d%H%M%S") + '_new_smooth_data.h5')
         if self.placehold_data_smooth:
                 pn.state.notifications.info('In progress: Placeholder data, uncheck to use own data', duration=0)
                 self.data_smooth_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
@@ -930,6 +930,8 @@ class Deimos_app(pm.Parameterized):
             self.ms1_peaks = pd.DataFrame([[3,10,12,3],[4,12,13,4], [2,12,314,2]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
         else:
             pn.state.notifications.info('In progress: Get Isotopes', duration=0)
+            if self.file_name_peak == 'data/placeholder.csv' or self.file_name_peak == 'data/created_data/placeholder.csv' :     
+                raise Exception("Select files and adjust parameters before clicking 'Rerun'")
             parameter_names = Path(self.file_name_peak).stem + "isotopes.csv"
             ms1_peaks = deimos.load(self.file_name_peak, key='ms1',
                                         columns=['mz', 'drift_time', 'retention_time', 'intensity'])
