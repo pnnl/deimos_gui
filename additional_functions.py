@@ -37,8 +37,9 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_
         extension = Path(file_name_initial).suffix
         if extension == ".mzML" or extension == ".gz":
                  if os.path.exists(new_name):
-                        raise Exception("Please rename before continuing or use existing file name: " + new_name )
-                     
+                        pn.state.notifications.info("Using existing h5 file: " + new_name )
+                        pn.state.notifications.info("If you wish to create a new file, rename or delete " + new_name )
+                        return deimos.load(new_name, key=key, columns=columns)
                  else:
                         rt_name_value = deimos.get_accessions(file_name_initial)[rt_name]
                         dt_name_value = deimos.get_accessions(file_name_initial)[dt_name]
@@ -128,7 +129,7 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
                         ms1_smooth = deimos.filters.smooth(ms1, index=index_ms1_peaks, dims=[feature_mz, feature_dt, feature_rt],
                                                 radius=smooth_radius, iterations=iterations)
                         
-                        ## Won't save as user will used peak output. Save ms1 to new file
+                        ## Won't save as user will used peak output. 
                         # deimos.save(new_smooth_name, ms1_smooth, key='ms1', mode='w')
 
                                 # append peak ms2
@@ -145,7 +146,7 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
                         # Smooth data
                         ms2_smooth = deimos.filters.smooth(ms2, index=index_ms2_peaks, dims=[feature_mz, feature_dt, feature_rt],
                                                 radius=smooth_radius, iterations=iterations)
-                        ## would just have file_folder/ created_folder and file_name_smooth
+                        ## Won't save as user will used peak output. 
                         # deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
                         return ms1_smooth, index_ms1_peaks, index_ms2_peaks
 
@@ -316,8 +317,7 @@ y_spacing=0,
 def new_name_if_mz(mz_file_name):
         extension = Path(mz_file_name).suffix
         if extension == ".mzML" or extension == ".gz":
-                new_name = os.path.join(os.path.dirname(__file__),  "created_data",  Path(mz_file_name).stem + '.h5')
+                new_name = os.path.join("created_data",  Path(mz_file_name).stem + '.h5')
         else:
                 new_name = None
-
         return new_name

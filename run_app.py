@@ -1304,7 +1304,7 @@ class Align_plots(pm.Parameterized):
                     newx = np.linspace(0, max(ref_matched[ dim].max(), two_matched[ dim].max()), 1000)
                     two_matched_aligned["aligned_" + dim] = spl(two_matched_aligned[dim])
                     # save by peak in peak name
-                    two_matched_aligned.to_csv( peak_file[:-3] + "_aligned.csv")
+                    two_matched_aligned.to_csv(os.path.join("created_data", peak_ref_initial[:-3] + peak_file[:-3] + "_aligned.csv"))
                         # match_table includes the matched data from data a and b to compare with scatter plot (data a retention time vs data b retention time)
                     matchtable = pd.concat(
                         [
