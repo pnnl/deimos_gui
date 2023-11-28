@@ -30,18 +30,18 @@ file_name_smooth_name = "placeholder.csv"
 file_name_peak_name = "placeholder.csv"
 calibration_input_name = "placeholder.csv" #cal_input.csv
 example_tune_file_name = "placeholder.csv" #example_tune_pos.h5
-file_to_calibrate_name = "placeholder.csv" #example_tune_pos.h5
+file_to_calibrate_name = "placeholder.csv" #example_tune_pos.h5 
 peak_ref_name = "placeholder.csv" #example_alignment.h5
 
-file_name_initial_name = "example_data.h5"  #example_data.h5
-file_name_smooth_name = "placeholder.csv"
-file_name_peak_name = "placeholder.csv"
-# file_name_smooth_name = "example_data_threshold_1000_smooth_radius_0-1-0_smooth_iterations_7_feature_rt_retention_time_new_smooth_data.h5" 
-# file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
-calibration_input_name = "cal_input.csv"
-example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
+# file_name_initial_name = "example_data.h5"  #example_data.h5
+# file_name_smooth_name = "placeholder.csv"
+# file_name_peak_name = "placeholder.csv"
+# # file_name_smooth_name = "example_data_threshold_1000_smooth_radius_0-1-0_smooth_iterations_7_feature_rt_retention_time_new_smooth_data.h5" 
+# # file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
+# calibration_input_name = "cal_input.csv"
+# example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+# file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+# peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
 
 hv.extension('bokeh', 'matplotlib')
 
@@ -136,12 +136,12 @@ class Deimos_app(pm.Parameterized):
     Recreate_plots_with_below_values = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values'), doc="Set axis ranges to ranges below")
     Recreate_plots_with_below_values_iso = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values_iso'), doc="Set axis ranges to ranges below")
     # only show the placeholder
-    placehold_data_initial = pm.Boolean(False, label='Placeholder initial data')
-    placehold_data_smooth = pm.Boolean(False, label='Placeholder smooth')
-    placehold_data_peak = pm.Boolean(False, label='Placeholder peak')
-    placehold_data_decon = pm.Boolean(False, label='Placeholder decon')
-    placehold_data_iso = pm.Boolean(False, label='Placeholder iso')
-    placehold_data_calibrate = pm.Boolean(False, label='Placeholder')
+    placehold_data_initial = pm.Boolean(True, label='Placeholder initial data')
+    placehold_data_smooth =  pm.Boolean(True, label='Placeholder smooth')
+    placehold_data_peak =  pm.Boolean(True, label='Placeholder peak')
+    placehold_data_decon =  pm.Boolean(True, label='Placeholder decon')
+    placehold_data_iso =  pm.Boolean(True, label='Placeholder iso')
+    placehold_data_calibrate =  pm.Boolean(True, label='Placeholder')
 
     # set the min spacing for all the dimensions for rasterizing 
     slice_distance_dt = pm.Number(default=0.2, label="Slice isotopes drift time")
@@ -1201,7 +1201,7 @@ class Deimos_app(pm.Parameterized):
 class Align_plots(pm.Parameterized):
     '''New class for aligning peak data to a reference file'''
 
-    placehold_data_align = pm.Boolean(False, label='Placeholder align data')
+    placehold_data_align = pm.Boolean(True, label='Placeholder align data')
     peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
         default= 'data', doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
@@ -1420,8 +1420,7 @@ app1 = pn.Tabs(
                 ('Isotope Detection', pn.Row(param_iso, Deimos_app.iso_viewable())),\
                 ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
                 ).servable(title='Deimos App')
-if __name__ == '__main__':
-    # pn.serv(app1)
-    pn.serve(app1)
+
+pn.serve(app1)
 
 
