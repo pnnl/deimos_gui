@@ -129,8 +129,8 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
                         ms1_smooth = deimos.filters.smooth(ms1, index=index_ms1_peaks, dims=[feature_mz, feature_dt, feature_rt],
                                                 radius=smooth_radius, iterations=iterations)
                         
-                        ## Won't save as user will used peak output. 
-                        # deimos.save(new_smooth_name, ms1_smooth, key='ms1', mode='w')
+                        ## save with date and time because user won't reuse. 
+                        deimos.save(new_smooth_name, ms1_smooth, key='ms1', mode='w')
 
                                 # append peak ms2
                         factors = deimos.build_factors(ms2, dims='detect')
@@ -146,8 +146,8 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
                         # Smooth data
                         ms2_smooth = deimos.filters.smooth(ms2, index=index_ms2_peaks, dims=[feature_mz, feature_dt, feature_rt],
                                                 radius=smooth_radius, iterations=iterations)
-                        ## Won't save as user will used peak output. 
-                        # deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
+                        ## save with date and time because user won't reuse. 
+                        deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
                         return ms1_smooth, index_ms1_peaks, index_ms2_peaks
 
 def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_intensity,  threshold_slider,  peak_radius, index_ms1_peaks, index_ms2_peaks, new_peak_name, rt_name = None, dt_name = None ):

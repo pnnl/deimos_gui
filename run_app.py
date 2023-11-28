@@ -19,6 +19,7 @@ import os, param as pm, holoviews as hv, panel as pn, datashader as ds
 import logging
 from pathlib import Path
 import additional_functions
+from datetime import datetime
 # from pathlib import PurePath, PureWindowsPath
 #from pyinstrument import Profiler
 
@@ -32,20 +33,21 @@ example_tune_file_name = "placeholder.csv" #example_tune_pos.h5
 file_to_calibrate_name = "placeholder.csv" #example_tune_pos.h5
 peak_ref_name = "placeholder.csv" #example_alignment.h5
 
-# file_name_initial_name = "example_data.h5"  #example_data.h5
-# file_name_smooth_name = "placeholder.csv"
-# file_name_peak_name = "placeholder.csv"
+file_name_initial_name = "example_data.h5"  #example_data.h5
+file_name_smooth_name = "placeholder.csv"
+file_name_peak_name = "placeholder.csv"
 # file_name_smooth_name = "example_data_threshold_1000_smooth_radius_0-1-0_smooth_iterations_7_feature_rt_retention_time_new_smooth_data.h5" 
 # file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
-# calibration_input_name = "cal_input.csv"
-# example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-# file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-# peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
+calibration_input_name = "cal_input.csv"
+example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
 
 hv.extension('bokeh', 'matplotlib')
 
 # view general exception 
 def exception_handler(ex):
+    '''return the error value to the user and stop running the code'''
     logging.error("Error", exc_info=ex)
     pn.state.notifications.error('Error: %s: see command line for more information' % str(ex), duration=0)
 
@@ -63,7 +65,7 @@ hv.output(backend='bokeh')
 
 class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only updated'''
-    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5' )
+    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5')
     file_folder_initial =  pm.String(
         default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
     file_folder_cal =  pm.String(
@@ -127,19 +129,19 @@ class Deimos_app(pm.Parameterized):
     view_plot = pm.Action(lambda x: x.param.trigger('view_plot'), doc="Click to view new file", label='View plot from files')
     
     rerun_peak = pm.Action(lambda x: x.param.trigger('rerun_peak'), doc="Click to rerun after changing inputs", label='Re-run peak')
-    rerun_smooth = pm.Action(lambda x: x.param.trigger('rerun_smooth'), doc="Click to rerun after changing inputs", label='Re-run smooth') 
-    rerun_decon = pm.Action(lambda x: x.param.trigger('rerun_decon'), doc="Click to rerun after changing inputs", label='Re-run deconvolution') 
+    rerun_smooth = pm.Action(lambda x: x.param.trigger('rerun_smooth'), doc="Click to rerun after changing inputs", label='Re-run smooth')
+    rerun_decon = pm.Action(lambda x: x.param.trigger('rerun_decon'), doc="Click to rerun after changing inputs", label='Re-run deconvolution')
     rerun_iso = pm.Action(lambda x: x.param.trigger('rerun_iso'), doc="Click to rerun after changing inputs", label='Re-run ison')
     rerun_calibrate = pm.Action(lambda x: x.param.trigger('rerun_calibrate'), doc="Click to rerun after changing inputs", label='Re-run calibrate')
     Recreate_plots_with_below_values = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values'), doc="Set axis ranges to ranges below")
     Recreate_plots_with_below_values_iso = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values_iso'), doc="Set axis ranges to ranges below")
     # only show the placeholder
-    placehold_data_initial = pm.Boolean(True, label='Placeholder initial data')
-    placehold_data_smooth = pm.Boolean(True, label='Placeholder smooth')
-    placehold_data_peak = pm.Boolean(True, label='Placeholder peak')
-    placehold_data_decon = pm.Boolean(True, label='Placeholder decon')
-    placehold_data_iso = pm.Boolean(True, label='Placeholder iso')
-    placehold_data_calibrate = pm.Boolean(True, label='Placeholder')
+    placehold_data_initial = pm.Boolean(False, label='Placeholder initial data')
+    placehold_data_smooth = pm.Boolean(False, label='Placeholder smooth')
+    placehold_data_peak = pm.Boolean(False, label='Placeholder peak')
+    placehold_data_decon = pm.Boolean(False, label='Placeholder decon')
+    placehold_data_iso = pm.Boolean(False, label='Placeholder iso')
+    placehold_data_calibrate = pm.Boolean(False, label='Placeholder')
 
     # set the min spacing for all the dimensions for rasterizing 
     slice_distance_dt = pm.Number(default=0.2, label="Slice isotopes drift time")
@@ -219,7 +221,7 @@ class Deimos_app(pm.Parameterized):
     @pm.depends('view_plot', 'placehold_data_initial', watch = True)
     def hvdata_initial(self):
         '''Start initial data by loading data. Restart if using different file or feature names changed '''
-        #pn.state.notifications.clear()
+        #
         if not os.path.exists("created_data"):
             os.makedirs("created_data")
             
@@ -440,12 +442,13 @@ class Deimos_app(pm.Parameterized):
 
     @pm.depends('rerun_smooth', 'placehold_data_smooth')
     def create_smooth_data(self):
+        pn.state.notifications.clear()
         '''run deimos functions to get the smoothed data returned'''
         
         # name will be saved as
         new_smooth_name =  os.path.join( "created_data",  Path(self.file_name_initial).stem + '_threshold_' + str(self.threshold_slider) + \
              '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
-                '_new_smooth_data.h5')
+                str(datetime.now()) + '_new_smooth_data.h5')
         if self.placehold_data_smooth:
                 pn.state.notifications.info('In progress: Placeholder data, uncheck to use own data', duration=0)
                 self.data_smooth_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
@@ -462,7 +465,7 @@ class Deimos_app(pm.Parameterized):
             # set the file_folder and name of smooth data
             self.file_name_smooth = new_smooth_name
             self.data_smooth_ms1  = dd.from_pandas(ms1_smooth, npartitions=mp.cpu_count())
-            pn.state.notifications.clear()
+            
             pn.state.notifications.info('Finished: Created smooth data from ' + str(self.file_name_smooth), duration=0)
         self.data_smooth_ms1.persist()
         return hv.Dataset(self.data_smooth_ms1)
@@ -515,6 +518,7 @@ class Deimos_app(pm.Parameterized):
     @pm.depends('rerun_peak', 'placehold_data_peak')
     def create_peak_data(self):
         '''get peak data using deimos functions'''
+        pn.state.notifications.clear()
         # name will be saved as, check if already exists, if so don't rerun
         new_peak_name = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
              '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
@@ -543,7 +547,7 @@ class Deimos_app(pm.Parameterized):
             self.file_name_peak = new_peak_name
             self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
             
-            pn.state.notifications.clear()
+            
             pn.state.notifications.info('Finished: Peak data at ' + str(self.file_name_peak), duration=0)
 
         self.data_peak_ms1.persist()
@@ -600,8 +604,8 @@ class Deimos_app(pm.Parameterized):
     
     @pm.depends('rerun_decon', 'placehold_data_decon')
     def ms2_decon(self):
-        
-        
+        '''Get the deconvoluted file'''
+        pn.state.notifications.clear()
         file_name_res = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider_ms1_ms2) + \
              '_file_path_peak_' + Path(self.file_name_peak).stem  + \
                 '_res.csv')
@@ -667,30 +671,32 @@ class Deimos_app(pm.Parameterized):
                                                             as_index=False).agg(list)
                 
                 res.to_csv(file_name_res)
-                pn.state.notifications.clear()
+                
                 pn.state.notifications.info("Finished running deconvolution", duration=0)
         return hv.Dataset(res)
         
 # create the hv plots
     def hvplot_md_decon(self, ds):
+        '''plot for mz vs drift'''
         plot_df = ds.data.rename(columns = {self.feature_intensity + '_ms1': self.feature_intensity})
         element = plot_df.hvplot.points(x=self.feature_mz + '_ms1', y=self.feature_dt + '_ms1', c=self.feature_intensity)
         return element# create the hv plots
     
         # create the hv plots
     def hvplot_dr_decon(self, ds):
+        '''plot for drift vs retention time'''
         plot_df = ds.data.rename(columns = {self.feature_intensity + '_ms1': self.feature_intensity})
         element = plot_df.hvplot.points(x=self.feature_dt + '_ms1', y=self.feature_rt + '_ms1', c=self.feature_intensity)
         return element
     
     def hvplot_rm_decon(self, ds):
+        '''decon plot for  retention time vs mz'''
         plot_df = ds.data.rename(columns = {self.feature_intensity + '_ms1': self.feature_intensity})
         element = plot_df.hvplot.points(x=self.feature_rt + '_ms1', y=self.feature_mz + '_ms1', c=self.feature_intensity)
         return element
     
     def hvplot_mi_decon(self, ds):
-        
-        
+        '''plot for mz vs intensity decon'''
         pn.state.notifications.info("Create new plots with data length: " + str(len(ds.data)), duration=0)
         data_collapse = deimos.collapse(ds.data, keep='mz')
         element2 = hv.Spikes(data_collapse , self.feature_mz, self.feature_intensity).opts(framewise = True, width=600)
@@ -740,10 +746,10 @@ class Deimos_app(pm.Parameterized):
         pn.state.notifications.info('Slice data: ' + str(x_range) + " " + str(y_range), duration=0)
         res = ds.data
         def lit_list(x):
+            '''get python object of list from string'''
             try:
                 return ast.literal_eval(str(x))   
             except Exception as e:
-                
                 
                 pn.state.notifications.info(e, duration=0)
                 return x
@@ -791,7 +797,7 @@ class Deimos_app(pm.Parameterized):
     # create the hv plots with intenisty and ms2 data
     @pm.depends('placehold_data_decon', watch= True)
     def decon_viewable(self, **kwargs):
-        
+        '''main function to get the deconvolution values from peak and initial data'''
         # profiler = Profiler()
         # profiler.start()
 
@@ -821,7 +827,7 @@ class Deimos_app(pm.Parameterized):
         # make ms plot
         full_plot_1_mi_decon = hv.util.Dynamic(filtered_ms2_data_decon,  operation= self.hvplot_mi_decon)
 
-        pn.state.notifications.clear()
+        
         pn.state.notifications.info("Finished running deconvolution with new data", duration=0)
 
 
@@ -838,6 +844,7 @@ class Deimos_app(pm.Parameterized):
         element,
         Recreate_plots_with_below_values_iso
     ):
+        '''aggregrate by grid for mz vs drift plot with min values and ranges'''
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -854,6 +861,7 @@ class Deimos_app(pm.Parameterized):
         element,
         Recreate_plots_with_below_values_iso
     ):
+        '''aggregrate by grid for drift vs retention plot with min values and ranges'''
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -870,6 +878,7 @@ class Deimos_app(pm.Parameterized):
         element,
         Recreate_plots_with_below_values_iso
     ):
+        '''aggregrate by grid for retention vs mz plot with min values and ranges'''
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -882,6 +891,7 @@ class Deimos_app(pm.Parameterized):
     # resets the axis to the data's min and max
     @pm.depends('reset_filter_iso',  watch=True)
     def refresh_axis_values_iso(self):
+        '''reset the manual filter to the min and max values from the data'''
         self.reset_xy_stream()
 
         if len(self.feature_iso) > 0:
@@ -910,7 +920,9 @@ class Deimos_app(pm.Parameterized):
     
     @pm.depends('rerun_iso', 'placehold_data_iso', watch = True)
     def get_isotype(self):
+        '''Get the isotopes from input values'''
         # Load data
+        pn.state.notifications.clear()
         if self.placehold_data_iso:
             pn.state.notifications.info('Isotope Placeholder', duration=0)
             self.isotopes_head = pd.DataFrame([[1,1,2,[3,2],[3,4],[3,3]],[2,2,3,[3,5],[3,6],[3,3]]], \
@@ -919,12 +931,13 @@ class Deimos_app(pm.Parameterized):
         else:
             pn.state.notifications.info('In progress: Get Isotopes', duration=0)
             parameter_names = Path(self.file_name_peak).stem + "isotopes.csv"
-            if os.path.exists(parameter_names):
-                pd.read_csv(parameter_names)
-            else:
-                ms1_peaks = deimos.load(self.file_name_peak, key='ms1',
+            ms1_peaks = deimos.load(self.file_name_peak, key='ms1',
                                         columns=['mz', 'drift_time', 'retention_time', 'intensity'])
-                self.ms1_peaks = deimos.threshold(ms1_peaks, threshold=1000)
+            self.ms1_peaks = deimos.threshold(ms1_peaks, threshold=1000)
+            if os.path.exists(parameter_names):
+                self.isotopes_head = pd.read_csv(parameter_names)
+            else:
+                
                 # Partition the data
                 partitions = deimos.partition(self.ms1_peaks, size=1000, overlap=5.1)
                 # Map isotope detection over partitions
@@ -943,6 +956,7 @@ class Deimos_app(pm.Parameterized):
         return hv.Dataset(self.isotopes_head)
     
     def get_ids(self, table, index):
+        '''get a slice of the ms1 data based on user input of range and the mz values of selected row in talbe'''
         pn.state.notifications.info('Get index: ' + str(index) + " Click 'Recreate plots' to view with correct axis range", duration=0) 
         if self.placehold_data_iso:
             mz1 = np.random.randint(0,9)
@@ -976,31 +990,38 @@ class Deimos_app(pm.Parameterized):
         return hv.Dataset(feature)
     
     def hvplot_datatable_iso(self, ds):
+        '''Return datatable with isotope values'''
         element2 = hv.Table(ds.data.applymap(str).to_dict('list'), list(ds.data.columns)).opts(framewise = True, width=600)
         return element2
        
     # create the hv plots
     def hvplot_md_iso(self, ds):
+        '''Return scatter plot with mz vs drift'''
         element = ds.data.hvplot.points(x=self.feature_mz, y=self.feature_dt, c=self.feature_intensity)
         return element
         # create the hv plots 
     def hvplot_dr_iso(self, ds):
+        '''Return scatter plot with drift vs retention time'''
         element = ds.data.hvplot.points(x=self.feature_dt, y=self.feature_rt, c=self.feature_intensity)
         return element
     # create the hv plots
     def hvplot_rm_iso(self, ds):
+        '''Return scatter plot with retention time vs mz time'''
         element = ds.data.hvplot.points(x=self.feature_rt, y=self.feature_mz, c=self.feature_intensity)
         return element
         # create the hv plots with intenisty and ms2 data
     def hvplot_mi_iso(self, ds):
+        '''Return spike plot for mz values and intensies form row selected by the user'''
         data_collapse = deimos.collapse(ds.data, keep='mz')
         element2 = hv.Spikes(data_collapse , self.feature_mz, self.feature_intensity).opts(framewise = True, width=600)
         iso_points = hv.Points(np.array([(x, 0) for x in self.mz_iso])).opts(size=5)
         points = hv.Points(np.array([(self.mz, 0)])).opts(size=5)
-        return  (element2 * iso_points * points).opts(xlim=(data_collapse.mz.min(), data_collapse.mz.min()), ylim=(data_collapse.intensity.min(), data_collapse.intensity.max()))
+        return  (element2 * iso_points * points).opts(xticks=5, yticks=5, xlim=(data_collapse.mz.min(), data_collapse.mz.min()), ylim=(data_collapse.intensity.min(), data_collapse.intensity.max()))
     
     @pm.depends('rerun_iso', 'placehold_data_iso', watch = True)
     def get_ms1(self):
+        '''Load ms1 data whenever either placeholder or rerun button is clicked'''
+        pn.state.notifications.clear()
         try:
             new_name = additional_functions.new_name_if_mz(self.file_name_initial)
             ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name = new_name)
@@ -1015,7 +1036,8 @@ class Deimos_app(pm.Parameterized):
         return hv.Dataset(ms1)
 
     def iso_viewable(self, **kwargs):
-        
+        '''main function to view the isotopes and if you click on the isotopes table row, 
+        to see the ms1 data and the mz data from that row'''
         # profiler = Profiler()
         # profiler.start()
         
@@ -1079,13 +1101,13 @@ class Deimos_app(pm.Parameterized):
     
     @pm.depends('placehold_data_calibrate', 'rerun_calibrate')
     def calibrate(self):
-
+        '''return the calibrated values from the user input in created_data folder'''
         if self.placehold_data_calibrate:
             cal_values = pd.DataFrame({'reduced_ccs': np.array([1,1]), 'ta': np.array([1,1])}, columns=['reduced_ccs', 'ta'])
         
             #https://panel.holoviz.org/reference/global/Notifications.html
             pn.state.notifications.info('Placehold data', duration=10000)
-            pn.state.notifications.clear()
+            
         # Load tune data
         #load_deimos_data
         else:
@@ -1143,20 +1165,20 @@ class Deimos_app(pm.Parameterized):
             calibrated_values = ccs_cal.arrival2ccs(mz=to_calibrate['mz'], ta=to_calibrate['drift_time'], q=1)
             calibration_files = os.path.join( "created_data",  Path(self.file_to_calibrate).name + '_calibrated.csv')
             pd.DataFrame(calibrated_values).to_csv(calibration_files)
-
-            pn.state.notifications.clear()
+            
             pn.state.notifications.info('Finished calibrating, file in created_data as ' + str(calibration_files), duration=0)
             cal_values = pd.DataFrame({'reduced_ccs': ccs_cal.reduced_ccs, 'ta': ccs_cal.ta}, columns=['reduced_ccs', 'ta'])
         return hv.Dataset(cal_values)
    
        
     def hvplot_datatable_calibrate(self, ds):
+        '''return points plot of reduced ccs vs arrival time'''
         element = ds.data.hvplot.points(x='reduced_ccs', y='ta', title = "Calibration Graph")
         return element
     
     @pm.depends('placehold_data_calibrate', watch= True)
     def calibrate_viewable(self, **kwargs):
-
+        '''main calibrate function to rerun calibration value'''
         # profiler = Profiler()
         # profiler.start()
 
@@ -1177,8 +1199,9 @@ class Deimos_app(pm.Parameterized):
         return cal_dataframe
 
 class Align_plots(pm.Parameterized):
+    '''New class for aligning peak data to a reference file'''
 
-    placehold_data_align = pm.Boolean(True, label='Placeholder align data')
+    placehold_data_align = pm.Boolean(False, label='Placeholder align data')
     peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
         default= 'data', doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
@@ -1202,6 +1225,7 @@ class Align_plots(pm.Parameterized):
   
     @pn.depends("file_folder", watch=True)
     def update_param(self, new_name = None):
+        '''update the files selectable by the user after the folder updates'''
         # update all files if updating file folder
         
         if self.file_folder[-1] == '/':
@@ -1218,7 +1242,7 @@ class Align_plots(pm.Parameterized):
     
     @pm.depends('placehold_data_align', 'rerun_align', watch = True)
     def viewable(self):
-
+        '''get the initial ms1 data and view in three plots by each dimension'''
         # profiler = Profiler()
         # profiler.start()
 
@@ -1228,6 +1252,7 @@ class Align_plots(pm.Parameterized):
 
         list_plots = []
         if self.placehold_data_align:
+            #return placeholder plots
             pn.state.notifications.info('Placeholder align', duration=0)
             i = 0
             for file in range(2):
@@ -1239,6 +1264,7 @@ class Align_plots(pm.Parameterized):
                     self.peak_folder = "."
                     
         else:  
+            # if using example_alignment, use file_key B as the "to align" file rather than the user input folder
             if Path(os.path.abspath(self.peak_ref)).stem == 'example_alignment':
                 file_list = [self.peak_ref]
                 ref_key = 'A'
@@ -1253,9 +1279,11 @@ class Align_plots(pm.Parameterized):
             tolerance_text = [float(i) for i in list(self.tolerance_text.split('-'))]
             relative_text = [bool(i) for i in list(self.relative_text.split('-'))]
             try:
+                # load initial refence file
                 new_name = additional_functions.new_name_if_mz(self.peak_ref)
                 peak_ref_initial = additional_functions.load_initial_deimos_data(self.peak_ref, self.feature_dt, self.feature_rt, self.feature_mz,\
                                                                         self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = ref_key, new_name = new_name)
+                # convert to h5 if mzML
                 if new_name != None:
                     self.file_folder = "created_data"
                     self.update_param(new_name)
@@ -1264,13 +1292,13 @@ class Align_plots(pm.Parameterized):
                                                                 self.feature_intensity)
             except Exception as e:
                 raise Exception(str(e))
+            # if thesholding makes the files have lenght 0, bring up exception
             if len(peak_ref) == 0: 
                     raise Exception("No data left after thresholding: lower threshold or change data")
             peak_two_list = []
             peak_file_list = []
             for file in file_list:
                 try:
-                    
                     new_name = additional_functions.new_name_if_mz(file)
                     full_two = additional_functions.load_initial_deimos_data(file, self.feature_dt, self.feature_rt, self.feature_mz, \
                                                                             self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = file_key, new_name = new_name)
@@ -1290,13 +1318,10 @@ class Align_plots(pm.Parameterized):
             list_plots = []
             i = 0
             for num, (peak_two, peak_file) in enumerate(zip(peak_two_list, peak_file_list)):
+                # align each file in the folder with the reference file
                 pn.state.notifications.info('Aligning' + peak_file + " " + str(num + 1) + " out of " + str(len(peak_file_list)), duration=0)
                 # b is reference, a is peak two
-                partitions = deimos.partition(deimos.threshold(peak_two, threshold=int(self.threshold_text)),
-                split_on=self.feature_mz,
-                size=1000,
-                overlap=0.25)
-
+                partitions = deimos.partition(deimos.threshold(peak_two, threshold=int(self.threshold_text)), split_on=self.feature_mz, size=1000, overlap=0.25)
                 two_matched, ref_matched = partitions.zipmap(deimos.alignment.match, deimos.threshold(peak_ref, threshold=int(self.threshold_text)),
                                             dims=[self.feature_mz, self.feature_dt, self.feature_rt],
                                             tol=tolerance_text, relative=relative_text)
@@ -1304,10 +1329,13 @@ class Align_plots(pm.Parameterized):
                 two_matched_aligned = two_matched.copy()
                 i=+1
                 for dim in [self.feature_dt, self.feature_rt]:
-                    parameter_inputs = Path(peak_ref_initial).stem + Path(peak_file).stem + str(self.tolerance_text) + str(self.relative_text) + str(self.menu_kernel) + str(self.threshold_text) + str(dim)
-                        
+                    parameter_inputs = Path(self.peak_ref).stem + Path(peak_file).stem + str(self.tolerance_text) + str(self.relative_text) + str(self.menu_kernel) + str(self.threshold_text) + str(dim)
+                    # if already aligned, re-use values
                     if os.path.exists(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))\
                           and os.path.exists(os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv")):
+                        pn.state.notifications.info('Reuse existing files, rename or delete to recreate', duration=0)
+                        pn.state.notifications.info('Reuse ' + os.path.join("created_data", parameter_inputs + "_matchtable.csv"), duration=0)
+                        pn.state.notifications.info('Reuse ' + os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv"), duration=0)
                         matchtable = pd.read_csv(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))
                         xy_drift_retention_time = pd.read_csv(os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv"))
                     else: 
@@ -1317,13 +1345,9 @@ class Align_plots(pm.Parameterized):
                         # save by peak in peak name
                         two_matched_aligned.to_csv(os.path.join("created_data", parameter_inputs + "_aligned.csv"))
                             # match_table includes the matched data from data a and b to compare with scatter plot (data a retention time vs data b retention time)
-                        matchtable = pd.concat(
-                            [
+                        matchtable = pd.concat( [
                                 two_matched[[ dim]].reset_index(drop=True),
-                                ref_matched[[ dim]].reset_index(drop=True)
-                            ],
-                            axis=1,
-                        )
+                                ref_matched[[ dim]].reset_index(drop=True)], axis=1,)
                         matchtable.columns = ['match_a_' + dim, 'match_b_' + dim]
                         xy_drift_retention_time = pd.DataFrame(
                             np.hstack( ( newx[:, None], # spline applied to matching
@@ -1341,7 +1365,6 @@ class Align_plots(pm.Parameterized):
                 
                 pn.state.notifications.info('Finished aligning' + str(peak_file), duration=0)
             pn.state.notifications.info('Finished aligning all. Recreating plot', duration=0)
- 
 
         # profiler.stop()
         # results_file = os.path.join("time_profile", "align_"  + str(self.placehold_data_align) + Path(self.peak_ref).name + ".html")
@@ -1391,11 +1414,11 @@ param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.placehold_data_calibr
 app1 = pn.Tabs(
     ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),        
                 ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
-            #    ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
-            #    ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.pane.PNG('box_select.png'), pn.Row( param_decon, Deimos_app.decon_viewable())))),\
-            #    ('Calibration', pn.Row(param_cal, Deimos_app.calibrate_viewable())),\
-            #     ('Isotope Detection', pn.Row(param_iso, Deimos_app.iso_viewable())),\
-            #     ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
+               ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
+               ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.pane.PNG('box_select.png'), pn.Row( param_decon, Deimos_app.decon_viewable())))),\
+               ('Calibration', pn.Row(param_cal, Deimos_app.calibrate_viewable())),\
+                ('Isotope Detection', pn.Row(param_iso, Deimos_app.iso_viewable())),\
+                ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
                 ).servable(title='Deimos App')
 if __name__ == '__main__':
     # pn.serv(app1)
