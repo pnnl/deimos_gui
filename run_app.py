@@ -135,7 +135,7 @@ class Deimos_app(pm.Parameterized):
     Recreate_plots_with_below_values_iso = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values_iso'), doc="Set axis ranges to ranges below")
     # only show the placeholder
     placehold_data_initial = pm.Boolean(True, label='Placeholder initial data')
-    placehold_data_smooth = pm.Boolean(False, label='Placeholder smooth')
+    placehold_data_smooth = pm.Boolean(True, label='Placeholder smooth')
     placehold_data_peak = pm.Boolean(True, label='Placeholder peak')
     placehold_data_decon = pm.Boolean(True, label='Placeholder decon')
     placehold_data_iso = pm.Boolean(True, label='Placeholder iso')
@@ -918,22 +918,27 @@ class Deimos_app(pm.Parameterized):
             self.ms1_peaks = pd.DataFrame([[3,10,12,3],[4,12,13,4], [2,12,314,2]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
         else:
             pn.state.notifications.info('In progress: Get Isotopes', duration=0)
-            ms1_peaks = deimos.load(self.file_name_peak, key='ms1',
-                                    columns=['mz', 'drift_time', 'retention_time', 'intensity'])
-            self.ms1_peaks = deimos.threshold(ms1_peaks, threshold=1000)
-            # Partition the data
-            partitions = deimos.partition(self.ms1_peaks, size=1000, overlap=5.1)
-            # Map isotope detection over partitions
-            isotopes = partitions.map(deimos.isotopes.detect,
-                                    dims=['mz', 'drift_time', 'retention_time'],
-                                    tol=[0.1, 0.7, 0.15],
-                                    delta=1.003355,
-                                    max_isotopes=5,
-                                    max_charge=1,
-                                    max_error=50E-6)
-            
-            self.isotopes_head = isotopes.sort_values(by=['intensity', 'n'], ascending=False)
-            self.isotopes_head.reset_index(inplace = True)
+            parameter_names = Path(self.file_name_peak).stem + "isotopes.csv"
+            if os.path.exists(parameter_names):
+                pd.read_csv(parameter_names)
+            else:
+                ms1_peaks = deimos.load(self.file_name_peak, key='ms1',
+                                        columns=['mz', 'drift_time', 'retention_time', 'intensity'])
+                self.ms1_peaks = deimos.threshold(ms1_peaks, threshold=1000)
+                # Partition the data
+                partitions = deimos.partition(self.ms1_peaks, size=1000, overlap=5.1)
+                # Map isotope detection over partitions
+                isotopes = partitions.map(deimos.isotopes.detect,
+                                        dims=['mz', 'drift_time', 'retention_time'],
+                                        tol=[0.1, 0.7, 0.15],
+                                        delta=1.003355,
+                                        max_isotopes=5,
+                                        max_charge=1,
+                                        max_error=50E-6)
+                
+                self.isotopes_head = isotopes.sort_values(by=['intensity', 'n'], ascending=False)
+                self.isotopes_head.reset_index(inplace = True)
+                self.isotopes_head.to_csv(parameter_names)
             pn.state.notifications.info('Finished getting isotopes', duration=0)  
         return hv.Dataset(self.isotopes_head)
     
@@ -1299,26 +1304,36 @@ class Align_plots(pm.Parameterized):
                 two_matched_aligned = two_matched.copy()
                 i=+1
                 for dim in [self.feature_dt, self.feature_rt]:
-                    
-                    spl = deimos.alignment.fit_spline( two_matched, ref_matched, align= dim, kernel=self.menu_kernel, C=1000)
-                    newx = np.linspace(0, max(ref_matched[ dim].max(), two_matched[ dim].max()), 1000)
-                    two_matched_aligned["aligned_" + dim] = spl(two_matched_aligned[dim])
-                    # save by peak in peak name
-                    two_matched_aligned.to_csv(os.path.join("created_data", peak_ref_initial[:-3] + peak_file[:-3] + "_aligned.csv"))
-                        # match_table includes the matched data from data a and b to compare with scatter plot (data a retention time vs data b retention time)
-                    matchtable = pd.concat(
-                        [
-                            two_matched[[ dim]].reset_index(drop=True),
-                            ref_matched[[ dim]].reset_index(drop=True)
-                        ],
-                        axis=1,
-                    )
-                    matchtable.columns = ['match_a_' + dim, 'match_b_' + dim]
-                    xy_drift_retention_time = pd.DataFrame(
-                        np.hstack( ( newx[:, None], # spline applied to matching
-                                spl(newx)[:, None],)))
-                    # rename columns
-                    xy_drift_retention_time.columns = ['x_' + dim, 'y_' + dim]
+                    parameter_inputs = Path(peak_ref_initial).stem + Path(peak_file).stem + str(self.tolerance_text) + str(self.relative_text) + str(self.menu_kernel) + str(self.threshold_text) + str(dim)
+                        
+                    if os.path.exists(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))\
+                          and os.path.exists(os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv")):
+                        matchtable = pd.read_csv(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))
+                        xy_drift_retention_time = pd.read_csv(os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv"))
+                    else: 
+                        spl = deimos.alignment.fit_spline( two_matched, ref_matched, align= dim, kernel=self.menu_kernel, C=1000)
+                        newx = np.linspace(0, max(ref_matched[ dim].max(), two_matched[ dim].max()), 1000)
+                        two_matched_aligned["aligned_" + dim] = spl(two_matched_aligned[dim])
+                        # save by peak in peak name
+                        two_matched_aligned.to_csv(os.path.join("created_data", parameter_inputs + "_aligned.csv"))
+                            # match_table includes the matched data from data a and b to compare with scatter plot (data a retention time vs data b retention time)
+                        matchtable = pd.concat(
+                            [
+                                two_matched[[ dim]].reset_index(drop=True),
+                                ref_matched[[ dim]].reset_index(drop=True)
+                            ],
+                            axis=1,
+                        )
+                        matchtable.columns = ['match_a_' + dim, 'match_b_' + dim]
+                        xy_drift_retention_time = pd.DataFrame(
+                            np.hstack( ( newx[:, None], # spline applied to matching
+                                    spl(newx)[:, None],)))
+                        # rename columns
+                        xy_drift_retention_time.columns = ['x_' + dim, 'y_' + dim]
+
+                        xy_drift_retention_time.to_csv(os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv"))
+                        matchtable.to_csv(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))
+
                     plot1 = hv.Points(xy_drift_retention_time, kdims=['x_' + dim, 'y_' + dim]).options(color='blue')
                     plot2 = hv.Points(matchtable, kdims=['match_a_' + dim, 'match_b_' + dim]).options(color='red')
             
