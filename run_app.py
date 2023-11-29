@@ -1374,7 +1374,7 @@ class Align_plots(pm.Parameterized):
                 two_matched_aligned = two_matched.copy()
                 i=+1
                 for dim in [self.feature_dt, self.feature_rt]:
-                    parameter_inputs = Path(self.peak_ref).stem + Path(peak_file).stem + str(self.tolerance_text) + str(self.relative_text) + str(self.menu_kernel) + str(self.threshold_text) + str(dim)
+                    parameter_inputs =  Path(peak_file).stem + str(self.tolerance_text) + str(self.relative_text) + str(self.menu_kernel) + str(self.threshold_text) + str(dim)
                     # if already aligned, re-use values
                     if os.path.exists(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))\
                           and os.path.exists(os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv")):
