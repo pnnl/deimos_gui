@@ -64,7 +64,7 @@ ls4 = hv.link_selections.instance()
 hv.output(backend='bokeh')
 
 class Deimos_app(pm.Parameterized):
-    '''Class to create a parameterized functions that only updated'''
+    '''Class to create a parameterized functions that only changes when paramaters are updated'''
     file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5')
     file_folder_initial =  pm.String(
         default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Data folder (use /). Change to update files.')
