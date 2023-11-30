@@ -1247,7 +1247,7 @@ class Align_plots(pm.Parameterized):
     align_endswith =  pm.String(default="*.h5", doc='Use * for wildcard (ie. *end.h5)', label='Only use files that end with this value')
     tolerance_text = pm.String(default = '.00002-0.03-2', doc="Keep - between numbers", label='Tolerances by mz, drift, and retention time')
     relative_text = pm.String(default = 'True-True-False',  doc="Keep - between numbers", label  = 'Relevant or abs val by mz, drift, and retention time')
-    menu_kernel = pm.Selector(['linear',  'rbf'], default = "rbf", doc="Keep - between numbers", label='Support Vector Regression Kernel')
+    menu_kernel = pm.Selector(['linear',  'rbf'], default = "rbf", doc="Changes the alignment kernel", label='Support Vector Regression Kernel')
     threshold_text = pm.String(default = '2000', label = 'Threshold', doc="Minimum intensity value")
     rerun_align = pm.Action(lambda x: x.param.trigger('rerun_align'), label='Re-run align')
     
