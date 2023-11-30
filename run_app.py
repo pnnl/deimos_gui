@@ -67,7 +67,7 @@ class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only updated'''
     file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5')
     file_folder_initial =  pm.String(
-        default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
+        default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Data folder (use /). Change to update files.')
     file_folder_cal =  pm.String(
         default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
     rt_mzML_name = pm.Selector(["scan start time"], doc='Only adjust if mz file selected. Select the retention time column name')
@@ -113,9 +113,9 @@ class Deimos_app(pm.Parameterized):
     min_feature_mz_spacing = pm.Number(default=10, label="Spacing: " + feature_rt.default)
 
     file_name_smooth = pm.FileSelector(default = os.path.join("created_data", file_name_smooth_name),\
-                                        path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data')
+                                        path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data (in Created_Data Folder)')
     file_name_peak = pm.FileSelector(default = os.path.join("created_data", file_name_peak_name), \
-                                     path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data Default: example_data_peak.h5')
+                                     path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data (in Created_Data Folder)')
     ##TODO this is actually a lower theshold than originally in the paper - need to update the time
     threshold_slider = pm.Integer(default=1000, label='Threshold')
     threshold_slider_ms1_ms2 = pm.Integer(default=100, label='Min Threshold for MS1')
