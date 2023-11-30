@@ -321,3 +321,38 @@ def new_name_if_mz(mz_file_name):
         else:
                 new_name = None
         return new_name
+
+def aligment(two_matched, ref_matched, two_matched_aligned, dim, kernel, parameter_inputs ):
+        '''
+                Save the aligned data
+
+                Parameters:
+                        two_matched (df): dataframe to be aligned
+                        ref_matched
+                        two_matched_aligned: dataframe output with aligned dimensions
+                        dim: dimensions to align
+                        kernel: the kernel to use for alignment,
+                        parameter_inputs: str to use in saving csv files
+                Returns:
+                        xy_drift_retention_time: pd DataFrame aligned dataframe 
+                        matchtable reference line
+        '''
+        spl = deimos.alignment.fit_spline( two_matched, ref_matched, align= dim, kernel=kernel, C=1000)
+        newx = np.linspace(0, max(ref_matched[ dim].max(), two_matched[ dim].max()), 1000)
+        two_matched_aligned["aligned_" + dim] = spl(two_matched_aligned[dim])
+        # save by peak in peak name
+        two_matched_aligned.to_csv(os.path.join("created_data", parameter_inputs + "_aligned.csv"))
+                # match_table includes the matched data from data a and b to compare with scatter plot (data a retention time vs data b retention time)
+        matchtable = pd.concat( [
+                two_matched[[ dim]].reset_index(drop=True),
+                ref_matched[[ dim]].reset_index(drop=True)], axis=1,)
+        matchtable.columns = ['match_a_' + dim, 'match_b_' + dim]
+        xy_drift_retention_time = pd.DataFrame(
+                np.hstack( ( newx[:, None], # spline applied to matching
+                        spl(newx)[:, None],)))
+        # rename columns
+        xy_drift_retention_time.columns = ['x_' + dim, 'y_' + dim]
+
+        xy_drift_retention_time.to_csv(os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv"))
+        matchtable.to_csv(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))
+        return xy_drift_retention_time, matchtable
