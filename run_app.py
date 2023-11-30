@@ -1424,39 +1424,39 @@ instructions_view = "<ul> <li>The original data is a placeholder</li> <li>Indica
     <li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
 <li>Changing the axis widths and clicking 'Recreate plots with below values' to re-aggregrate with new widths</li>\
 <li>Toolbar's zoom and reset does not re-aggregate within this tool.</li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_smooth = "<ul> <li>The original data is a placeholder</li> <li>Click 'Run smooth' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
     <li>Keeping the <b>smooth radius</b> small and increasing number of iterations <br> is preferable to a larger smoothing radius, albeit at greater computational expense.</li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_peaks = "<p>Feature detection, also referred to as peak detection, is the process by which local maxima that fulfill certain criteria (such as sufficient signal-to-noise ratio) are located in the signal acquired by a given analytical instrument. </p><ul> <li>The original data is a placeholder</li> <li>Click 'Run peak' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li> \
     <li>The <b>radius per dimension</b> insures an intensity-weighted per-dimension coordinate will be returned for each feature.</li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_ms2 = "<p>With MS1 features of interest determined by peak detection, corresponding tandem mass spectra, if available, must be extracted and assigned to the MS1 parent ion feature. </p><ul> <li>The original data is a placeholder, clicking will not work without real data </li> <li>Click 'Run decon' after updating parameters to get new graph</li><li>The MS2 data associated with user-selected MS1 data, with the MS1 data with the highest intensity used if there are multiple MS1 data points within a small range of the user-click </li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_align = "<ul><li>Alignment is the process by which feature coordinates across samples are adjusted to account for instrument variation such that matching features are aligned to adjust for small differences in coordinates</li>\
     <li>The original data is a placeholder</li> <li>Indicate the reference file and folder of files to align</li><li>Determine matches within <b>tolerance</b> per feature with the alignment determined by the <b>kernel</b> by <b>relative or absolute </b> value by <b>support vector regression kernel </b> </li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes</li>\
     <li>Select a row to view the isotopes</li>\
     <li>Graphs will show slice of MS1 data. Plot will show isotopes</li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_data_initial, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
