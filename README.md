@@ -45,7 +45,7 @@ pip install -e .
 
 In the terminal, cd to the downloaded folder deimos_gui
 
-install deimos_gui requirements
+## If conda doesn't work in installing DEIMoS_GUI:
 
 ``` 
 cd ../deimos_gui
