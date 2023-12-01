@@ -666,28 +666,7 @@ class Deimos_app(pm.Parameterized):
                 ms1_peaks = deimos.threshold(ms1_peaks, threshold=threshold_peak_ms1)
                 ms2_peaks = deimos.threshold(ms2_peaks, threshold=threshold_peak_ms2)
 
-                decon = deimos.deconvolution.MS2Deconvolution(ms1_peaks, ms1, ms2_peaks, ms2)
-                # use false .loc[res['drift_time_score']
-                decon.construct_putative_pairs(dims=[self.feature_dt, self.feature_rt],
-                                    low=[-0.12, -0.1], high=[1.4, 0.1], ce=20,
-                                    model=additional_functions.offset_correction_model,
-                                    require_ms1_greater_than_ms2=require_ms1_greater_than_ms2,
-                                    error_tolerance=0.12)
-                
-                decon.configure_profile_extraction(dims=[self.feature_mz, self.feature_dt, self.feature_rt],
-                                        low=[-200E-6, -0.05, -0.1],
-                                        high=[600E-6, 0.05, 0.1],
-                                        relative=[True, True, False])
-            
-                res = decon.apply(dims=self.feature_dt, resolution=0.01)
-                if drift_score_min:
-                    res = res.loc[res[self.feature_dt + '_score'] > .9].groupby(by=[x for x in res.columns if x.endswith('_ms1')],
-                                                            as_index=False).agg(list)
-                else: 
-                    
-                    res = res.groupby(by=[x for x in res.columns if x.endswith('_ms1')],
-                                                            as_index=False).agg(list)
-                
+                res = additional_functions.decon_ms2(ms1_peaks, ms1, ms2_peaks, ms2, self.feature_mz, self.feature_dt, self.feature_rt, require_ms1_greater_than_ms2, drift_score_min)
                 res.to_csv(file_name_res)
                 
                 pn.state.notifications.info("Finished running deconvolution", duration=0)
@@ -1323,41 +1302,21 @@ class Align_plots(pm.Parameterized):
             theshold_presistence = 128
             tolerance_text = [float(i) for i in list(self.tolerance_text.split('-'))]
             relative_text = [bool(i) for i in list(self.relative_text.split('-'))]
-            try:
-                # load initial refence file
-                new_name = additional_functions.new_name_if_mz(self.peak_ref)
-                peak_ref_initial = additional_functions.load_initial_deimos_data(self.peak_ref, self.feature_dt, self.feature_rt, self.feature_mz,\
-                                                                        self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = ref_key, new_name = new_name)
-                # convert to h5 if mzML
-                if new_name != None:
-                    self.file_folder = "created_data"
-                    self.update_param(new_name)
-                    pn.state.notifications.info("ref file has changed to " + str(new_name))
-                peak_ref = additional_functions.align_peak_create(peak_ref_initial, theshold_presistence, self.feature_mz, self.feature_dt, self.feature_rt, \
-                                                                self.feature_intensity)
-            except Exception as e:
-                raise Exception(str(e))
-            # if thesholding makes the files have lenght 0, bring up exception
-            if len(peak_ref) == 0: 
-                    raise Exception("No data left after thresholding: lower threshold or change data")
+            peak_ref, new_name = additional_functions.get_peak_file(self.peak_ref, self.feature_dt, self.feature_rt, self.feature_mz,\
+                                                                        self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, \
+                                                                            theshold_presistence = theshold_presistence, key = ref_key)
+            # convert to h5 if mzML
+            if new_name != None:
+                        self.file_folder = "created_data"
+                        self.update_param(new_name)
+                        pn.state.notifications.info("ref file has changed to " + str(new_name))
             peak_two_list = []
             peak_file_list = []
             for file in file_list:
-                try:
-                    new_name = additional_functions.new_name_if_mz(file)
-                    full_two = additional_functions.load_initial_deimos_data(file, self.feature_dt, self.feature_rt, self.feature_mz, \
-                                                                            self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, key = file_key, new_name = new_name)
-                    if new_name != None:
-                        pn.state.notifications.info("alignment file h5 version is saved to " + str(new_name))
-
-                    peak_two = additional_functions.align_peak_create(full_two, theshold_presistence,  self.feature_mz, self.feature_dt, self.feature_rt,\
-                                                                    self.feature_intensity)
-                except Exception as e:
-                    pn.state.notifications.error("Alignment didn't work", duration=0)
-                    raise Exception(str(e))
-                    
-                if len(peak_two) == 0:
-                    raise Exception("No data left after thresholding: lower threshold or change data")
+                peak_two, new_name = additional_functions.get_peak_file(file, self.feature_dt, self.feature_rt, self.feature_mz,\
+                                                                        self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, \
+                                                                            theshold_presistence = theshold_presistence, key = file_key)
+           
                 peak_two_list.append(peak_two)
                 peak_file_list.append(file)
             list_plots = []

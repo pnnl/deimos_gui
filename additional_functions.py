@@ -356,3 +356,78 @@ def aligment(two_matched, ref_matched, two_matched_aligned, dim, kernel, paramet
         xy_drift_retention_time.to_csv(os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv"))
         matchtable.to_csv(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))
         return xy_drift_retention_time, matchtable
+
+def get_peak_file(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name,  theshold_presistence,  key= 'ms1'):
+        '''
+        full function to return dataframe with load_mz_h5
+
+        Parameters:
+                file_name_initial (path): file path to data
+                feature_dt (str): drift time name
+                feature_rt (str): retention time name
+                feature_mz (str): mz name
+                feature_intensity (str): intensity name
+                key (str): key for uploaded data, such as ms1 or ms2
+                rt_name (list): name retention time accession if using mzML file
+                dt_name (list): name drift time accession if using mzML file
+                threshold: int
+        Returns:
+                pd DataFrame with data 
+        '''
+        try:
+                # load initial refence file
+                new_name = new_name_if_mz(file_name_initial)
+                peak_ref_initial = load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name, key = key, new_name = new_name)
+                
+                peak_ref =align_peak_create(peak_ref_initial, theshold_presistence,feature_mz,  feature_dt, feature_rt, feature_intensity, )
+        except Exception as e:
+                raise Exception(str(e))
+        # if thesholding makes the files have lenght 0, bring up exception
+        if len(peak_ref) == 0: 
+                raise Exception("No data left after thresholding: lower threshold or change data")
+        return peak_ref, new_name
+
+
+def decon_ms2(ms1_peaks, ms1, ms2_peaks, ms2, feature_mz, feature_dt, feature_rt, require_ms1_greater_than_ms2, drift_score_min):
+        '''
+        return ms2 decon values
+
+        Parameters:
+                ms1_peaks: data file of ms1 peaks
+                ms1: data file of ms1 data
+                ms2_peaks: data file of ms2 peaks
+                ms2: data file of ms2 data
+                feature_dt (str): drift time name
+                feature_rt (str): retention time name
+                feature_mz (str): mz name
+                require_ms1_greater_than_ms2 (boolean): ms1 must be greater than ms2 when constructing putative pairs
+                drift_score_min (boolean): only keep drift score greater than .9
+                threshold: int
+        Returns:
+                pd DataFrame with data 
+        '''       
+
+        decon = deimos.deconvolution.MS2Deconvolution(ms1_peaks, ms1, ms2_peaks, ms2)
+        # use false .loc[res['drift_time_score']
+        decon.construct_putative_pairs(dims=[feature_dt, feature_rt],
+                        low=[-0.12, -0.1], high=[1.4, 0.1], ce=20,
+                        model=offset_correction_model,
+                        require_ms1_greater_than_ms2=require_ms1_greater_than_ms2,
+                        error_tolerance=0.12)
+        
+        decon.configure_profile_extraction(dims=[feature_mz, feature_dt, feature_rt],
+                                low=[-200E-6, -0.05, -0.1],
+                                high=[600E-6, 0.05, 0.1],
+                                relative=[True, True, False])
+
+        res = decon.apply(dims=feature_dt, resolution=0.01)
+        if drift_score_min:
+                res = res.loc[res[feature_dt + '_score'] > .9].groupby(by=[x for x in res.columns if x.endswith('_ms1')],
+                                                as_index=False).agg(list)
+        else: 
+        
+                res = res.groupby(by=[x for x in res.columns if x.endswith('_ms1')],
+                                                as_index=False).agg(list)
+        
+        
+        return res
