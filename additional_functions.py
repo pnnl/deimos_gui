@@ -370,7 +370,7 @@ def get_peak_file(file_name_initial, feature_dt, feature_rt, feature_mz, feature
                 key (str): key for uploaded data, such as ms1 or ms2
                 rt_name (list): name retention time accession if using mzML file
                 dt_name (list): name drift time accession if using mzML file
-                threshold: int
+                threshold: int: minimum value of intensity
         Returns:
                 pd DataFrame with peak data, name of new h5 if created from mzML file
         '''
@@ -402,7 +402,6 @@ def decon_ms2(ms1_peaks, ms1, ms2_peaks, ms2, feature_mz, feature_dt, feature_rt
                 feature_mz (str): mz name
                 require_ms1_greater_than_ms2 (boolean): ms1 must be greater than ms2 when constructing putative pairs
                 drift_score_min (boolean): only keep drift score greater than .9
-                threshold: int
         Returns:
                 pd DataFrame with data 
         '''       
