@@ -1318,7 +1318,7 @@ class Align_plots(pm.Parameterized):
                                                                             theshold_presistence = theshold_presistence, key = file_key)
            
                 peak_two_list.append(peak_two)
-                if new_name != None:
+                if new_name == None:
                     peak_file_list.append(file)
                 else:
                     peak_file_list.append(new_name)
