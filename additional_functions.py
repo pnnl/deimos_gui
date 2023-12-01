@@ -359,7 +359,7 @@ def aligment(two_matched, ref_matched, two_matched_aligned, dim, kernel, paramet
 
 def get_peak_file(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name,  theshold_presistence,  key= 'ms1'):
         '''
-        full function to return dataframe with load_mz_h5
+        load the peak files for alignment
 
         Parameters:
                 file_name_initial (path): file path to data
@@ -372,7 +372,7 @@ def get_peak_file(file_name_initial, feature_dt, feature_rt, feature_mz, feature
                 dt_name (list): name drift time accession if using mzML file
                 threshold: int
         Returns:
-                pd DataFrame with data 
+                pd DataFrame with peak data, name of new h5 if created from mzML file
         '''
         try:
                 # load initial refence file
