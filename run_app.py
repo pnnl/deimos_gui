@@ -220,7 +220,6 @@ class Deimos_app(pm.Parameterized):
                 self.dt_mzML_name = self.param.dt_mzML_name.objects[0]
 
  # load the h5 files and load to dask
-    @pm.depends('view_plot', 'placehold_data_initial', watch = True)
     def hvdata_initial(self):
         '''Start initial data by loading data. Restart if using different file or feature names changed '''
         #
@@ -368,7 +367,7 @@ class Deimos_app(pm.Parameterized):
         return element
     
     # show plots of initial data before any smoothing, peakfinding, etc.
-    @pm.depends('placehold_data_initial',  watch=True)
+    @pm.depends('view_plot', 'placehold_data_initial', watch=True)
     def initial_viewable(self, **kwargs):
         '''full function to return the initial data in three graphs'''
         # profiler = Profiler()
@@ -380,7 +379,7 @@ class Deimos_app(pm.Parameterized):
     
         pn.state.notifications.info('Loading initial data plots', duration=0)
         # dynamic map to return hvdata after loading it with deimos - hvplot because needs to be a holoview to be returned with dynamicmap
-        hvdata_full = hv.DynamicMap(self.hvdata_initial)
+        hvdata_full = self.hvdata_initial()
         # return the hvplot for mz and retention_time
         hvplot_md_initial = hvdata_full.apply(self.hvplot_md)
         hvplot_dr_initial = hvdata_full.apply(self.hvplot_dr)
@@ -451,7 +450,6 @@ class Deimos_app(pm.Parameterized):
         except:
              pass
 
-    @pm.depends('rerun_smooth', 'placehold_data_smooth')
     def create_smooth_data(self):
         pn.state.notifications.clear()
         '''run deimos functions to get the smoothed data returned'''
@@ -481,7 +479,8 @@ class Deimos_app(pm.Parameterized):
         self.data_smooth_ms1.persist()
         return hv.Dataset(self.data_smooth_ms1)
   
-  
+   
+    @pm.depends('rerun_smooth', 'placehold_data_smooth', watch=True)
     def smooth_viewable(self, **kwargs):
         '''full function to load and process smooth function and 
         smooth data is saved using data and time in the suffix so will need to rerun each sesson
@@ -493,7 +492,7 @@ class Deimos_app(pm.Parameterized):
         
         pn.state.notifications.info('Loading smooth data' + str(self.file_name_smooth), duration=0)
         # dynamic map to return hvdata after loading it with deimos
-        hvdata_smooth = hv.DynamicMap(self.create_smooth_data)
+        hvdata_smooth = self.create_smooth_data()
 
         # return the hvplot for mz and retention_time
         hvplot_md_smooth = hvdata_smooth.apply(self.hvplot_md)
@@ -529,7 +528,7 @@ class Deimos_app(pm.Parameterized):
         # profiler.write_html(results_file)
         return ls( self.rasterized_rm_smooth  + self.rasterized_dr_smooth + self.rasterized_md_smooth).opts(shared_axes=True)
     
-    @pm.depends('rerun_peak', 'placehold_data_peak')
+    
     def create_peak_data(self):
         '''get peak data using deimos functions
         saves the peak value and changes the file name in the user inputs to new peak file name
@@ -569,6 +568,7 @@ class Deimos_app(pm.Parameterized):
         self.data_peak_ms1.persist()
         return hv.Dataset(self.data_peak_ms1)
     
+    @pm.depends('rerun_peak', 'placehold_data_peak', watch=True)
     def peak_viewable(self, **kwargs):
         '''run full function to load smooth data, run peak function and return heatmaps'''
         # dynamic map to return hvdata after loading it with deimos
@@ -580,7 +580,7 @@ class Deimos_app(pm.Parameterized):
         self.param.file_name_smooth.update()
         self.param.file_name_peak.update()
         pn.state.notifications.info('Loading peak data: ' + str(self.file_name_peak), duration=0)
-        hvdata_peak = hv.DynamicMap(self.create_peak_data)
+        hvdata_peak = self.create_peak_data()
         # return the hvplot for mz and retention_time
 
         # return the hvplot for mz and retention_time
@@ -618,7 +618,7 @@ class Deimos_app(pm.Parameterized):
         return ls(self.rasterized_dr_peak + self.rasterized_rm_peak + self.rasterized_md_peak).opts(shared_axes=True)
     
     
-    @pm.depends('rerun_decon', 'placehold_data_decon')
+    
     def ms2_decon(self):
         '''Get the deconvoluted file
         using ms1 and ms2 data from the orignal file and peak file
@@ -795,7 +795,7 @@ class Deimos_app(pm.Parameterized):
  
 
     # create the hv plots with intenisty and ms2 data
-    @pm.depends('placehold_data_decon', watch= True)
+    @pm.depends('rerun_decon', 'placehold_data_decon', watch=True)
     def decon_viewable(self, **kwargs):
         '''main function to get the deconvolution values from peak and initial data'''
         # profiler = Profiler()
@@ -810,7 +810,7 @@ class Deimos_app(pm.Parameterized):
         # trigger with 'run decon' button
         self.m1, self.d1, self.d2, self.r2, self.r3, self.m3 = None, None, None, None, None, None
         #get ms2 convoluted data from peak and ms2 data
-        ms2_decon = hv.DynamicMap(self.ms2_decon)
+        ms2_decon = self.ms2_decon()
     
         # return the hvplot for mz and retention_time
         self.md_decon = ms2_decon.apply(self.hvplot_md_decon)
@@ -927,7 +927,7 @@ class Deimos_app(pm.Parameterized):
             self.feature_dt_axis_width_iso = drift_range
         return
     
-    @pm.depends('rerun_iso', 'placehold_data_iso', watch = True)
+    
     def get_isotype(self):
         '''Get the isotopes dataframe from input values of the peak data file
         isotope dataframe will be save in created_data ending in isotopes.csv'''
@@ -1047,7 +1047,8 @@ class Deimos_app(pm.Parameterized):
         except Exception as e:
                 raise Exception(str(e))
         return hv.Dataset(ms1)
-
+    
+    @pm.depends('rerun_iso', 'placehold_data_iso', watch=True)
     def iso_viewable(self, **kwargs):
         '''main function to view the isotopes and if the user clicks on the isotopes table row, 
         to see the ms1 data and the mz data from that row'''
@@ -1057,7 +1058,7 @@ class Deimos_app(pm.Parameterized):
         pn.state.notifications.info('Return Isotope data', duration=0)
         # dynamic map to return hvdata after loading it with deimos
         #get isotype data from peak  when run_iso or placeholder changes
-        iso_data = hv.DynamicMap(self.get_isotype)
+        iso_data = self.get_isotype()
         
         # turn data into datatables, triggered when iso_data changes
         iso_dataframe = hv.util.Dynamic(iso_data, operation= self.hvplot_datatable_iso)
@@ -1112,7 +1113,7 @@ class Deimos_app(pm.Parameterized):
             +  self.rasterized_md_iso +  self.rasterized_dr_iso  + self.rasterized_rm_iso \
                 + hvplot_mi_iso).opts(shared_axes=False).cols(2)
     
-    @pm.depends('placehold_data_calibrate', 'rerun_calibrate')
+    
     def calibrate(self):
         '''return the calibrated values from the user input in created_data folder
         depending on the type of calibration chosen by the user'''
@@ -1190,7 +1191,7 @@ class Deimos_app(pm.Parameterized):
         element = ds.data.hvplot.points(x='reduced_ccs', y='ta', title = "Calibration Graph")
         return element
     
-    @pm.depends('placehold_data_calibrate', watch= True)
+    @pm.depends('placehold_data_calibrate', 'rerun_calibrate', watch=True)
     def calibrate_viewable(self, **kwargs):
         '''main calibrate function to rerun calibration value
         return plot with reduced ccs to ta
@@ -1204,7 +1205,7 @@ class Deimos_app(pm.Parameterized):
 
         pn.state.notifications.info('Return calibration data', duration=0)
         #get isotype data from peak
-        new_calibrated = hv.DynamicMap(self.calibrate)
+        new_calibrated = self.calibrate()
         # turn data into datatables
         cal_dataframe = hv.util.Dynamic(new_calibrated, operation= self.hvplot_datatable_calibrate)
 
@@ -1259,7 +1260,7 @@ class Align_plots(pm.Parameterized):
                 pass
 
     
-    @pm.depends('placehold_data_align', 'rerun_align', watch = True)
+    @pm.depends('placehold_data_align', 'rerun_align')
     def viewable(self):
         '''align the folder in peak folder with the reference folder
         returns: 
