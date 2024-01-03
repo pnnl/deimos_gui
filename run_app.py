@@ -33,15 +33,15 @@ example_tune_file_name = "placeholder.csv" #example_tune_pos.h5
 file_to_calibrate_name = "placeholder.csv" #example_tune_pos.h5 
 peak_ref_name = "placeholder.csv" #example_alignment.h5
 
-file_name_initial_name = "example_data.h5"  #example_data.h5
-file_name_smooth_name = "placeholder.csv"
-file_name_peak_name = "placeholder.csv"
-file_name_smooth_name = "example_data_threshold_1000_smooth_radius_0-1-0_smooth_iterations_3_feature_rt_retention_time_new_smooth_data.h5" 
-file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
-calibration_input_name = "cal_input.csv"
-example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
+# file_name_initial_name = "example_data.h5"  #example_data.h5
+# file_name_smooth_name = "placeholder.csv"
+# file_name_peak_name = "placeholder.csv"
+# # file_name_smooth_name = "example_data_threshold_1000_smooth_radius_0-1-0_smooth_iterations_7_feature_rt_retention_time_new_smooth_data.h5" 
+# # file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
+# calibration_input_name = "cal_input.csv"
+# example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+# file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+# peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
 
 hv.extension('bokeh', 'matplotlib')
 
@@ -220,6 +220,7 @@ class Deimos_app(pm.Parameterized):
                 self.dt_mzML_name = self.param.dt_mzML_name.objects[0]
 
  # load the h5 files and load to dask
+    @pm.depends('view_plot', 'placehold_data_initial', watch = True)
     def hvdata_initial(self):
         '''Start initial data by loading data. Restart if using different file or feature names changed '''
         #
@@ -367,9 +368,11 @@ class Deimos_app(pm.Parameterized):
         return element
     
     # show plots of initial data before any smoothing, peakfinding, etc.
-    @pm.depends('view_plot', 'placehold_data_initial', watch=True)
+    @pm.depends('placehold_data_initial',  watch=True)
     def initial_viewable(self, **kwargs):
         '''full function to return the initial data in three graphs'''
+        # profiler = Profiler()
+        # profiler.start()
         #update file selector widget with new names from folder
         self.param.file_name_initial.update()
         self.param.file_name_smooth.update()
@@ -377,7 +380,7 @@ class Deimos_app(pm.Parameterized):
     
         pn.state.notifications.info('Loading initial data plots', duration=0)
         # dynamic map to return hvdata after loading it with deimos - hvplot because needs to be a holoview to be returned with dynamicmap
-        hvdata_full = self.hvdata_initial()
+        hvdata_full = hv.DynamicMap(self.hvdata_initial)
         # return the hvplot for mz and retention_time
         hvplot_md_initial = hvdata_full.apply(self.hvplot_md)
         hvplot_dr_initial = hvdata_full.apply(self.hvplot_dr)
@@ -405,7 +408,9 @@ class Deimos_app(pm.Parameterized):
                     hvplot_rm_initial,
                     operation=self.rasterize_rm,
                     streams=[stream_initial],
-                )        # results_file = os.path.join(TESTS_ROOT, "initial_" + str(self.placehold_data_initial) + Path(self.file_name_initial).name + ".html")
+                )
+        # profiler.stop()
+        # results_file = os.path.join(TESTS_ROOT, "initial_" + str(self.placehold_data_initial) + Path(self.file_name_initial).name + ".html")
         # profiler.write_html(results_file)
         return ls(self.rasterized_rm_initial  + self.rasterized_dr_initial + self.rasterized_md_initial).opts(shared_axes=True)
     
@@ -446,6 +451,7 @@ class Deimos_app(pm.Parameterized):
         except:
              pass
 
+    @pm.depends('rerun_smooth', 'placehold_data_smooth')
     def create_smooth_data(self):
         pn.state.notifications.clear()
         '''run deimos functions to get the smoothed data returned'''
@@ -453,7 +459,7 @@ class Deimos_app(pm.Parameterized):
         # name will be saved as
         new_smooth_name =  os.path.join( "created_data",  Path(self.file_name_initial).stem + '_threshold_' + str(self.threshold_slider) + \
              '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
-                 '_new_smooth_data.h5')
+                datetime.now().strftime("%Y%m%d%H%M%S") + '_new_smooth_data.h5')
         if self.placehold_data_smooth:
                 pn.state.notifications.info('In progress: Placeholder data, uncheck to use own data', duration=0)
                 self.data_smooth_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
@@ -475,18 +481,19 @@ class Deimos_app(pm.Parameterized):
         self.data_smooth_ms1.persist()
         return hv.Dataset(self.data_smooth_ms1)
   
-   
-    @pm.depends('rerun_smooth', 'placehold_data_smooth', watch=True)
+  
     def smooth_viewable(self, **kwargs):
         '''full function to load and process smooth function and 
         smooth data is saved using data and time in the suffix so will need to rerun each sesson
         if already have peak data, this step can be skipped
         return three graphs and smooth_data.h5 in created_data'''
         
+        # profiler = Profiler()
+        # profiler.start()
         
         pn.state.notifications.info('Loading smooth data' + str(self.file_name_smooth), duration=0)
         # dynamic map to return hvdata after loading it with deimos
-        hvdata_smooth = self.create_smooth_data()
+        hvdata_smooth = hv.DynamicMap(self.create_smooth_data)
 
         # return the hvplot for mz and retention_time
         hvplot_md_smooth = hvdata_smooth.apply(self.hvplot_md)
@@ -516,11 +523,13 @@ class Deimos_app(pm.Parameterized):
                     operation=self.rasterize_rm,
                     streams=[stream_smooth],
                 )
+
+        # profiler.stop()
         # results_file = os.path.join(TESTS_ROOT, "just_loading_smooth_"  + str(self.placehold_data_smooth)  +  Path(self.file_name_smooth).name + ".html")
         # profiler.write_html(results_file)
         return ls( self.rasterized_rm_smooth  + self.rasterized_dr_smooth + self.rasterized_md_smooth).opts(shared_axes=True)
     
-    
+    @pm.depends('rerun_peak', 'placehold_data_peak')
     def create_peak_data(self):
         '''get peak data using deimos functions
         saves the peak value and changes the file name in the user inputs to new peak file name
@@ -560,17 +569,18 @@ class Deimos_app(pm.Parameterized):
         self.data_peak_ms1.persist()
         return hv.Dataset(self.data_peak_ms1)
     
-    @pm.depends('rerun_peak', 'placehold_data_peak', watch=True)
     def peak_viewable(self, **kwargs):
         '''run full function to load smooth data, run peak function and return heatmaps'''
         # dynamic map to return hvdata after loading it with deimos
         
+        # profiler = Profiler()
+        # profiler.start()
         
         self.param.file_name_initial.update()
         self.param.file_name_smooth.update()
         self.param.file_name_peak.update()
         pn.state.notifications.info('Loading peak data: ' + str(self.file_name_peak), duration=0)
-        hvdata_peak = self.create_peak_data()
+        hvdata_peak = hv.DynamicMap(self.create_peak_data)
         # return the hvplot for mz and retention_time
 
         # return the hvplot for mz and retention_time
@@ -601,12 +611,14 @@ class Deimos_app(pm.Parameterized):
                     operation=self.rasterize_rm,
                     streams=[stream_peak],
                 )
+
+        # profiler.stop()
         # results_file = os.path.join(TESTS_ROOT, "peak"  + str(self.placehold_data_peak)  + Path(self.file_name_peak).name + ".html")
         # profiler.write_html(results_file)
         return ls(self.rasterized_dr_peak + self.rasterized_rm_peak + self.rasterized_md_peak).opts(shared_axes=True)
     
     
-    
+    @pm.depends('rerun_decon', 'placehold_data_decon')
     def ms2_decon(self):
         '''Get the deconvoluted file
         using ms1 and ms2 data from the orignal file and peak file
@@ -783,9 +795,11 @@ class Deimos_app(pm.Parameterized):
  
 
     # create the hv plots with intenisty and ms2 data
-    @pm.depends('rerun_decon', 'placehold_data_decon', watch=True)
+    @pm.depends('placehold_data_decon', watch= True)
     def decon_viewable(self, **kwargs):
         '''main function to get the deconvolution values from peak and initial data'''
+        # profiler = Profiler()
+        # profiler.start()
 
         # self.param.file_name_initial.update()
         # self.param.file_name_smooth.update()
@@ -796,7 +810,7 @@ class Deimos_app(pm.Parameterized):
         # trigger with 'run decon' button
         self.m1, self.d1, self.d2, self.r2, self.r3, self.m3 = None, None, None, None, None, None
         #get ms2 convoluted data from peak and ms2 data
-        ms2_decon = self.ms2_decon()
+        ms2_decon = hv.DynamicMap(self.ms2_decon)
     
         # return the hvplot for mz and retention_time
         self.md_decon = ms2_decon.apply(self.hvplot_md_decon)
@@ -816,6 +830,8 @@ class Deimos_app(pm.Parameterized):
         
         pn.state.notifications.info("Finished running deconvolution with new data", duration=0)
 
+
+        # profiler.stop()
         # results_file = os.path.join("profile_output", "decon_"  + str(self.placehold_data_decon) + Path(self.file_name_peak).name + ".html")
         # profiler.write_html(results_file)
         return hv.Layout(self.rm_decon + self.md_decon  + self.dr_decon + full_plot_1_mi_decon).opts(shared_axes=False).cols(2)
@@ -911,7 +927,7 @@ class Deimos_app(pm.Parameterized):
             self.feature_dt_axis_width_iso = drift_range
         return
     
-    
+    @pm.depends('rerun_iso', 'placehold_data_iso', watch = True)
     def get_isotype(self):
         '''Get the isotopes dataframe from input values of the peak data file
         isotope dataframe will be save in created_data ending in isotopes.csv'''
@@ -1031,16 +1047,17 @@ class Deimos_app(pm.Parameterized):
         except Exception as e:
                 raise Exception(str(e))
         return hv.Dataset(ms1)
-    
-    @pm.depends('rerun_iso', 'placehold_data_iso', watch=True)
+
     def iso_viewable(self, **kwargs):
         '''main function to view the isotopes and if the user clicks on the isotopes table row, 
         to see the ms1 data and the mz data from that row'''
+        # profiler = Profiler()
+        # profiler.start()
         
         pn.state.notifications.info('Return Isotope data', duration=0)
         # dynamic map to return hvdata after loading it with deimos
         #get isotype data from peak  when run_iso or placeholder changes
-        iso_data = self.get_isotype()
+        iso_data = hv.DynamicMap(self.get_isotype)
         
         # turn data into datatables, triggered when iso_data changes
         iso_dataframe = hv.util.Dynamic(iso_data, operation= self.hvplot_datatable_iso)
@@ -1087,13 +1104,15 @@ class Deimos_app(pm.Parameterized):
 
         
         pn.state.notifications.info('Finished with Isotopes function', duration=0)  
+
+        # profiler.stop()
         # results_file = os.path.join(TESTS_ROOT, "iso_"  + str(self.placehold_data_iso)  + Path(self.file_name_peak).name + ".html")
         # profiler.write_html(results_file)
         return hv.Layout(iso_dataframe + iso_dataframe_filtered \
             +  self.rasterized_md_iso +  self.rasterized_dr_iso  + self.rasterized_rm_iso \
                 + hvplot_mi_iso).opts(shared_axes=False).cols(2)
     
-    
+    @pm.depends('placehold_data_calibrate', 'rerun_calibrate')
     def calibrate(self):
         '''return the calibrated values from the user input in created_data folder
         depending on the type of calibration chosen by the user'''
@@ -1171,11 +1190,13 @@ class Deimos_app(pm.Parameterized):
         element = ds.data.hvplot.points(x='reduced_ccs', y='ta', title = "Calibration Graph")
         return element
     
-    @pm.depends('placehold_data_calibrate', 'rerun_calibrate', watch=True)
+    @pm.depends('placehold_data_calibrate', watch= True)
     def calibrate_viewable(self, **kwargs):
         '''main calibrate function to rerun calibration value
         return plot with reduced ccs to ta
         and file with calibrated values in the created_data folder'''
+        # profiler = Profiler()
+        # profiler.start()
 
         self.param.calibration_input.update()
         self.param.example_tune_file.update()
@@ -1183,10 +1204,12 @@ class Deimos_app(pm.Parameterized):
 
         pn.state.notifications.info('Return calibration data', duration=0)
         #get isotype data from peak
-        new_calibrated = self.calibrate()
+        new_calibrated = hv.DynamicMap(self.calibrate)
         # turn data into datatables
         cal_dataframe = hv.util.Dynamic(new_calibrated, operation= self.hvplot_datatable_calibrate)
 
+
+        # profiler.stop()
         # results_file = os.path.join(TESTS_ROOT, "cal"  + str(self.placehold_data_calibrate) + Path(self.example_tune_file).name + ".html")
         # profiler.write_html(results_file)
         return cal_dataframe
@@ -1221,7 +1244,6 @@ class Align_plots(pm.Parameterized):
         '''update the files selectable by the user after the folder updates'''
         # update all files if updating file folder
         
-        
         if self.file_folder[-1] == '/':
             self.param.peak_ref.path = self.file_folder + "*"
         else:
@@ -1235,9 +1257,9 @@ class Align_plots(pm.Parameterized):
                 self.peak_ref = self.param.peak_ref.objects[0]
             else:
                 pass
-        self.param.peak_ref.update()
-        return
 
+    
+    @pm.depends('placehold_data_align', 'rerun_align', watch = True)
     def viewable(self):
         '''align the folder in peak folder with the reference folder
         returns: 
@@ -1245,8 +1267,11 @@ class Align_plots(pm.Parameterized):
         csv files to create the plots ending in matchtable.csv
         and in _xy_drift_retention_time.csv
         csv file ending in alignment.csv with aligned drift and retention time'''
+        # profiler = Profiler()
+        # profiler.start()
 
         pn.state.notifications.clear()
+        self.param.peak_ref.update()
         pn.state.notifications.position = 'top-right'
 
         list_plots = []
@@ -1260,6 +1285,7 @@ class Align_plots(pm.Parameterized):
                     plot1 = hv.Points(coords)
                     plot2 = hv.Points(coords)
                     list_plots.append((plot1 * plot2).opts(opts.Overlay(title="Placeholder")))
+                    self.peak_folder = "."
                     
         else:  
             # if using example_alignment, use file_key B as the "to align" file rather than the user input folder
@@ -1329,6 +1355,8 @@ class Align_plots(pm.Parameterized):
                 
                 pn.state.notifications.info('Finished aligning' + str(peak_file), duration=0)
             pn.state.notifications.info('Finished aligning all. Recreating plot', duration=0)
+
+        # profiler.stop()
         # results_file = os.path.join("time_profile", "align_"  + str(self.placehold_data_align) + Path(self.peak_ref).name + ".html")
         # profiler.write_html(results_file)
         return hv.Layout(list_plots).cols(2)
@@ -1411,5 +1439,3 @@ app1 = pn.Tabs(
                 ).servable(title='Deimos App')
 
 pn.serve(app1)
-
-
