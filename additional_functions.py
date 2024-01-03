@@ -109,46 +109,46 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
                 Returns:
                         pd DataFrame with data 
                 '''
-                if os.path.exists(new_smooth_name):
-                        raise Exception(new_smooth_name + " already exists. Please rename before continuing")
+                # if os.path.exists(new_smooth_name):
+                #         raise Exception(new_smooth_name + " already exists. Please rename before continuing")
            
-                else:
-                        ms1 = load_mz_h5(file_name_initial, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
-                        ms2 = load_mz_h5(file_name_initial, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+                # else:
+                ms1 = load_mz_h5(file_name_initial, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+                ms2 = load_mz_h5(file_name_initial, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
 
-                        factors = deimos.build_factors(ms1, dims='detect')
-                                
-                        # Nominal threshold
-                        ms1 = deimos.threshold(ms1, threshold=128)
-                        # Build index
-                        index_ms1_peaks = deimos.build_index(ms1, factors)
-                        # Smooth data
-                        smooth_radius= [int(i) for i in list(smooth_radius.split('-'))]
-                        iterations = int(smooth_iterations)
-                        pn.state.notifications.info('Smooth MS1 data', duration=3000)
-                        ms1_smooth = deimos.filters.smooth(ms1, index=index_ms1_peaks, dims=[feature_mz, feature_dt, feature_rt],
-                                                radius=smooth_radius, iterations=iterations)
+                factors = deimos.build_factors(ms1, dims='detect')
                         
-                        ## save with date and time because user won't reuse. 
-                        deimos.save(new_smooth_name, ms1_smooth, key='ms1', mode='w')
+                # Nominal threshold
+                ms1 = deimos.threshold(ms1, threshold=128)
+                # Build index
+                index_ms1_peaks = deimos.build_index(ms1, factors)
+                # Smooth data
+                smooth_radius= [int(i) for i in list(smooth_radius.split('-'))]
+                iterations = int(smooth_iterations)
+                pn.state.notifications.info('Smooth MS1 data', duration=3000)
+                ms1_smooth = deimos.filters.smooth(ms1, index=index_ms1_peaks, dims=[feature_mz, feature_dt, feature_rt],
+                                        radius=smooth_radius, iterations=iterations)
+                
+                ## save with date and time because user won't reuse. 
+                deimos.save(new_smooth_name, ms1_smooth, key='ms1', mode='w')
 
-                                # append peak ms2
-                        factors = deimos.build_factors(ms2, dims='detect')
-                        
-                        pn.state.notifications.info('Smooth MS2 data', duration=3000)
-                        # Nominal threshold
-                        ms2 = deimos.threshold(ms2, threshold=128)
-                        # Build index
-                        index_ms2_peaks = deimos.build_index(ms2, factors)
+                        # append peak ms2
+                factors = deimos.build_factors(ms2, dims='detect')
+                
+                pn.state.notifications.info('Smooth MS2 data', duration=3000)
+                # Nominal threshold
+                ms2 = deimos.threshold(ms2, threshold=128)
+                # Build index
+                index_ms2_peaks = deimos.build_index(ms2, factors)
 
-                        # Smooth data
-                        iterations = int(smooth_iterations)
-                        # Smooth data
-                        ms2_smooth = deimos.filters.smooth(ms2, index=index_ms2_peaks, dims=[feature_mz, feature_dt, feature_rt],
-                                                radius=smooth_radius, iterations=iterations)
-                        ## save with date and time because user won't reuse. 
-                        deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
-                        return ms1_smooth, index_ms1_peaks, index_ms2_peaks
+                # Smooth data
+                iterations = int(smooth_iterations)
+                # Smooth data
+                ms2_smooth = deimos.filters.smooth(ms2, index=index_ms2_peaks, dims=[feature_mz, feature_dt, feature_rt],
+                                        radius=smooth_radius, iterations=iterations)
+                ## save with date and time because user won't reuse. 
+                deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
+                return ms1_smooth, index_ms1_peaks, index_ms2_peaks
 
 def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_intensity,  threshold_slider,  peak_radius, index_ms1_peaks, index_ms2_peaks, new_peak_name, rt_name = None, dt_name = None ):
                 '''
