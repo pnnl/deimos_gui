@@ -33,15 +33,15 @@ example_tune_file_name = "placeholder.csv" #example_tune_pos.h5
 file_to_calibrate_name = "placeholder.csv" #example_tune_pos.h5 
 peak_ref_name = "placeholder.csv" #example_alignment.h5
 
-file_name_initial_name = "example_data.h5"  #example_data.h5
-file_name_smooth_name = "placeholder.csv"
-file_name_peak_name = "placeholder.csv"
-file_name_smooth_name = "example_data_smooth_radius_0-1-0_smooth_iterations_3_feature_rt_retention_time_new_smooth_data.h5" 
-file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
-calibration_input_name = "cal_input.csv"
-example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
+# file_name_initial_name = "example_data.h5"  #example_data.h5
+# file_name_smooth_name = "placeholder.csv"
+# file_name_peak_name = "placeholder.csv"
+# file_name_smooth_name = "example_data_smooth_radius_0-1-0_smooth_iterations_3_feature_rt_retention_time_new_smooth_data.h5" 
+# file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
+# calibration_input_name = "cal_input.csv"
+# example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+# file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+# peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
 
 hv.extension('bokeh', 'matplotlib')
 
@@ -136,12 +136,12 @@ class Deimos_app(pm.Parameterized):
     Recreate_plots_with_below_values = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values'), doc="Set axis ranges to ranges below")
     Recreate_plots_with_below_values_iso = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values_iso'), doc="Set axis ranges to ranges below")
     # only show the placeholder
-    placehold_data_initial = pm.Boolean(False, label='Placeholder initial data', doc="Unclicking triggers new analysis")
-    placehold_data_smooth =  pm.Boolean(False, label='Placeholder smooth', doc="Unclicking triggers new analysis")
-    placehold_data_peak =  pm.Boolean(False, label='Placeholder peak', doc="Unclicking triggers new analysis")
-    placehold_data_decon =  pm.Boolean(False, label='Placeholder decon', doc="Unclicking triggers new analysis")
-    placehold_data_iso =  pm.Boolean(False, label='Placeholder iso', doc="Unclicking triggers new analysis")
-    placehold_data_calibrate =  pm.Boolean(False, label='Placeholder', doc="Unclicking triggers new analysis")
+    placehold_data_initial = pm.Boolean(True, label='Placeholder initial data', doc="Unclicking triggers new analysis")
+    placehold_data_smooth =  pm.Boolean(True, label='Placeholder smooth', doc="Unclicking triggers new analysis")
+    placehold_data_peak =  pm.Boolean(True, label='Placeholder peak', doc="Unclicking triggers new analysis")
+    placehold_data_decon =  pm.Boolean(True, label='Placeholder decon', doc="Unclicking triggers new analysis")
+    placehold_data_iso =  pm.Boolean(True, label='Placeholder iso', doc="Unclicking triggers new analysis")
+    placehold_data_calibrate =  pm.Boolean(True, label='Placeholder', doc="Unclicking triggers new analysis")
 
     # set the min spacing for all the dimensions for rasterizing 
     slice_distance_dt = pm.Number(default=0.2, label="Slice isotopes drift time", doc = "Add distance to selected isotope drift time to get plot range")
@@ -636,7 +636,7 @@ class Deimos_app(pm.Parameterized):
         return ls(self.rasterized_dr_peak + self.rasterized_rm_peak + self.rasterized_md_peak).opts(shared_axes=True)
     
     
-    @pm.depends('rerun_decon', 'placehold_data_decon')
+    @pm.depends('rerun_decon', 'placehold_data_decon', watch = True)
     def ms2_decon(self):
         '''Get the deconvoluted file
         using ms1 and ms2 data from the orignal file and peak file
@@ -656,7 +656,7 @@ class Deimos_app(pm.Parameterized):
             else:
                 pn.state.notifications.info("In progress: Run deconvolution", duration=0)
                 if os.path.isfile(file_name_res):
-                    res = pd.read_csv(file_name_res)
+                    self.res = pd.read_csv(file_name_res)
                 else:
                     threshold_peak_ms1 = 10000
                     threshold_peak_ms2 = 1000
@@ -819,7 +819,7 @@ class Deimos_app(pm.Parameterized):
  
 
     # create the hv plots with intenisty and ms2 data
-    @pm.depends('placehold_data_decon', watch= True)
+    @pm.depends('placehold_data_decon', 'rerun_decon', watch= True)
     def decon_viewable(self, **kwargs):
         '''main function to get the deconvolution values from peak and initial data'''
         # profiler = Profiler()
@@ -1012,7 +1012,16 @@ class Deimos_app(pm.Parameterized):
             else:
                 index = index[0]
             # should it include the idx column too (Plus idx iso)
-            self.mz_iso = self.isotopes_head.iloc[index]['mz_iso']
+            def lit_list(x):
+                '''get python object of list from string'''
+                try:
+                    return ast.literal_eval(str(x))   
+                except Exception as e:
+                    
+                    pn.state.notifications.info(e, duration=0)
+                    return x
+            self.mz_iso = lit_list(self.isotopes_head.iloc[index]['mz_iso'])
+
             self.mz = self.isotopes_head.iloc[index]['mz']
 
             idx = self.isotopes_head.iloc[index]['idx']
@@ -1225,7 +1234,7 @@ class Deimos_app(pm.Parameterized):
         element = ds.data.hvplot.points(x='reduced_ccs', y='ta', title = "Calibration Graph")
         return element
     
-    @pm.depends('placehold_data_calibrate', watch= True)
+    @pm.depends('placehold_data_calibrate', 'rerun_calibrate', watch= True)
     def calibrate_viewable(self, **kwargs):
         '''main calibrate function to rerun calibration value
         return plot with reduced ccs to ta
@@ -1462,13 +1471,13 @@ param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.placehold_data_calibr
 
 
 app1 = pn.Tabs(
-    # ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),        
-    #             ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
-    #            ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
-            #    ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.Row( param_decon, Deimos_app.decon_viewable())))),\
-            #    ('Calibration',  pn.Row(pn.Column(instructions_calibrate,   pn.Row(param_cal, Deimos_app.calibrate_viewable())))),\
+    ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),        
+                ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
+               ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
+               ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.Row( param_decon, Deimos_app.decon_viewable())))),\
+               ('Calibration',  pn.Row(pn.Column(instructions_calibrate,   pn.Row(param_cal, Deimos_app.calibrate_viewable())))),\
                 ('Isotope Detection', pn.Row(pn.Column(instructions_isotopes, pn.Row(param_iso, Deimos_app.iso_viewable())))),\
-                # ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
+                ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
                 ).servable(title='Deimos App')
 
 pn.serve(app1)
