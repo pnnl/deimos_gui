@@ -23,9 +23,9 @@ pn.extension(exception_handler=exception_handler, notifications=True)
 
 def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_name = None):
         '''
-        load either mz, h5 or csv file
+        Load either mz, h5 or csv file
 
-        Parameters:
+        Args:
                 file_name_initial (path): file path to data
                 key (str): key for uploaded data, such as ms1 or ms2
                 columns (list): list of the feature names to return from file
@@ -68,9 +68,9 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_
            
 def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name,  new_name = None,  key= 'ms1'):
         '''
-        full function to return dataframe with load_mz_h5
+        Full function to return dataframe with load_mz_h5
 
-        Parameters:
+        Args:
                 file_name_initial (path): file path to data
                 feature_dt (str): drift time name
                 feature_rt (str): retention time name
@@ -83,7 +83,7 @@ def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_
                 pd DataFrame with data 
         '''
         if file_name_initial == 'data/placeholder.csv' or file_name_initial == 'data/created_data/placeholder.csv' :     
-                raise Exception("Select files and adjust parameters before clicking 'Rerun'")
+                raise Exception("Select files and adjust Args before clicking 'Rerun'")
         full_data_1 = load_mz_h5(file_name_initial, key=key, columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name, new_name = new_name)
         full_data_1 = full_data_1[[feature_dt, feature_rt, feature_mz, feature_intensity]]
         full_data_1.reset_index(drop = True, inplace=True)
@@ -91,128 +91,125 @@ def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_
 
         
 def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature_intensity,smooth_radius, smooth_iterations, new_smooth_name, rt_name, dt_name):
-                '''
-                get the smooth data
+        '''
+        Get the smooth data
 
-                Parameters:
-                        file_name_initial (path): file path to data
-                        feature_dt (str): drift time name
-                        feature_rt (str): retention time name
-                        feature_mz (str): mz name
-                        feature_intensity (str): intensity name
-                        radius (float or list): Radius of the sparse filter in each dimension. Values less than
-                                zero indicate no connectivity in that dimension.
-                        iterations (int): Maximum number of smoothing iterations to perform.
-                        new_smooth_name (str): name of new smooth data
-                        rt_name (list): name retention time accession if using mzML file
-                        dt_name (list): name drift time accession if using mzML file
-                Returns:
-                        pd DataFrame with data 
-                '''
-                # if os.path.exists(new_smooth_name):
-                #         raise Exception(new_smooth_name + " already exists. Please rename before continuing")
-           
-                # else:
-                ms1 = load_mz_h5(file_name_initial, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
-                ms2 = load_mz_h5(file_name_initial, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+        Args:
+                file_name_initial (path): file path to data
+                feature_dt (str): drift time name
+                feature_rt (str): retention time name
+                feature_mz (str): mz name
+                feature_intensity (str): intensity name
+                radius (float or list): Radius of the sparse filter in each dimension. Values less than
+                        zero indicate no connectivity in that dimension.
+                iterations (int): Maximum number of smoothing iterations to perform.
+                new_smooth_name (str): name of new smooth data
+                rt_name (list): name retention time accession if using mzML file
+                dt_name (list): name drift time accession if using mzML file
+        Returns:
+                pd DataFrame with data 
+        '''
 
-                factors = deimos.build_factors(ms1, dims='detect')
-                        
-                # Nominal threshold
-                ms1 = deimos.threshold(ms1, threshold=128)
-                # Build index
-                index_ms1_peaks = deimos.build_index(ms1, factors)
-                # Smooth data
-                smooth_radius= [int(i) for i in list(smooth_radius.split('-'))]
-                iterations = int(smooth_iterations)
-                pn.state.notifications.info('Smooth MS1 data', duration=3000)
-                ms1_smooth = deimos.filters.smooth(ms1, index=index_ms1_peaks, dims=[feature_mz, feature_dt, feature_rt],
-                                        radius=smooth_radius, iterations=iterations)
+        ms1 = load_mz_h5(file_name_initial, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+        ms2 = load_mz_h5(file_name_initial, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+
+        factors = deimos.build_factors(ms1, dims='detect')
                 
-                ## save with date and time because user won't reuse. 
-                deimos.save(new_smooth_name, ms1_smooth, key='ms1', mode='w')
+        # Nominal threshold
+        ms1 = deimos.threshold(ms1, threshold=128)
+        # Build index
+        index_ms1_peaks = deimos.build_index(ms1, factors)
+        # Smooth data
+        smooth_radius= [int(i) for i in list(smooth_radius.split('-'))]
+        iterations = int(smooth_iterations)
+        pn.state.notifications.info('Smooth MS1 data', duration=3000)
+        ms1_smooth = deimos.filters.smooth(ms1, index=index_ms1_peaks, dims=[feature_mz, feature_dt, feature_rt],
+                                radius=smooth_radius, iterations=iterations)
 
-                        # append peak ms2
-                factors = deimos.build_factors(ms2, dims='detect')
-                
-                pn.state.notifications.info('Smooth MS2 data', duration=3000)
-                # Nominal threshold
-                ms2 = deimos.threshold(ms2, threshold=128)
-                # Build index
-                index_ms2_peaks = deimos.build_index(ms2, factors)
+        ## save with date and time because user won't reuse. 
+        deimos.save(new_smooth_name, ms1_smooth, key='ms1', mode='w')
 
-                # Smooth data
-                iterations = int(smooth_iterations)
-                # Smooth data
-                ms2_smooth = deimos.filters.smooth(ms2, index=index_ms2_peaks, dims=[feature_mz, feature_dt, feature_rt],
-                                        radius=smooth_radius, iterations=iterations)
-                ## save with date and time because user won't reuse. 
-                deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
-                return ms1_smooth, index_ms1_peaks, index_ms2_peaks
+                # append peak ms2
+        factors = deimos.build_factors(ms2, dims='detect')
+
+        pn.state.notifications.info('Smooth MS2 data', duration=3000)
+        # Nominal threshold
+        ms2 = deimos.threshold(ms2, threshold=128)
+        # Build index
+        index_ms2_peaks = deimos.build_index(ms2, factors)
+
+        # Smooth data
+        iterations = int(smooth_iterations)
+        # Smooth data
+        ms2_smooth = deimos.filters.smooth(ms2, index=index_ms2_peaks, dims=[feature_mz, feature_dt, feature_rt],
+                                radius=smooth_radius, iterations=iterations)
+        ## save with date and time because user won't reuse. 
+        deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
+        return ms1_smooth, index_ms1_peaks, index_ms2_peaks
 
 def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_intensity,  threshold_slider,  peak_radius, index_ms1_peaks, index_ms2_peaks, new_peak_name, rt_name = None, dt_name = None ):
-                '''
-                get the smooth data
+        '''
+        Get the smooth data
 
-                Parameters:
-                        file_name_smooth (path): file path to data
-                        feature_dt (str): drift time name
-                        feature_rt (str): retention time name
-                        feature_mz (str): mz name
-                        feature_intensity (str): intensity name
-                        threshold_slider (int): threshold data with this value
-                        index_ms1_peaks (dict) Index of features in original data array.
-                        index_ms2_peaks (dict) Index of features in original data array.
-                        peak_radius (float, list, or None) If specified, radius of the sparse weighted mean filter in each dimension.
-                        Values less than one indicate no connectivity in that dimension.
-                        new_peak_name (str): name of new peak data
-                        rt_name (list): name retention time accession if using mzML file
-                        dt_name (list): name drift time accession if using mzML file
-                Returns:
-                        pd DataFrame with data 
-                '''
-                if os.path.exists(new_peak_name):
-                        raise Exception(new_peak_name + " already exists. Please rename before continuing or use the existing file name in the smooth file name")
-                      
-                else:
-                        ms1_smooth = load_mz_h5(file_name_smooth, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
-                        ms2_smooth = load_mz_h5(file_name_smooth, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
-
-
-                        peak_radius= [int(i) for i in list(peak_radius.split('-'))]
-
-                        # Perform peak detection
-                        ms1_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms1_smooth,  threshold = 128),  index=index_ms1_peaks,
-                                                                        dims=[feature_mz, feature_dt, feature_rt],
-                                                                        radius=peak_radius)
-                        # Sort by persistence
-                        ms1_peaks = ms1_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
-                        # Save ms1 to new file
-                        ms1_peaks = deimos.threshold(ms1_peaks, by='persistence', threshold=int(threshold_slider))
-                        ms1_peaks = deimos.threshold(ms1_peaks, by='intensity', threshold=int(threshold_slider))
-                        deimos.save(new_peak_name, ms1_peaks, key='ms1', mode='w')
+        Args:
+                file_name_smooth (path): file path to data
+                feature_dt (str): drift time name
+                feature_rt (str): retention time name
+                feature_mz (str): mz name
+                feature_intensity (str): intensity name
+                threshold_slider (int): threshold data with this value
+                index_ms1_peaks (dict) Index of features in original data array.
+                index_ms2_peaks (dict) Index of features in original data array.
+                peak_radius (float, list, or None) If specified, radius of the sparse weighted mean filter in each dimension.
+                Values less than one indicate no connectivity in that dimension.
+                new_peak_name (str): name of new peak data
+                rt_name (list): name retention time accession if using mzML file
+                dt_name (list): name drift time accession if using mzML file
+        Returns:
+                pd DataFrame with data 
+        '''
+        if os.path.exists(new_peak_name):
+                raise Exception(new_peak_name + " already exists. Please rename before continuing or use the existing file name in the smooth file name")
+                
+        else:
+                ms1_smooth = load_mz_h5(file_name_smooth, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
+                ms2_smooth = load_mz_h5(file_name_smooth, key='ms2', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
 
 
-                        # Perform peak detection
-                        ms2_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms2_smooth,  threshold = 128), index=index_ms2_peaks,
-                                                                        dims=[feature_mz, feature_dt, feature_rt],
-                                                                        radius=peak_radius)
-                        
-                        ms2_peaks = deimos.threshold(ms2_peaks, by='persistence', threshold=int(threshold_slider))
-                        ms2_peaks = deimos.threshold(ms2_peaks, by='intensity', threshold=int(threshold_slider))
-                        # Sort by persistence
-                        ms2_peaks = ms2_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
-                        # update list of options in file selections
-                        
-                        # Save ms2 to new file with _new_peak_data.h5 suffix
-                        deimos.save(new_peak_name, ms2_peaks, key='ms2', mode='a')
-                        return ms1_peaks
+                peak_radius= [int(i) for i in list(peak_radius.split('-'))]
+
+                # Perform peak detection
+                ms1_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms1_smooth,  threshold = 128),  index=index_ms1_peaks,
+                                                                dims=[feature_mz, feature_dt, feature_rt],
+                                                                radius=peak_radius)
+                # Sort by persistence
+                ms1_peaks = ms1_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
+                # Save ms1 to new file
+                ms1_peaks = deimos.threshold(ms1_peaks, by='persistence', threshold=int(threshold_slider))
+                ms1_peaks = deimos.threshold(ms1_peaks, by='intensity', threshold=int(threshold_slider))
+                deimos.save(new_peak_name, ms1_peaks, key='ms1', mode='w')
+
+
+                # Perform peak detection
+                ms2_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms2_smooth,  threshold = 128), index=index_ms2_peaks,
+                                                                dims=[feature_mz, feature_dt, feature_rt],
+                                                                radius=peak_radius)
+                
+                ms2_peaks = deimos.threshold(ms2_peaks, by='persistence', threshold=int(threshold_slider))
+                ms2_peaks = deimos.threshold(ms2_peaks, by='intensity', threshold=int(threshold_slider))
+                # Sort by persistence
+                ms2_peaks = ms2_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
+                # update list of options in file selections
+                
+                # Save ms2 to new file with _new_peak_data.h5 suffix
+                deimos.save(new_peak_name, ms2_peaks, key='ms2', mode='a')
+                return ms1_peaks
 
 def align_peak_create(full_ref, theshold_presistence, feature_mz, feature_dt, feature_rt, feature_intensity):
         '''
-                get the smooth data
+        Get the smooth data
 
-                Parameters:
+                Args:
                         full_ref (path): file path to data
                         threshold_presistence (int): initial threshold presistence
                         feature_dt (str): drift time name
@@ -230,7 +227,7 @@ def align_peak_create(full_ref, theshold_presistence, feature_mz, feature_dt, fe
 
 def offset_correction_model(dt_ms2, mz_ms2, mz_ms1, ce=0,
                             params=[1.02067031, -0.02062323,  0.00176694]):
-    '''function to correct '''
+    '''Function to correct putative pairs while running the deconvolution function'''
     # Cast params as array
     params = np.array(params).reshape(-1, 1)
     
@@ -270,18 +267,19 @@ y_filter=None,
 x_spacing=0,
 y_spacing=0,
 ):
-        '''
-                get the smooth data
 
-                Parameters:
-                        element: graph object
-                        feature_intensity (str): intensity value
-                        x_filter (tuple): x range
-                        y_filter (tuple): y range
-                        x_spacing (flt): min size of grids
-                        y_spacing (flt): min size of grids
-                Returns:
-                        pd DataFrame with data 
+        '''
+        Get rasterized plot
+
+        Args:
+                element: graph object
+                feature_intensity (str): intensity value
+                x_filter (tuple): x range
+                y_filter (tuple): y range
+                x_spacing (flt): min size of grids
+                y_spacing (flt): min size of grids
+        Returns:
+                pd DataFrame with data 
         '''
         # dynmaic false to allow the x_range and y_range to be adjusted by either
         #xy stream or manual filter rather than automaically
@@ -324,18 +322,18 @@ def new_name_if_mz(mz_file_name):
 
 def aligment(two_matched, ref_matched, two_matched_aligned, dim, kernel, parameter_inputs ):
         '''
-                Save the aligned data
+        Save the aligned data
 
-                Parameters:
-                        two_matched (df): dataframe to be aligned
-                        ref_matched
-                        two_matched_aligned: dataframe output with aligned dimensions
-                        dim: dimensions to align
-                        kernel: the kernel to use for alignment,
-                        parameter_inputs: str to use in saving csv files
-                Returns:
-                        xy_drift_retention_time: pd DataFrame aligned dataframe 
-                        matchtable reference line
+        Args:
+                two_matched (df): dataframe to be aligned
+                ref_matched
+                two_matched_aligned: dataframe output with aligned dimensions
+                dim: dimensions to align
+                kernel: the kernel to use for alignment,
+                parameter_inputs: str to use in saving csv files
+        Returns:
+                xy_drift_retention_time: pd DataFrame aligned dataframe 
+                matchtable reference line
         '''
         spl = deimos.alignment.fit_spline( two_matched, ref_matched, align= dim, kernel=kernel, C=1000)
         newx = np.linspace(0, max(ref_matched[ dim].max(), two_matched[ dim].max()), 1000)
@@ -358,10 +356,11 @@ def aligment(two_matched, ref_matched, two_matched_aligned, dim, kernel, paramet
         return xy_drift_retention_time, matchtable
 
 def get_peak_file(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name,  theshold_presistence,  key= 'ms1'):
+
         '''
         load the peak files for alignment
 
-        Parameters:
+        Args:
                 file_name_initial (path): file path to data
                 feature_dt (str): drift time name
                 feature_rt (str): retention time name
@@ -389,10 +388,11 @@ def get_peak_file(file_name_initial, feature_dt, feature_rt, feature_mz, feature
 
 
 def decon_ms2(ms1_peaks, ms1, ms2_peaks, ms2, feature_mz, feature_dt, feature_rt, require_ms1_greater_than_ms2, drift_score_min):
+
         '''
         return ms2 decon values
 
-        Parameters:
+        Args:
                 ms1_peaks: data file of ms1 peaks
                 ms1: data file of ms1 data
                 ms2_peaks: data file of ms2 peaks
