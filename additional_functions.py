@@ -25,14 +25,14 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_
         '''
         Load either mz, h5 or csv file
 
-        Args:
-                file_name_initial (path): file path to data
-                key (str): key for uploaded data, such as ms1 or ms2
-                columns (list): list of the feature names to return from file
-                rt_name (list): name retention time accession if using mzML file
-                dt_name (list): name drift time accession if using mzML file
-        Returns:
-                pd DataFrame with data 
+                Args:
+                        file_name_initial (path): file path to data
+                        key (str): key for uploaded data, such as ms1 or ms2
+                        columns (list): list of the feature names to return from file
+                        rt_name (list): name retention time accession if using mzML file
+                        dt_name (list): name drift time accession if using mzML file
+                Returns:
+                        pd DataFrame with data 
         '''
         extension = Path(file_name_initial).suffix
         if extension == ".mzML" or extension == ".gz":
@@ -70,17 +70,18 @@ def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_
         '''
         Full function to return dataframe with load_mz_h5
 
-        Args:
-                file_name_initial (path): file path to data
-                feature_dt (str): drift time name
-                feature_rt (str): retention time name
-                feature_mz (str): mz name
-                feature_intensity (str): intensity name
-                key (str): key for uploaded data, such as ms1 or ms2
-                rt_name (list): name retention time accession if using mzML file
-                dt_name (list): name drift time accession if using mzML file
-        Returns:
-                pd DataFrame with data 
+                Args:
+                        file_name_initial (path): file path to data
+                        feature_dt (str): drift time name
+                        feature_rt (str): retention time name
+                        feature_mz (str): mz name
+                        feature_intensity (str): intensity name
+                        key (str): key for uploaded data, such as ms1 or ms2
+                        rt_name (list): name retention time accession if using mzML file
+                        dt_name (list): name drift time accession if using mzML file
+                Returns:
+                        pd DataFrame with data 
+
         '''
         if file_name_initial == 'data/placeholder.csv' or file_name_initial == 'data/created_data/placeholder.csv' :     
                 raise Exception("Select files and adjust Args before clicking 'Rerun'")
@@ -94,20 +95,21 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
         '''
         Get the smooth data
 
-        Args:
-                file_name_initial (path): file path to data
-                feature_dt (str): drift time name
-                feature_rt (str): retention time name
-                feature_mz (str): mz name
-                feature_intensity (str): intensity name
-                radius (float or list): Radius of the sparse filter in each dimension. Values less than
+                Args:
+                        file_name_initial (path): file path to data
+                        feature_dt (str): drift time name
+                        feature_rt (str): retention time name
+                        feature_mz (str): mz name
+                        feature_intensity (str): intensity name
+                        radius (float or list): Radius of the sparse filter in each dimension. Values less than
                         zero indicate no connectivity in that dimension.
-                iterations (int): Maximum number of smoothing iterations to perform.
-                new_smooth_name (str): name of new smooth data
-                rt_name (list): name retention time accession if using mzML file
-                dt_name (list): name drift time accession if using mzML file
-        Returns:
-                pd DataFrame with data 
+                        iterations (int): Maximum number of smoothing iterations to perform.
+                        new_smooth_name (str): name of new smooth data
+                        rt_name (list): name retention time accession if using mzML file
+                        dt_name (list): name drift time accession if using mzML file
+                Returns:
+                        pd DataFrame with data 
+
         '''
 
         ms1 = load_mz_h5(file_name_initial, key='ms1', columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name)
@@ -151,22 +153,22 @@ def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_in
         '''
         Get the smooth data
 
-        Args:
-                file_name_smooth (path): file path to data
-                feature_dt (str): drift time name
-                feature_rt (str): retention time name
-                feature_mz (str): mz name
-                feature_intensity (str): intensity name
-                threshold_slider (int): threshold data with this value
-                index_ms1_peaks (dict) Index of features in original data array.
-                index_ms2_peaks (dict) Index of features in original data array.
-                peak_radius (float, list, or None) If specified, radius of the sparse weighted mean filter in each dimension.
-                Values less than one indicate no connectivity in that dimension.
-                new_peak_name (str): name of new peak data
-                rt_name (list): name retention time accession if using mzML file
-                dt_name (list): name drift time accession if using mzML file
-        Returns:
-                pd DataFrame with data 
+                Args:
+                        file_name_smooth (path): file path to data
+                        feature_dt (str): drift time name
+                        feature_rt (str): retention time name
+                        feature_mz (str): mz name
+                        feature_intensity (str): intensity name
+                        threshold_slider (int): threshold data with this value
+                        index_ms1_peaks (dict) Index of features in original data array.
+                        index_ms2_peaks (dict) Index of features in original data array.
+                        peak_radius (float, list, or None) If specified, radius of the sparse weighted mean filter in each dimension.
+                        Values less than one indicate no connectivity in that dimension.
+                        new_peak_name (str): name of new peak data
+                        rt_name (list): name retention time accession if using mzML file
+                        dt_name (list): name drift time accession if using mzML file
+                Returns:
+                        pd DataFrame with data 
         '''
         if os.path.exists(new_peak_name):
                 raise Exception(new_peak_name + " already exists. Please rename before continuing or use the existing file name in the smooth file name")
@@ -271,15 +273,15 @@ y_spacing=0,
         '''
         Get rasterized plot
 
-        Args:
-                element: graph object
-                feature_intensity (str): intensity value
-                x_filter (tuple): x range
-                y_filter (tuple): y range
-                x_spacing (flt): min size of grids
-                y_spacing (flt): min size of grids
-        Returns:
-                pd DataFrame with data 
+                Args:
+                        element: graph object
+                        feature_intensity (str): intensity value
+                        x_filter (tuple): x range
+                        y_filter (tuple): y range
+                        x_spacing (flt): min size of grids
+                        y_spacing (flt): min size of grids
+                Returns:
+                        pd DataFrame with data 
         '''
         # dynmaic false to allow the x_range and y_range to be adjusted by either
         #xy stream or manual filter rather than automaically
@@ -324,16 +326,16 @@ def aligment(two_matched, ref_matched, two_matched_aligned, dim, kernel, paramet
         '''
         Save the aligned data
 
-        Args:
-                two_matched (df): dataframe to be aligned
-                ref_matched
-                two_matched_aligned: dataframe output with aligned dimensions
-                dim: dimensions to align
-                kernel: the kernel to use for alignment,
-                parameter_inputs: str to use in saving csv files
-        Returns:
-                xy_drift_retention_time: pd DataFrame aligned dataframe 
-                matchtable reference line
+                Args:
+                        two_matched (df): dataframe to be aligned
+                        ref_matched
+                        two_matched_aligned: dataframe output with aligned dimensions
+                        dim: dimensions to align
+                        kernel: the kernel to use for alignment,
+                        parameter_inputs: str to use in saving csv files
+                Returns:
+                        xy_drift_retention_time: pd DataFrame aligned dataframe 
+                        matchtable reference line
         '''
         spl = deimos.alignment.fit_spline( two_matched, ref_matched, align= dim, kernel=kernel, C=1000)
         newx = np.linspace(0, max(ref_matched[ dim].max(), two_matched[ dim].max()), 1000)
@@ -360,18 +362,18 @@ def get_peak_file(file_name_initial, feature_dt, feature_rt, feature_mz, feature
         '''
         load the peak files for alignment
 
-        Args:
-                file_name_initial (path): file path to data
-                feature_dt (str): drift time name
-                feature_rt (str): retention time name
-                feature_mz (str): mz name
-                feature_intensity (str): intensity name
-                key (str): key for uploaded data, such as ms1 or ms2
-                rt_name (list): name retention time accession if using mzML file
-                dt_name (list): name drift time accession if using mzML file
-                threshold: int: minimum value of intensity
-        Returns:
-                pd DataFrame with peak data, name of new h5 if created from mzML file
+                Args:
+                        file_name_initial (path): file path to data
+                        feature_dt (str): drift time name
+                        feature_rt (str): retention time name
+                        feature_mz (str): mz name
+                        feature_intensity (str): intensity name
+                        key (str): key for uploaded data, such as ms1 or ms2
+                        rt_name (list): name retention time accession if using mzML file
+                        dt_name (list): name drift time accession if using mzML file
+                        threshold: int: minimum value of intensity
+                Returns:
+                        pd DataFrame with peak data, name of new h5 if created from mzML file
         '''
         try:
                 # load initial refence file
@@ -392,18 +394,18 @@ def decon_ms2(ms1_peaks, ms1, ms2_peaks, ms2, feature_mz, feature_dt, feature_rt
         '''
         return ms2 decon values
 
-        Args:
-                ms1_peaks: data file of ms1 peaks
-                ms1: data file of ms1 data
-                ms2_peaks: data file of ms2 peaks
-                ms2: data file of ms2 data
-                feature_dt (str): drift time name
-                feature_rt (str): retention time name
-                feature_mz (str): mz name
-                require_ms1_greater_than_ms2 (boolean): ms1 must be greater than ms2 when constructing putative pairs
-                drift_score_min (boolean): only keep drift score greater than .9
-        Returns:
-                pd DataFrame with data 
+                Args:
+                        ms1_peaks: data file of ms1 peaks
+                        ms1: data file of ms1 data
+                        ms2_peaks: data file of ms2 peaks
+                        ms2: data file of ms2 data
+                        feature_dt (str): drift time name
+                        feature_rt (str): retention time name
+                        feature_mz (str): mz name
+                        require_ms1_greater_than_ms2 (boolean): ms1 must be greater than ms2 when constructing putative pairs
+                        drift_score_min (boolean): only keep drift score greater than .9
+                Returns:
+                        pd DataFrame with data 
         '''       
 
         decon = deimos.deconvolution.MS2Deconvolution(ms1_peaks, ms1, ms2_peaks, ms2)

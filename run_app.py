@@ -33,15 +33,15 @@ example_tune_file_name = "placeholder.csv" #example_tune_pos.h5
 file_to_calibrate_name = "placeholder.csv" #example_tune_pos.h5 
 peak_ref_name = "placeholder.csv" #example_alignment.h5
 
-# file_name_initial_name = "example_data.h5"  #example_data.h5
-# file_name_smooth_name = "placeholder.csv"
-# file_name_peak_name = "placeholder.csv"
-# file_name_smooth_name = "example_data_smooth_radius_0-1-0_smooth_iterations_3_feature_rt_retention_time_new_smooth_data.h5" 
-# file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
-# calibration_input_name = "cal_input.csv"
-# example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-# file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-# peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
+file_name_initial_name = "example_data.h5"  #example_data.h5
+file_name_smooth_name = "placeholder.csv"
+file_name_peak_name = "placeholder.csv"
+file_name_smooth_name = "example_data_smooth_radius_0-1-0_smooth_iterations_3_feature_rt_retention_time_new_smooth_data.h5" 
+file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
+calibration_input_name = "cal_input.csv"
+example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
+peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
 
 hv.extension('bokeh', 'matplotlib')
 
@@ -136,12 +136,12 @@ class Deimos_app(pm.Parameterized):
     Recreate_plots_with_below_values = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values'), doc="Set axis ranges to ranges below")
     Recreate_plots_with_below_values_iso = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values_iso'), doc="Set axis ranges to ranges below")
     # only show the placeholder
-    placehold_data_initial = pm.Boolean(True, label='Placeholder initial data', doc="Unclicking triggers new analysis")
-    placehold_data_smooth =  pm.Boolean(True, label='Placeholder smooth', doc="Unclicking triggers new analysis")
-    placehold_data_peak =  pm.Boolean(True, label='Placeholder peak', doc="Unclicking triggers new analysis")
-    placehold_data_decon =  pm.Boolean(True, label='Placeholder decon', doc="Unclicking triggers new analysis")
-    placehold_data_iso =  pm.Boolean(True, label='Placeholder iso', doc="Unclicking triggers new analysis")
-    placehold_data_calibrate =  pm.Boolean(True, label='Placeholder', doc="Unclicking triggers new analysis")
+    placehold_data_initial = pm.Boolean(False, label='Placeholder initial data', doc="Unclicking triggers new analysis")
+    placehold_data_smooth =  pm.Boolean(False, label='Placeholder smooth', doc="Unclicking triggers new analysis")
+    placehold_data_peak =  pm.Boolean(False, label='Placeholder peak', doc="Unclicking triggers new analysis")
+    placehold_data_decon =  pm.Boolean(False, label='Placeholder decon', doc="Unclicking triggers new analysis")
+    placehold_data_iso =  pm.Boolean(False, label='Placeholder iso', doc="Unclicking triggers new analysis")
+    placehold_data_calibrate =  pm.Boolean(False, label='Placeholder', doc="Unclicking triggers new analysis")
 
     # set the min spacing for all the dimensions for rasterizing 
     slice_distance_dt = pm.Number(default=0.2, label="Slice isotopes drift time", doc = "Add distance to selected isotope drift time to get plot range")
@@ -1244,7 +1244,7 @@ class Deimos_app(pm.Parameterized):
 class Align_plots(pm.Parameterized):
     '''New class for aligning peak data to a reference file'''
 
-    placehold_data_align = pm.Boolean(True, label='Placeholder align data')
+    placehold_data_align = pm.Boolean(False, label='Placeholder align data')
     peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5. Also can change to refresh peak folder files', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
         default= 'data', doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
@@ -1383,80 +1383,80 @@ class Align_plots(pm.Parameterized):
         return hv.Layout(list_plots).cols(2)
     
 
-Deimos_app = Deimos_app()
-Align_plots = Align_plots()
-#using viewable() would be best practice for minimizing refresh, but need hard refresh in this case for new axis
-instructions_view = "<ul> <li>The original data is a placeholder</li> <li>Indicate the local path of the full data below to update</li>\
-    <li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
-<li>Changing the axis widths and clicking 'Recreate plots with below values' to re-aggregrate with new widths</li>\
-<li>Toolbar's zoom and reset does not re-aggregate within this tool.</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
-    <ul> "
-instructions_smooth = "<ul> <li>The original data is a placeholder</li> <li>Click 'Run smooth' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
-    <li>Keeping the <b>smooth radius</b> small and increasing number of iterations <br> is preferable to a larger smoothing radius, albeit at greater computational expense.</li>\
-    <li>Output files will be in the created_data folder besides the run_app.py file</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
-    <ul> "
-instructions_peaks = "<p>Feature detection, also referred to as peak detection, is the process by which local maxima that fulfill certain criteria (such as sufficient signal-to-noise ratio) are located in the signal acquired by a given analytical instrument. </p><ul> <li>The original data is a placeholder</li> <li>Click 'Run peak' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li> \
-    <li>The <b>radius per dimension</b> insures an intensity-weighted per-dimension coordinate will be returned for each feature.</li>\
-    <li>Output files will be in the created_data folder besides the run_app.py file</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
-    <ul> "
-instructions_ms2 = "<p>With MS1 features of interest determined by peak detection, corresponding tandem mass spectra, if available, must be extracted and assigned to the MS1 parent ion feature. </p><ul> <li>The original data is a placeholder, clicking will not work without real data </li> <li>Click 'Run decon' after updating parameters to get new graph</li><li>The MS2 data associated with user-selected MS1 data, with the MS1 data with the highest intensity used if there are multiple MS1 data points within a small range of the user-click </li>\
-    <li>Output files will be in the created_data folder besides the run_app.py file</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
-    <ul> "
-instructions_align = "<ul><li>Alignment is the process by which feature coordinates across samples are adjusted to account for instrument variation such that matching features are aligned to adjust for small differences in coordinates</li>\
-    <li>The original data is a placeholder</li> <li>Indicate the reference file and folder of files to align</li><li>Determine matches within <b>tolerance</b> per feature with the alignment determined by the <b>kernel</b> by <b>relative or absolute </b> value by <b>support vector regression kernel </b> </li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-    <li>Output files will be in the created_data folder besides the run_app.py file</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
-    <ul> "
-instructions_calibrate = "<ul><li>Click 'rerun calibrate' to get the calibrated values within the created_data folder</li>\
-    <li>Output files will be in the created_data folder besides the run_app.py file</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
-    <ul> "
-instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes within the created_data folder</li>\
-    <li>Select a row to view the isotopes</li>\
-    <li>Graphs will show slice of MS1 data. Plot will show isotopes</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
-    <ul> "
-param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_data_initial, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
-                    Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
-                        Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
-                            Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.placehold_data_smooth, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
-param_peak = pn.Column('<b>Peak-picking</b>',  Deimos_app.param.placehold_data_peak,  '<b>Adjust the plots</b>',  Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak,  '<b>Result</b>', Deimos_app.param.file_name_peak)
-param_decon = pn.Column('<b>MS2 Deconvolution</b>',Deimos_app.param.placehold_data_decon, Deimos_app.param.file_folder_initial, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.threshold_slider_ms1_ms2, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon)
-param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.placehold_data_iso, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.file_name_peak,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
-                    Deimos_app.param.feature_dt_axis_width_iso, Deimos_app.param.feature_rt_axis_width_iso, Deimos_app.param.feature_mz_axis_width_iso, \
-                        Deimos_app.param.min_feature_dt_bin_size_iso, Deimos_app.param.min_feature_rt_bin_size_iso, Deimos_app.param.min_feature_mz_bin_size_iso, \
-                            Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.placehold_data_calibrate, Deimos_app.param.file_folder_cal, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
-                        Deimos_app.param.tfix, Deimos_app.param.traveling_wave, Deimos_app.param.calibrate_type, Deimos_app.param.rerun_calibrate)
+# Deimos_app = Deimos_app()
+# Align_plots = Align_plots()
+# #using viewable() would be best practice for minimizing refresh, but need hard refresh in this case for new axis
+# instructions_view = "<ul> <li>The original data is a placeholder</li> <li>Indicate the local path of the full data below to update</li>\
+#     <li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
+# <li>Changing the axis widths and clicking 'Recreate plots with below values' to re-aggregrate with new widths</li>\
+# <li>Toolbar's zoom and reset does not re-aggregate within this tool.</li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+#     <ul> "
+# instructions_smooth = "<ul> <li>The original data is a placeholder</li> <li>Click 'Run smooth' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
+#     <li>Keeping the <b>smooth radius</b> small and increasing number of iterations <br> is preferable to a larger smoothing radius, albeit at greater computational expense.</li>\
+#     <li>Output files will be in the created_data folder besides the run_app.py file</li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+#     <ul> "
+# instructions_peaks = "<p>Feature detection, also referred to as peak detection, is the process by which local maxima that fulfill certain criteria (such as sufficient signal-to-noise ratio) are located in the signal acquired by a given analytical instrument. </p><ul> <li>The original data is a placeholder</li> <li>Click 'Run peak' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li> \
+#     <li>The <b>radius per dimension</b> insures an intensity-weighted per-dimension coordinate will be returned for each feature.</li>\
+#     <li>Output files will be in the created_data folder besides the run_app.py file</li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+#     <ul> "
+# instructions_ms2 = "<p>With MS1 features of interest determined by peak detection, corresponding tandem mass spectra, if available, must be extracted and assigned to the MS1 parent ion feature. </p><ul> <li>The original data is a placeholder, clicking will not work without real data </li> <li>Click 'Run decon' after updating parameters to get new graph</li><li>The MS2 data associated with user-selected MS1 data, with the MS1 data with the highest intensity used if there are multiple MS1 data points within a small range of the user-click </li>\
+#     <li>Output files will be in the created_data folder besides the run_app.py file</li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+#     <ul> "
+# instructions_align = "<ul><li>Alignment is the process by which feature coordinates across samples are adjusted to account for instrument variation such that matching features are aligned to adjust for small differences in coordinates</li>\
+#     <li>The original data is a placeholder</li> <li>Indicate the reference file and folder of files to align</li><li>Determine matches within <b>tolerance</b> per feature with the alignment determined by the <b>kernel</b> by <b>relative or absolute </b> value by <b>support vector regression kernel </b> </li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+#     <li>Output files will be in the created_data folder besides the run_app.py file</li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+#     <ul> "
+# instructions_calibrate = "<ul><li>Click 'rerun calibrate' to get the calibrated values within the created_data folder</li>\
+#     <li>Output files will be in the created_data folder besides the run_app.py file</li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+#     <ul> "
+# instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes within the created_data folder</li>\
+#     <li>Select a row to view the isotopes</li>\
+#     <li>Graphs will show slice of MS1 data. Plot will show isotopes</li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
+# <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
+#     <ul> "
+# param_full = pn.Column('<b>View initial Data</b>',   Deimos_app.param.placehold_data_initial, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
+#                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
+#                         Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
+#                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
+# param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.placehold_data_smooth, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
+# param_peak = pn.Column('<b>Peak-picking</b>',  Deimos_app.param.placehold_data_peak,  '<b>Adjust the plots</b>',  Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak,  '<b>Result</b>', Deimos_app.param.file_name_peak)
+# param_decon = pn.Column('<b>MS2 Deconvolution</b>',Deimos_app.param.placehold_data_decon, Deimos_app.param.file_folder_initial, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.threshold_slider_ms1_ms2, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon)
+# param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.placehold_data_iso, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.file_name_peak,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
+#                     Deimos_app.param.feature_dt_axis_width_iso, Deimos_app.param.feature_rt_axis_width_iso, Deimos_app.param.feature_mz_axis_width_iso, \
+#                         Deimos_app.param.min_feature_dt_bin_size_iso, Deimos_app.param.min_feature_rt_bin_size_iso, Deimos_app.param.min_feature_mz_bin_size_iso, \
+#                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
+# param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.placehold_data_calibrate, Deimos_app.param.file_folder_cal, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
+#                         Deimos_app.param.tfix, Deimos_app.param.traveling_wave, Deimos_app.param.calibrate_type, Deimos_app.param.rerun_calibrate)
 
 
-app1 = pn.Tabs(
-    ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),        
-                ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
-               ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
-               ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.Row( param_decon, Deimos_app.decon_viewable())))),\
-               ('Calibration',  pn.Row(pn.Column(instructions_calibrate,   pn.Row(param_cal, Deimos_app.calibrate_viewable())))),\
-                ('Isotope Detection', pn.Row(pn.Column(instructions_isotopes, pn.Row(param_iso, Deimos_app.iso_viewable())))),\
-                ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
-                ).servable(title='Deimos App')
+# app1 = pn.Tabs(
+#     ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),        
+#                 ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
+#                ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
+#                ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.Row( param_decon, Deimos_app.decon_viewable())))),\
+#                ('Calibration',  pn.Row(pn.Column(instructions_calibrate,   pn.Row(param_cal, Deimos_app.calibrate_viewable())))),\
+#                 ('Isotope Detection', pn.Row(pn.Column(instructions_isotopes, pn.Row(param_iso, Deimos_app.iso_viewable())))),\
+#                 ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
+#                 ).servable(title='Deimos App')
 
-pn.serve(app1)
+# pn.serve(app1)
