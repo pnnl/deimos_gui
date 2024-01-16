@@ -235,10 +235,10 @@ class Deimos_app(pm.Parameterized):
             self.param.smooth_radius.label = 'Smoothing radius by ' + self.feature_mz + ', ' + self.feature_dt + ', and ' + self.feature_rt
             self.param.peak_radius.label = 'Weighted mean kernel size by ' + self.feature_mz + ', ' + self.feature_dt + ', and ' + self.feature_rt
             if self.file_name_initial == "data/placeholder.csv":
-                    pn.state.notifications.info('Load initial data placeholder. Replace with real data', duration=0)
+                    pn.state.notifications.info('Load initial data placeholder. Replace with real data', duration=10000)
                     self.data_initial = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
-                pn.state.notifications.info('In progress: Loading initial data ' + str(self.file_name_initial), duration=1000)
+                pn.state.notifications.info('In progress: Loading initial data ' + str(self.file_name_initial), duration=10000)
                 try:
                     
                     new_name = additional_functions.new_name_if_mz(self.file_name_initial)
@@ -287,10 +287,10 @@ class Deimos_app(pm.Parameterized):
         self.param.feature_dt_axis_width.bounds = drift_range
         self.feature_dt_axis_width = drift_range
 
-        pn.state.notifications.info("Click 'Recreate plots with below values' to use new axis range", duration=0)
-        pn.state.notifications.info('Reset axis range to min and max of data for data bounds', duration=0)
+        pn.state.notifications.info("Click 'Recreate plots with below values' to use new axis range", duration=10000)
+        pn.state.notifications.info('Reset axis range to min and max of data for data bounds', duration=10000)
         pn.state.notifications.info('mz_range: ' + str(mz_range) + \
-                                    ' retention_range: ' + str(retention_range) + ' drift_range: ' + str(drift_range), duration=0)
+                                    ' retention_range: ' + str(retention_range) + ' drift_range: ' + str(drift_range), duration=10000)
         return
     
 
@@ -377,7 +377,7 @@ class Deimos_app(pm.Parameterized):
         self.param.file_name_smooth.update()
         self.param.file_name_peak.update()
         
-        pn.state.notifications.info('Loading initial data plots', duration=0)
+        pn.state.notifications.info('Loading initial data plots', duration=10000)
         self.data_initial =  pd.DataFrame({'A' : []})
         # dynamic map to return hvdata after loading it with deimos - hvplot because needs to be a holoview to be returned with dynamicmap
         hvdata_full = hv.DynamicMap(self.hvdata_initial)
@@ -464,10 +464,10 @@ class Deimos_app(pm.Parameterized):
                 '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
                    '_new_smooth_data.h5')
             if self.file_name_initial == "data/placeholder.csv":
-                    pn.state.notifications.info('In progress: Placeholder data, replace with real data', duration=0)
+                    pn.state.notifications.info('In progress: Placeholder data, replace with real data', duration=10000)
                     self.data_smooth_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
-                pn.state.notifications.info('In progress: Create smooth data from ' + str(self.file_name_initial), duration=1000)
+                pn.state.notifications.info('In progress: Create smooth data from ' + str(self.file_name_initial), duration=10000)
                 try:
                     ms1_smooth, self.index_ms1_peaks, self.index_ms2_peaks = additional_functions.create_smooth(self.file_name_initial, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity,  self.smooth_radius, \
                                                                                                                 self.smooth_iterations, new_smooth_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
@@ -479,7 +479,7 @@ class Deimos_app(pm.Parameterized):
                 self.file_name_smooth = new_smooth_name
                 self.data_smooth_ms1  = dd.from_pandas(ms1_smooth, npartitions=mp.cpu_count())
                 
-                pn.state.notifications.info('Finished: Created smooth data from ' + str(self.file_name_smooth), duration=1000)
+                pn.state.notifications.info('Finished: Created smooth data from ' + str(self.file_name_smooth), duration=10000)
             self.data_smooth_ms1.persist()
         else:   
 # if the data value has already been updated from rerun, 
@@ -494,7 +494,7 @@ class Deimos_app(pm.Parameterized):
         return three graphs and smooth_data.h5 in created_data'''
         
         self.data_smooth_ms1 = pd.DataFrame({'A' : []})
-        pn.state.notifications.info('Loading smooth data' + str(self.file_name_smooth), duration=1000)
+        pn.state.notifications.info('Loading smooth data' + str(self.file_name_smooth), duration=10000)
         # dynamic map to return hvdata after loading it with deimos
         hvdata_smooth = hv.DynamicMap(self.create_smooth_data)
 
@@ -539,15 +539,15 @@ class Deimos_app(pm.Parameterized):
             new_peak_name = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
                 '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
                     '_new_peak_data.h5')
-            pn.state.notifications.info('In progress: Create peak data: ' + str(self.file_name_smooth), duration=1000)
+            pn.state.notifications.info('In progress: Create peak data: ' + str(self.file_name_smooth), duration=10000)
             if self.file_name_initial == "data/placeholder.csv":
-                    pn.state.notifications.info('Placeholder: Replace with real data', duration=0)
+                    pn.state.notifications.info('Placeholder: Replace with real data', duration=10000)
                     self.data_peak_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
                 if os.path.isfile(new_peak_name):
                     try:
-                        pn.state.notifications.info('Loading previously created peak file', duration=0)
-                        pn.state.notifications.info('If you wish to recreate the file, delete or rename ' + str(new_peak_name), duration=1000)
+                        pn.state.notifications.info('Loading previously created peak file', duration=10000)
+                        pn.state.notifications.info('If you wish to recreate the file, delete or rename ' + str(new_peak_name), duration=10000)
                         ms1_peaks = additional_functions.load_mz_h5(new_peak_name, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
                     except Exception as e:
                         raise Exception(str(e))
@@ -562,7 +562,7 @@ class Deimos_app(pm.Parameterized):
                 self.param.file_name_peak.update()
                 self.file_name_peak = new_peak_name
                 self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
-            pn.state.notifications.info('Finished: Peak data at ' + str(self.file_name_peak), duration=1000)
+            pn.state.notifications.info('Finished: Peak data at ' + str(self.file_name_peak), duration=10000)
 
             self.data_peak_ms1.persist()
         else:   
@@ -580,7 +580,7 @@ class Deimos_app(pm.Parameterized):
         self.param.file_name_initial.update()
         self.param.file_name_smooth.update()
         self.param.file_name_peak.update()
-        pn.state.notifications.info('Loading peak data: ' + str(self.file_name_peak), duration=1000)
+        pn.state.notifications.info('Loading peak data: ' + str(self.file_name_peak), duration=10000)
 
         self.data_peak_ms1 = pd.DataFrame({'A' : []})
         hvdata_peak = hv.DynamicMap(self.create_peak_data)
@@ -629,9 +629,9 @@ class Deimos_app(pm.Parameterized):
             file_name_res = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider_ms1_ms2) + \
                 '_file_path_peak_' + Path(self.file_name_peak).stem  + \
                     '_res.csv')
-            pn.state.notifications.info("In progress: Run deconvolution", duration=0)
+            pn.state.notifications.info("In progress: Run deconvolution", duration=10000)
             if self.file_name_peak == "created_data/placeholder.csv":
-                    pn.state.notifications.info("Run placeholder", duration=0)
+                    pn.state.notifications.info("Run placeholder", duration=10000)
                     self.res = pd.DataFrame([[1,1,2,3,1,1,2,3],[2,1,3,4,1,1,2,3], [20,10,30,100,1,1,2,3]], \
                                     columns = ["mz_ms1","drift_time_ms1","retention_time_ms1",\
                                                 "intensity_ms1","mz_ms2","drift_time_ms2","retention_time_ms2","intensity_ms2"])
@@ -671,10 +671,10 @@ class Deimos_app(pm.Parameterized):
                     self.res = additional_functions.decon_ms2(ms1_peaks, ms1, ms2_peaks, ms2, self.feature_mz, self.feature_dt, self.feature_rt, require_ms1_greater_than_ms2, drift_score_min)
                     self.res.to_csv(file_name_res)
                     
-                    pn.state.notifications.info("Finished running deconvolution", duration=0)
+                    pn.state.notifications.info("Finished running deconvolution", duration=10000)
         
         else:   
-            pn.state.notifications.info('Use previously res loaded data', duration=0)
+            pn.state.notifications.info('Use previously res loaded data', duration=10000)
         return hv.Dataset(self.res)
         
 # create the hv plots
@@ -699,7 +699,7 @@ class Deimos_app(pm.Parameterized):
     
     def hvplot_mi_decon(self, ds):
         '''Plot for mz vs intensity decon'''
-        pn.state.notifications.info("Create new plots with data length: " + str(len(ds.data)), duration=1000)
+        pn.state.notifications.info("Create new plots with data length: " + str(len(ds.data)), duration=10000)
         data_collapse = deimos.collapse(ds.data, keep='mz')
         element2 = hv.Spikes(data_collapse , self.feature_mz, self.feature_intensity).opts(framewise = True, width=600)
         return  element2 
@@ -714,7 +714,7 @@ class Deimos_app(pm.Parameterized):
         example_ms2= pd.DataFrame([[np.random.randint(0,9), np.random.randint(0,9)], [np.random.randint(0,9), np.random.randint(0,9)]],\
                                    columns = [self.feature_mz, self.feature_intensity])
         if self.file_name_peak == "created_data/placeholder.csv":
-            pn.state.notifications.info("Use placeholder data", duration=0)
+            pn.state.notifications.info("Use placeholder data", duration=10000)
             return hv.Dataset(example_ms2)
         # get the decon plots if necessary
         self.md_decon_stream.reset()
@@ -749,7 +749,7 @@ class Deimos_app(pm.Parameterized):
         # should only be one range to use from y and x, else use none
         # using range of last selection
 
-        pn.state.notifications.info('Slice data: ' + str(x_range) + " " + str(y_range), duration=1000)
+        pn.state.notifications.info('Slice data: ' + str(x_range) + " " + str(y_range), duration=10000)
         res = ds.data
         def lit_list(x):
             '''Get python object of list from string'''
@@ -757,7 +757,7 @@ class Deimos_app(pm.Parameterized):
                 return ast.literal_eval(str(x))   
             except Exception as e:
                 
-                pn.state.notifications.info(e, duration=0)
+                pn.state.notifications.info(e, duration=10000)
                 return x
             
         # if string, convert to list. if list, string and back to list (does nothing)
@@ -809,7 +809,7 @@ class Deimos_app(pm.Parameterized):
         # self.param.file_name_smooth.update()
         # self.param.file_name_peak.update()
 
-        pn.state.notifications.info('In progress: start deconvolution of data: ' + str(self.ms2_decon), duration=1000)
+        pn.state.notifications.info('In progress: start deconvolution of data: ' + str(self.ms2_decon), duration=10000)
         
         # dynamic map to return hvdata after loading it with deimos
         # trigger with 'run decon' button
@@ -835,7 +835,7 @@ class Deimos_app(pm.Parameterized):
         full_plot_1_mi_decon = hv.util.Dynamic(filtered_ms2_data_decon,  operation= self.hvplot_mi_decon)
 
         
-        pn.state.notifications.info("Finished running deconvolution with new data", duration=0)
+        pn.state.notifications.info("Finished running deconvolution with new data", duration=10000)
         return hv.Layout(self.rm_decon + self.md_decon  + self.dr_decon + full_plot_1_mi_decon).opts(shared_axes=False).cols(2)
     
 
@@ -936,12 +936,12 @@ class Deimos_app(pm.Parameterized):
         if len(self.isotopes_head) == 0:
             
             if self.file_name_peak == "created_data/placeholder.csv":
-                pn.state.notifications.info('Isotope Placeholder', duration=0)
+                pn.state.notifications.info('Isotope Placeholder', duration=10000)
                 self.isotopes_head = pd.DataFrame([[1,1,2,[3,2],[3,4],[3,3]],[2,2,3,[3,5],[3,6],[3,3]]], \
                                     columns = ["mz","idx","intensity","mz_iso","intensity_iso","idx_iso"])
                 self.ms1_peaks = pd.DataFrame([[3,10,12,3],[4,12,13,4], [2,12,314,2]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
             else:
-                pn.state.notifications.info('In progress: Get Isotopes', duration=0)
+                pn.state.notifications.info('In progress: Get Isotopes', duration=10000)
                 parameter_names = Path(self.file_name_peak).stem + "isotopes.csv"
                 ms1_peaks = deimos.load(self.file_name_peak, key='ms1',
                                             columns=['mz', 'drift_time', 'retention_time', 'intensity'])
@@ -964,13 +964,13 @@ class Deimos_app(pm.Parameterized):
                     self.isotopes_head = isotopes.sort_values(by=['intensity', 'n'], ascending=False)
                     self.isotopes_head.reset_index(inplace = True)
                     self.isotopes_head.to_csv(parameter_names)
-                pn.state.notifications.info('Finished getting isotopes', duration=0)  
+                pn.state.notifications.info('Finished getting isotopes', duration=10000)  
         return hv.Dataset(self.isotopes_head)
     
     def get_ids(self, table, index):
         '''Return a slice of the ms1 data based on user input of range 
         and the mz values of selected row in table'''
-        pn.state.notifications.info('Get index: ' + str(index) + " Click 'Recreate plots' to view with correct axis range", duration=0) 
+        pn.state.notifications.info('Get index: ' + str(index) + " Click 'Recreate plots' to view with correct axis range", duration=10000) 
         if self.file_name_peak == "created_data/placeholder.csv":
             mz1 = np.random.randint(0,9)
             mz2 = np.random.randint(0,9)
@@ -990,7 +990,7 @@ class Deimos_app(pm.Parameterized):
                     return ast.literal_eval(str(x))   
                 except Exception as e:
                     
-                    pn.state.notifications.info(e, duration=0)
+                    pn.state.notifications.info(e, duration=10000)
                     return x
             self.mz_iso = lit_list(self.isotopes_head.iloc[index]['mz_iso'])
 
@@ -1063,7 +1063,7 @@ class Deimos_app(pm.Parameterized):
         '''Main function to view the isotopes and if the user clicks on the isotopes table row, 
         to see the ms1 data and the mz data from that row'''
         
-        pn.state.notifications.info('Return Isotope data', duration=0)
+        pn.state.notifications.info('Return Isotope data', duration=10000)
         # dynamic map to return hvdata after loading it with deimos
         #get isotype data from peak  when run_iso or placeholder changes
         self.isotopes_head = pd.DataFrame({'A': []})
@@ -1114,7 +1114,7 @@ class Deimos_app(pm.Parameterized):
                 )
 
         
-        pn.state.notifications.info('Finished with Isotopes function', duration=0)  
+        pn.state.notifications.info('Finished with Isotopes function', duration=10000)  
         return hv.Layout(iso_dataframe + iso_dataframe_filtered \
             +  self.rasterized_md_iso +  self.rasterized_dr_iso  + self.rasterized_rm_iso \
                 + hvplot_mi_iso).opts(shared_axes=False).cols(2)
@@ -1128,12 +1128,12 @@ class Deimos_app(pm.Parameterized):
                 self.cal_values = pd.DataFrame({'reduced_ccs': np.array([1,1]), 'ta': np.array([1,1])}, columns=['reduced_ccs', 'ta'])
             
                 #https://panel.holoviz.org/reference/global/Notifications.html
-                pn.state.notifications.info('Placehold data', duration=10000)
+                pn.state.notifications.info('Placehold data', duration=100000)
                 
             # Load tune data
             #load_deimos_data
             else:
-                pn.state.notifications.info('In progress: Start calibrating data', duration=0)
+                pn.state.notifications.info('In progress: Start calibrating data', duration=10000)
                 try:
                     
                     cal_input = additional_functions.load_mz_h5(self.calibration_input, key='ms1', \
@@ -1188,10 +1188,10 @@ class Deimos_app(pm.Parameterized):
                 calibration_files = os.path.join( "created_data",  Path(self.file_to_calibrate).name + '_calibrated.csv')
                 pd.DataFrame(calibrated_values).to_csv(calibration_files)
                 
-                pn.state.notifications.info('Finished calibrating, file in created_data as ' + str(calibration_files), duration=1000)
+                pn.state.notifications.info('Finished calibrating, file in created_data as ' + str(calibration_files), duration=10000)
                 self.cal_values = pd.DataFrame({'reduced_ccs': ccs_cal.reduced_ccs, 'ta': ccs_cal.ta}, columns=['reduced_ccs', 'ta'])
         else:
-            pn.state.notifications.info('Load previously loaded res data', duration=0)  
+            pn.state.notifications.info('Load previously loaded res data', duration=10000)  
         return hv.Dataset(self.cal_values)
    
        
@@ -1210,7 +1210,7 @@ class Deimos_app(pm.Parameterized):
         self.param.example_tune_file.update()
         self.param.file_to_calibrate.update()
 
-        pn.state.notifications.info('Return calibration data', duration=0)
+        pn.state.notifications.info('Return calibration data', duration=10000)
 
         self.cal_values =  pd.DataFrame({'A' : []})
         #get isotype data from peak
@@ -1276,7 +1276,7 @@ class Align_plots(pm.Parameterized):
         list_plots = []
         if self.peak_ref == "data/placeholder.csv":
             #return placeholder plots
-            pn.state.notifications.info('Placeholder align', duration=0)
+            pn.state.notifications.info('Placeholder align', duration=10000)
             i = 0
             for file in range(2):
                     i=+1
@@ -1296,7 +1296,7 @@ class Align_plots(pm.Parameterized):
                 file_list = [str(f) for f in Path(os.path.abspath(self.peak_folder)).glob(self.align_endswith)]
                 ref_key = 'ms1'
                 file_key = 'ms1'
-            pn.state.notifications.info('In progress: Start alignment', duration=0)
+            pn.state.notifications.info('In progress: Start alignment', duration=10000)
             theshold_presistence = 128
             tolerance_text = [float(i) for i in list(self.tolerance_text.split('-'))]
             relative_text = [bool(i) for i in list(self.relative_text.split('-'))]
@@ -1324,7 +1324,7 @@ class Align_plots(pm.Parameterized):
             i = 0
             for num, (peak_two, peak_file) in enumerate(zip(peak_two_list, peak_file_list)):
                 # align each file in the folder with the reference file
-                pn.state.notifications.info('Aligning' + peak_file + " " + str(num + 1) + " out of " + str(len(peak_file_list)), duration=1000)
+                pn.state.notifications.info('Aligning' + peak_file + " " + str(num + 1) + " out of " + str(len(peak_file_list)), duration=10000)
                 # b is reference, a is peak two
                 partitions = deimos.partition(deimos.threshold(peak_two, threshold=int(self.threshold_text)), split_on=self.feature_mz, size=1000, overlap=0.25)
                 two_matched, ref_matched = partitions.zipmap(deimos.alignment.match, deimos.threshold(peak_ref, threshold=int(self.threshold_text)),
@@ -1338,9 +1338,9 @@ class Align_plots(pm.Parameterized):
                     # if already aligned, re-use values
                     if os.path.exists(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))\
                           and os.path.exists(os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv")):
-                        pn.state.notifications.info('Reuse existing files, rename or delete to recreate', duration=0)
-                        pn.state.notifications.info('Reuse ' + os.path.join("created_data", parameter_inputs + "_matchtable.csv"), duration=1000)
-                        pn.state.notifications.info('Reuse ' + os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv"), duration=1000)
+                        pn.state.notifications.info('Reuse existing files, rename or delete to recreate', duration=10000)
+                        pn.state.notifications.info('Reuse ' + os.path.join("created_data", parameter_inputs + "_matchtable.csv"), duration=10000)
+                        pn.state.notifications.info('Reuse ' + os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv"), duration=10000)
                         matchtable = pd.read_csv(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))
                         xy_drift_retention_time = pd.read_csv(os.path.join("created_data", parameter_inputs + "_xy_drift_retention_time.csv"))
                     else: 
@@ -1351,8 +1351,8 @@ class Align_plots(pm.Parameterized):
             
                     list_plots.append((plot1 * plot2).opts(opts.Overlay(title=dim + ' vs ' + dim + ' ' + str(i))))
                 
-                pn.state.notifications.info('Finished aligning' + str(peak_file), duration=1000)
-            pn.state.notifications.info('Finished aligning all. Recreating plot', duration=0)
+                pn.state.notifications.info('Finished aligning' + str(peak_file), duration=10000)
+            pn.state.notifications.info('Finished aligning all. Recreating plot', duration=10000)
 
         return hv.Layout(list_plots).cols(2)
     
