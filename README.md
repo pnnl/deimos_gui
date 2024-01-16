@@ -1,6 +1,8 @@
 DEIMoS Visualization
 =======
 
+Version 1.0
+
 ## User Guide
 [User Guide](user_guide_deimos.md)
 
@@ -57,7 +59,7 @@ pip install -r requirements.txt
 
 Run app (from deimos_gui folder)
 ```
-python run_app.py
+python code/run_app.py
 ```
 
 
