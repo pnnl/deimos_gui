@@ -136,6 +136,8 @@ class Deimos_app(pm.Parameterized):
     Recreate_plots_with_below_values = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values'), doc="Set axis ranges to ranges below")
     Recreate_plots_with_below_values_iso = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values_iso'), doc="Set axis ranges to ranges below")
 
+    remove_notifications = pm.Action(lambda x: x.param.trigger('remove_notifications'), doc="Remove all notifications", label='Remove all notifications')
+
     # set the min spacing for all the dimensions for rasterizing 
     slice_distance_dt = pm.Number(default=0.2, label="Slice isotopes drift time", doc = "Add distance to selected isotope drift time to get plot range")
     slice_distance_rt = pm.Number(default=0.2, label="Slice isotopes retention time", doc = "Add distance to selected isotope retention time to get plot range")
@@ -149,12 +151,18 @@ class Deimos_app(pm.Parameterized):
     traveling_wave = pm.Boolean(False, label='traveling_wave', doc="If true, then using travelling wave IMS, where the relationship between measurement and CCS will linearized by the natural logarithm")
     calibrate_type = pm.Selector(default = "load_all_values", objects=["load_all_values", "use_tunemix","fix_parameters"], doc= "Calibrate using one of possible functions, see user guide for more information")
 
-    
+    @pn.depends("remove_notifications", watch=True)
+    def remove_not(self):
+        '''Remove all notifications'''
+        pn.state.notifications.clear()
+                
     @pn.depends("file_folder_initial", watch=True)
     def update_param(self, new_name = None):
         '''With new file folder update the files available in file selector files'''
         # update all files if updating file folder
         # convert to posix
+        if not os.path.isdir(self.file_folder_initial):
+            pn.state.notifications.error('Folder does not exist')
         if self.file_folder_initial[-1] == '/':
             self.param.file_name_initial.path = self.file_folder_initial + "*"
         else:
@@ -174,6 +182,8 @@ class Deimos_app(pm.Parameterized):
     def update_param_cal(self):
         '''With new file folder update the files available in file selector files for calibration'''
         
+        if not os.path.isdir(self.file_folder_cal):
+            pn.state.notifications.error('Folder does not exist')
         # update all files if updating file folder
         if self.calibration_input[-1] == '/':
             path = self.file_folder_cal + "*"
@@ -216,10 +226,8 @@ class Deimos_app(pm.Parameterized):
     @pm.depends('view_plot')
     def hvdata_initial(self):
         '''Start initial data by loading data. Restart if using different file or feature names changed '''
-        
         # don't need to recreate for sequental graphs if already created for first graphs
         # self.res will be reset to empty dataframe with rerun 
-
         pn.state.notifications.info('Loading initial data plots', duration=0)
         if len(self.data_initial) == 0:
             if not os.path.exists("created_data"):
@@ -482,7 +490,7 @@ class Deimos_app(pm.Parameterized):
 # if the data value has already been updated from rerun, 
 #don't update again until user clicks rerun again
             
-            pn.state.notifications.info('Re-trigged create_smooth_data function, loading previously loaded file', duration=10000)
+            pn.state.notifications.info('Re-triggered create_smooth_data function, loading previously loaded file', duration=10000)
             pass
         return hv.Dataset(self.data_smooth_ms1)
   
@@ -562,7 +570,6 @@ class Deimos_app(pm.Parameterized):
                 self.file_name_peak = new_peak_name
                 self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
             pn.state.notifications.info('Finished: Peak data at ' + str(self.file_name_peak), duration=0)
-
             self.data_peak_ms1.persist()
         else:   
         # if the data value has already been updated from rerun, 
@@ -1246,14 +1253,20 @@ class Align_plots(pm.Parameterized):
 
     rt_mzML_name = pm.Selector(["scan start time"], label="mzML file retention time", doc='Only adjust if mz file selected. Select the retention time column name')
     dt_mzML_name = pm.Selector(["ion mobility drift time"], label="mzML file drift time", doc='Only adjust if mz file selected. Select the retention time column name')
+    remove_notifications = pm.Action(lambda x: x.param.trigger('remove_notifications'), doc="Remove all notifications", label='Remove all notifications')
 
-  
+    @pn.depends("remove_notifications", watch=True)
+    def remove_not(self):
+        '''Remove all notifications'''
+        pn.state.notifications.clear()
+            
     @pn.depends("file_folder", watch=True)
     def update_param(self, new_name = None):
         '''update the files selectable by the user after the folder updates'''
         # update all files if updating file folder
         if not os.path.isdir(self.file_folder):
             pn.state.notifications.error('Folder does not exist')
+            
         if self.file_folder[-1] == '/':
             self.param.peak_ref.path = self.file_folder + "*"
         else:
@@ -1413,18 +1426,18 @@ instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes within 
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
-param_full = pn.Column('<b>View initial Data</b>',  Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
+param_full = pn.Column('<b>View initial Data</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
                         Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
-param_peak = pn.Column('<b>Peak-picking</b>', '<b>Adjust the plots</b>',  Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak,  '<b>Result</b>', Deimos_app.param.file_name_peak)
-param_decon = pn.Column('<b>MS2 Deconvolution</b>', Deimos_app.param.file_folder_initial, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.threshold_slider_ms1_ms2, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon)
-param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.file_name_peak,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
+param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
+param_peak = pn.Column('<b>Peak-picking</b>', '<b>Adjust the plots</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak,  '<b>Result</b>', Deimos_app.param.file_name_peak)
+param_decon = pn.Column('<b>MS2 Deconvolution</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_folder_initial, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.threshold_slider_ms1_ms2, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon)
+param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.file_name_peak,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
                     Deimos_app.param.feature_dt_axis_width_iso, Deimos_app.param.feature_rt_axis_width_iso, Deimos_app.param.feature_mz_axis_width_iso, \
                         Deimos_app.param.min_feature_dt_bin_size_iso, Deimos_app.param.min_feature_rt_bin_size_iso, Deimos_app.param.min_feature_mz_bin_size_iso, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.file_folder_cal, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
+param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_folder_cal, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
                         Deimos_app.param.tfix, Deimos_app.param.traveling_wave, Deimos_app.param.calibrate_type, Deimos_app.param.rerun_calibrate)
 
 
