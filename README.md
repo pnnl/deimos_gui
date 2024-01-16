@@ -59,7 +59,8 @@ pip install -r requirements.txt
 
 Run app (from deimos_gui folder)
 ```
-python code/run_app.py
+cd code
+python run_app.py
 ```
 
 
