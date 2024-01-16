@@ -109,8 +109,8 @@ class Deimos_app(pm.Parameterized):
     min_feature_mz_bin_size_iso = pm.Number(default=0.02, label="Min bin size: " + feature_mz.default, doc= 'The grid-size will never be smaller than this on zoom in. Only clicking Recreate plot will adjust the plots')
 
     min_feature_rt_spacing = pm.Number(default=1, label="Spacing: " + feature_rt.default, doc= "The range with which to slice the MS2 data from the selected MS1")
-    min_feature_dt_spacing = pm.Number(default=1, label="Spacing: " + feature_rt.default, doc= "The range with which to slice the MS2 data from the selected MS1")
-    min_feature_mz_spacing = pm.Number(default=10, label="Spacing: " + feature_rt.default, doc= "The range with which to slice the MS2 data from the selected MS1")
+    min_feature_dt_spacing = pm.Number(default=1, label="Spacing: " + feature_dt.default, doc= "The range with which to slice the MS2 data from the selected MS1")
+    min_feature_mz_spacing = pm.Number(default=10, label="Spacing: " + feature_mz.default, doc= "The range with which to slice the MS2 data from the selected MS1")
 
     file_name_smooth = pm.FileSelector(default = os.path.join("created_data", file_name_smooth_name),\
                                         path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data (in Created_Data Folder)')
@@ -128,11 +128,11 @@ class Deimos_app(pm.Parameterized):
     #
     view_plot = pm.Action(lambda x: x.param.trigger('view_plot'), doc="Click to view new file", label='View plot from files')
     
-    rerun_peak = pm.Action(lambda x: x.param.trigger('rerun_peak'), doc="Click to rerun after changing inputs", label='Re-run peak')
-    rerun_smooth = pm.Action(lambda x: x.param.trigger('rerun_smooth'), doc="Click to rerun after changing inputs", label='Re-run smooth')
-    rerun_decon = pm.Action(lambda x: x.param.trigger('rerun_decon'), doc="Click to rerun after changing inputs", label='Re-run deconvolution')
-    rerun_iso = pm.Action(lambda x: x.param.trigger('rerun_iso'), doc="Click to rerun after changing inputs", label='Re-run ison')
-    rerun_calibrate = pm.Action(lambda x: x.param.trigger('rerun_calibrate'), doc="Click to rerun after changing inputs", label='Re-run calibrate')
+    rerun_peak = pm.Action(lambda x: x.param.trigger('rerun_peak'), doc="Click to rerun after changing inputs", label='(Re)Run peak')
+    rerun_smooth = pm.Action(lambda x: x.param.trigger('rerun_smooth'), doc="Click to rerun after changing inputs", label='(Re)Run smooth')
+    rerun_decon = pm.Action(lambda x: x.param.trigger('rerun_decon'), doc="Click to rerun after changing inputs", label='(Re)Run deconvolution')
+    rerun_iso = pm.Action(lambda x: x.param.trigger('rerun_iso'), doc="Click to rerun after changing inputs", label='(Re)Run ison')
+    rerun_calibrate = pm.Action(lambda x: x.param.trigger('rerun_calibrate'), doc="Click to rerun after changing inputs", label='(Re)Run calibrate')
     Recreate_plots_with_below_values = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values'), doc="Set axis ranges to ranges below")
     Recreate_plots_with_below_values_iso = pm.Action(lambda x: x.param.trigger('Recreate_plots_with_below_values_iso'), doc="Set axis ranges to ranges below")
 
@@ -256,6 +256,8 @@ class Deimos_app(pm.Parameterized):
             self.refresh_axis_values()
         
         else:   
+# if the data value has already been updated from rerun, 
+#don't update again until user clicks rerun again
             pass
         return hv.Dataset(self.data_initial)
 
@@ -480,6 +482,8 @@ class Deimos_app(pm.Parameterized):
                 pn.state.notifications.info('Finished: Created smooth data from ' + str(self.file_name_smooth), duration=0)
             self.data_smooth_ms1.persist()
         else:   
+# if the data value has already been updated from rerun, 
+#don't update again until user clicks rerun again
             pass
         return hv.Dataset(self.data_smooth_ms1)
   
@@ -536,7 +540,7 @@ class Deimos_app(pm.Parameterized):
                 '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
                     '_new_peak_data.h5')
             pn.state.notifications.info('In progress: Create peak data: ' + str(self.file_name_smooth), duration=0)
-            if self.file_name_smooth == "created_data/placeholder.csv":
+            if self.file_name_initial == "data/placeholder.csv":
                     pn.state.notifications.info('Placeholder: Replace with real data', duration=0)
                     self.data_peak_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
@@ -545,7 +549,6 @@ class Deimos_app(pm.Parameterized):
                         pn.state.notifications.info('Loading previously created peak file', duration=0)
                         pn.state.notifications.info('If you wish to recreate the file, delete or rename ' + str(new_peak_name), duration=0)
                         ms1_peaks = additional_functions.load_mz_h5(new_peak_name, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
-                        self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
                     except Exception as e:
                         raise Exception(str(e))
                 else:
@@ -556,13 +559,15 @@ class Deimos_app(pm.Parameterized):
                                                                     new_peak_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
                     except Exception as e:
                         raise Exception(str(e))
-                    self.param.file_name_peak.update()
-                    self.file_name_peak = new_peak_name
-                    self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
+                self.param.file_name_peak.update()
+                self.file_name_peak = new_peak_name
+                self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
             pn.state.notifications.info('Finished: Peak data at ' + str(self.file_name_peak), duration=0)
 
             self.data_peak_ms1.persist()
         else:   
+# if the data value has already been updated from rerun, 
+#don't update again until user clicks rerun again
             pass
 
         return hv.Dataset(self.data_peak_ms1)
@@ -1227,7 +1232,7 @@ class Align_plots(pm.Parameterized):
     relative_text = pm.String(default = 'True-True-False',  doc="Keep - between numbers", label  = 'Relevant or abs val by mz, drift, and retention time')
     menu_kernel = pm.Selector(['linear',  'rbf'], default = "rbf", doc="Changes the alignment kernel", label='Support Vector Regression Kernel')
     threshold_text = pm.String(default = '2000', label = 'Threshold', doc="Minimum intensity value")
-    rerun_align = pm.Action(lambda x: x.param.trigger('rerun_align'), label='Re-run align')
+    rerun_align = pm.Action(lambda x: x.param.trigger('rerun_align'), label='(Re)Run align')
     
     feature_dt = pm.Selector(default='drift_time', objects = ["drift_time", 'retention_time', 'mz'], label="Drift Time", doc="Change if data is using different column value")
     feature_rt = pm.Selector(default='retention_time', objects = ["drift_time", 'retention_time', 'mz'], label="Retention Time", doc="Change if data is using different column value")
