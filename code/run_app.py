@@ -509,7 +509,7 @@ class Deimos_app(pm.Parameterized):
         return three graphs and smooth_data.h5 in created_data'''
         pn.state.notifications.position = 'top-right'
         self.data_smooth_ms1 = pd.DataFrame({'A' : []})
-        pn.state.notifications.info('Loading smooth data' + str(self.file_name_smooth), duration=10000)
+        pn.state.notifications.info('Loading smooth data: ' + str(self.file_name_smooth), duration=10000)
         # dynamic map to return hvdata after loading it with deimos
         hvdata_smooth = hv.DynamicMap(self.create_smooth_data)
 
