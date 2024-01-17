@@ -265,11 +265,13 @@ class Deimos_app(pm.Parameterized):
                 self.data_initial = dd.from_pandas(full_data_1, npartitions=mp.cpu_count())
             self.data_initial.persist()
             self.refresh_axis_values()
-            pn.state.notifications.info('Finished loading initial data', duration=0)
             pn.state.notifications.clear()
+            pn.state.notifications.info('Finished loading initial data', duration=10000)
+            
         else:   
         # if the data value has already been updated from rerun, 
         #don't update again until user clicks rerun again
+            pn.state.notifications.clear()
             pn.state.notifications.info('Re-trigged hvplot_initial function, loading previously loaded file', duration=10000)
             pass
         return hv.Dataset(self.data_initial)
@@ -333,8 +335,6 @@ class Deimos_app(pm.Parameterized):
         with x and y range and x and y spacing
         run if steam value of 
         Recreate_plots_with_below_values changes'''
-
-        pn.state.notifications.info("Re-aggregating based on values below")
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -354,8 +354,6 @@ class Deimos_app(pm.Parameterized):
         with x and y range and x and y spacing
         Run if steam value of 
         Recreate_plots_with_below_values changes'''
-
-        pn.state.notifications.info("Re-aggregating based on values below")
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -479,7 +477,6 @@ class Deimos_app(pm.Parameterized):
                 '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
                    '_new_smooth_data.h5')
             if self.file_name_initial == "data/placeholder.csv":
-                    pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Placeholder data, replace with real data', duration=10000)
                     self.data_smooth_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
                 pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Create smooth data from ' + str(self.file_name_initial), duration=0)
@@ -493,9 +490,9 @@ class Deimos_app(pm.Parameterized):
                 # set the file_folder and name of smooth data
                 self.file_name_smooth = new_smooth_name
                 self.data_smooth_ms1  = dd.from_pandas(ms1_smooth, npartitions=mp.cpu_count())
-                
-                pn.state.notifications.info('Finished data processing. Creating plots. Created smooth data from ' + str(self.file_name_smooth), duration=0)
                 pn.state.notifications.clear()
+                pn.state.notifications.info('Finished data processing. Creating plots. Created smooth data from ' + str(self.file_name_smooth), duration=10000)
+                
             self.data_smooth_ms1.persist()
         else:   
 # if the data value has already been updated from rerun, 
@@ -559,7 +556,6 @@ class Deimos_app(pm.Parameterized):
                     '_new_peak_data.h5')
             pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Create peak data: ' + str(self.file_name_smooth), duration=0)
             if self.file_name_initial == "data/placeholder.csv":
-                    pn.state.notifications.info('Placeholder: Replace with real data', duration=10000)
                     self.data_peak_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
                 if os.path.isfile(new_peak_name):
@@ -580,8 +576,8 @@ class Deimos_app(pm.Parameterized):
                 self.param.file_name_peak.update()
                 self.file_name_peak = new_peak_name
                 self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
-            pn.state.notifications.info('Finished: Peak data at ' + str(self.file_name_peak), duration=0)
             pn.state.notifications.clear()
+            pn.state.notifications.info('Finished: Peak data at ' + str(self.file_name_peak), duration=10000)
             self.data_peak_ms1.persist()
         else:   
         # if the data value has already been updated from rerun, 
@@ -650,7 +646,6 @@ class Deimos_app(pm.Parameterized):
                     '_res.csv')
             pn.state.notifications.info("In progress. Cannot make additional changes until plots update. Run deconvolution", duration=10000)
             if self.file_name_peak == "created_data/placeholder.csv":
-                    pn.state.notifications.info("Run placeholder", duration=10000)
                     self.res = pd.DataFrame([[1,1,2,3,1,1,2,3],[2,1,3,4,1,1,2,3], [20,10,30,100,1,1,2,3]], \
                                     columns = ["mz_ms1","drift_time_ms1","retention_time_ms1",\
                                                 "intensity_ms1","mz_ms2","drift_time_ms2","retention_time_ms2","intensity_ms2"])
@@ -690,8 +685,8 @@ class Deimos_app(pm.Parameterized):
                     self.res = additional_functions.decon_ms2(ms1_peaks, ms1, ms2_peaks, ms2, self.feature_mz, self.feature_dt, self.feature_rt, require_ms1_greater_than_ms2, drift_score_min)
                     self.res.to_csv(file_name_res)
                     
-                    pn.state.notifications.info("Finished running deconvolution", duration=0)
                     pn.state.notifications.clear()
+                    pn.state.notifications.info("Finished running deconvolution", duration=10000)
         
         else:   
             pn.state.notifications.info('Re-triggered ms2_decon function, loading previously loaded file', duration=10000)
@@ -720,7 +715,6 @@ class Deimos_app(pm.Parameterized):
     
     def hvplot_mi_decon(self, ds):
         '''Plot for mz vs intensity decon'''
-        pn.state.notifications.info("Create new plots with data length: " + str(len(ds.data)), duration=10000)
         data_collapse = deimos.collapse(ds.data, keep='mz')
         element2 = hv.Spikes(data_collapse , self.feature_mz, self.feature_intensity).opts(framewise = True, width=600)
         return  element2 
@@ -735,7 +729,6 @@ class Deimos_app(pm.Parameterized):
         example_ms2= pd.DataFrame([[np.random.randint(0,2), np.random.randint(0,2)], [np.random.randint(0,2), np.random.randint(0,2)]],\
                                    columns = [self.feature_mz, self.feature_intensity])
         if self.file_name_peak == "created_data/placeholder.csv":
-            pn.state.notifications.info("Use placeholder data", duration=10000)
             
             return hv.Dataset(example_ms2)
         # get the decon plots if necessary
@@ -791,7 +784,6 @@ class Deimos_app(pm.Parameterized):
    
         # if no range selected 
         if (x_range == None or math.isnan(float(x_range))): 
-            pn.state.notifications.info("Showing placeholder data in MS2 plot")
             return hv.Dataset(example_ms2)
         else:
             # slice data to get subset of ms1 data, of which will pick the highest intensity to get ms2 data
@@ -804,7 +796,7 @@ class Deimos_app(pm.Parameterized):
                 high=[x_range + space_x, y_range + space_y],
             )
             if isinstance(ms2_subset, type(None)):
-                pn.state.notifications.info("No MS2 decon data within " + str(x_column_plot) + ": " + str(x_range) +  " + " + str(space_x) + " or " + str(y_column_plot) + ": " + str(y_range) + " + " + str(space_y))
+                pn.state.notifications.error("No MS2 decon data within " + str(x_column_plot) + ": " + str(x_range) +  " + " + str(space_x) + " or " + str(y_column_plot) + ": " + str(y_range) + " + " + str(space_y), duration = 0)
                 return hv.Dataset(example_ms2)
             else:
                 # of the subset, get maximum intensity of ms1 data
@@ -818,7 +810,7 @@ class Deimos_app(pm.Parameterized):
                 else:
                     highest_ms2 = pd.DataFrame({self.feature_mz: np.array(res.loc[max_idx, self.feature_mz + '_ms2']),
                     self.feature_intensity: np.array(res.loc[max_idx, self.feature_intensity + '_ms2'])})
-
+                pn.state.notifications.clear()
                 return hv.Dataset(highest_ms2)
  
 
@@ -827,12 +819,6 @@ class Deimos_app(pm.Parameterized):
     def decon_viewable(self, **kwargs):
         '''Main function to get the deconvolution values from peak and initial data'''
         pn.state.notifications.position = 'top-right'
-        # self.param.file_name_initial.update()
-        # self.param.file_name_smooth.update()
-        # self.param.file_name_peak.update()
-
-        pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Start deconvolution of data: ' + str(self.ms2_decon), duration=10000)
-        
         # dynamic map to return hvdata after loading it with deimos
         # trigger with 'run decon' button
         self.m1, self.d1, self.d2, self.r2, self.r3, self.m3 = None, None, None, None, None, None
@@ -856,9 +842,6 @@ class Deimos_app(pm.Parameterized):
         # make ms plot
         full_plot_1_mi_decon = hv.util.Dynamic(filtered_ms2_data_decon,  operation= self.hvplot_mi_decon)
 
-        
-        pn.state.notifications.info("Finished running deconvolution with new data", duration=10000)
-        pn.state.notifications.clear()
         return hv.Layout(self.rm_decon + self.md_decon  + self.dr_decon + full_plot_1_mi_decon).opts(shared_axes=False).cols(2)
     
 
@@ -894,8 +877,6 @@ class Deimos_app(pm.Parameterized):
         with x and y range and x and y spacing
         Run if steam value of 
         Recreate_plots_with_below_values_iso changes'''
-
-        pn.state.notifications.info("Re-aggregating based on values below")
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -916,8 +897,6 @@ class Deimos_app(pm.Parameterized):
         with x and y range and x and y spacing
         Run if steam value of 
         Recreate_plots_with_below_values_iso changes'''
-
-        pn.state.notifications.info("Re-aggregating based on values below")
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -965,7 +944,6 @@ class Deimos_app(pm.Parameterized):
         if len(self.isotopes_head) == 0:
             
             if self.file_name_peak == "created_data/placeholder.csv":
-                pn.state.notifications.info('Isotope Placeholder', duration=10000)
                 self.isotopes_head = pd.DataFrame([[1,1,2,[3,2],[3,4],[3,3]],[2,2,3,[3,5],[3,6],[3,3]]], \
                                     columns = ["mz","idx","intensity","mz_iso","intensity_iso","idx_iso"])
                 self.ms1_peaks = pd.DataFrame([[3,10,12,3],[4,12,13,4], [2,12,314,2]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
@@ -993,8 +971,9 @@ class Deimos_app(pm.Parameterized):
                     self.isotopes_head = isotopes.sort_values(by=['intensity', 'n'], ascending=False)
                     self.isotopes_head.reset_index(inplace = True)
                     self.isotopes_head.to_csv(parameter_names)
-                pn.state.notifications.info('Finished getting isotopes', duration=0)  
+                
                 pn.state.notifications.clear()
+                pn.state.notifications.info('Finished getting isotopes', duration=10000)  
         else:
             pn.state.notifications.info('Re-triggered rerun_iso function, loading previously loaded file', duration=10000)
             pass
@@ -1147,8 +1126,8 @@ class Deimos_app(pm.Parameterized):
                 )
 
         
-        pn.state.notifications.info('Finished with Isotopes function', duration=0) 
         pn.state.notifications.clear() 
+        pn.state.notifications.info('Finished with Isotopes function', duration=10000) 
         return hv.Layout(iso_dataframe + iso_dataframe_filtered \
             +  self.rasterized_md_iso +  self.rasterized_dr_iso  + self.rasterized_rm_iso \
                 + hvplot_mi_iso).opts(shared_axes=False).cols(2)
@@ -1161,7 +1140,6 @@ class Deimos_app(pm.Parameterized):
             if self.calibration_input == "data/placeholder.csv":
                 self.cal_values = pd.DataFrame({'reduced_ccs': np.array([1,1]), 'ta': np.array([1,1])}, columns=['reduced_ccs', 'ta'])
                 #https://panel.holoviz.org/reference/global/Notifications.html
-                pn.state.notifications.info('Placehold data', duration=100000)
                 
             # Load tune data
             #load_deimos_data
@@ -1220,9 +1198,8 @@ class Deimos_app(pm.Parameterized):
                 calibrated_values = ccs_cal.arrival2ccs(mz=to_calibrate['mz'], ta=to_calibrate['drift_time'], q=1)
                 calibration_files = os.path.join( "created_data",  Path(self.file_to_calibrate).name + '_calibrated.csv')
                 pd.DataFrame(calibrated_values).to_csv(calibration_files)
-                
-                pn.state.notifications.info('Finished calibrating, file in created_data as ' + str(calibration_files), duration=0)
                 pn.state.notifications.clear()
+                pn.state.notifications.info('Finished calibrating, file in created_data as ' + str(calibration_files), duration=10000)
                 self.cal_values = pd.DataFrame({'reduced_ccs': ccs_cal.reduced_ccs, 'ta': ccs_cal.ta}, columns=['reduced_ccs', 'ta'])
         else:
             pn.state.notifications.info('Load previously loaded res data', duration=10000)  
@@ -1312,7 +1289,6 @@ class Align_plots(pm.Parameterized):
         list_plots = []
         if self.peak_ref == "data/placeholder.csv":
             #return placeholder plots
-            pn.state.notifications.info('Start placeholder align', duration=10000)
             i = 0
             for file in range(2):
                     i=+1
@@ -1387,8 +1363,8 @@ class Align_plots(pm.Parameterized):
             
                     list_plots.append((plot1 * plot2).opts(opts.Overlay(title=dim + ' vs ' + dim + ' ' + str(i))))
                 
-            pn.state.notifications.info('Finished aligning all. Recreating plot', duration=0)
             pn.state.notifications.clear()
+            pn.state.notifications.info('Finished aligning all. Recreating plot', duration=10000)
         return hv.Layout(list_plots).cols(2)
     
 
@@ -1457,7 +1433,7 @@ param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.file_folder_initi
 param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.file_folder_cal, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
                         Deimos_app.param.tfix, Deimos_app.param.traveling_wave, Deimos_app.param.calibrate_type, Deimos_app.param.rerun_calibrate, Deimos_app.param.remove_notifications)
 
-plot_text = 'Only changing the values with the widgets and clicking Recreate Plot will re-aggregate the plot and reset the width. The color of the plots is the sum of the intensities for all ions with the same values of the plot’s x and y dimensions (i.e. retention time vs drift time). Before zooming in, datashader will aggregate the values into grids, so the color will represent the aggregate intensity for ions within the same grid. '
+plot_text = '<p><li>Only changing the values with the widgets and clicking Recreate Plot will re-aggregate the plot and reset the width.</li><li> The color of the plots is the sum of the intensities for all ions with the same values of the plot’s x and y dimensions (i.e. retention time vs drift time).</li><li> Before zooming in, datashader will aggregate the values into grids, so the color will represent the aggregate intensity for ions within the same grid.</li> </p>'
 app1 = pn.Tabs(
     ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable(), plot_text))))),        
                 ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, pn.Column(Deimos_app.smooth_viewable(), plot_text))))),\
