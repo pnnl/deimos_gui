@@ -321,8 +321,8 @@ class Deimos_app(pm.Parameterized):
         feature_intensity = self.feature_intensity, 
         x_filter= self.feature_mz_axis_width,
         y_filter=self.feature_dt_axis_width,
-        x_spacing=self.min_feature_dt_bin_size,
-        y_spacing=self.min_feature_mz_bin_size)
+        x_spacing=self.min_feature_mz_bin_size,
+        y_spacing=self.min_feature_dt_bin_size)
         return rasterize_plot
     
 
@@ -862,8 +862,8 @@ class Deimos_app(pm.Parameterized):
         feature_intensity = self.feature_intensity, 
         x_filter= self.feature_mz_axis_width_iso,
         y_filter=self.feature_dt_axis_width_iso,
-        x_spacing=self.min_feature_dt_bin_size_iso,
-        y_spacing=self.min_feature_mz_bin_size_iso)
+        x_spacing=self.min_feature_mz_bin_size_iso,
+        y_spacing=self.min_feature_dt_bin_size_iso)
         
         return rasterize_plot
     
