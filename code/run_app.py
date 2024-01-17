@@ -69,9 +69,9 @@ class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only changes when paramaters are updated'''
     file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5')
     file_folder_initial =  pm.String(
-        default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Data folder (use / at the end of the file). Change to update files.')
+        default= "data", doc='Please use forward slashes / and starting from / if absolute. Data folder (use / at the end of the file).', label='Data folder (use /)')
     file_folder_cal =  pm.String(
-        default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use / at the end of the file).')
+        default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Data folder (use /)')
     rt_mzML_name = pm.Selector(["scan start time"], doc='Select one of the columsn within the mzML file. Only adjust if mz file selected. Select the retention time column name')
     dt_mzML_name = pm.Selector(["ion mobility drift time"], doc='Select one of the columsn within the mzML file. Only adjust if mz file selected. Select the drift time column name')
     # reset the manual filters to the data bounds and reset the rangexy of the plot
@@ -486,7 +486,7 @@ class Deimos_app(pm.Parameterized):
                 self.file_name_smooth = new_smooth_name
                 self.data_smooth_ms1  = dd.from_pandas(ms1_smooth, npartitions=mp.cpu_count())
                 
-                pn.state.notifications.info('Finished data processing. Creating plots. Created smooth data from ' + str(self.file_name_smooth), duration=10000)
+                pn.state.notifications.info('Finished data processing. Creating plots. Created smooth data from ' + str(self.file_name_smooth), duration=0)
             self.data_smooth_ms1.persist()
         else:   
 # if the data value has already been updated from rerun, 
@@ -1128,7 +1128,7 @@ class Deimos_app(pm.Parameterized):
                 )
 
         
-        pn.state.notifications.info('Finished with Isotopes function', duration=10000)  
+        pn.state.notifications.info('Finished with Isotopes function', duration=0)  
         return hv.Layout(iso_dataframe + iso_dataframe_filtered \
             +  self.rasterized_md_iso +  self.rasterized_dr_iso  + self.rasterized_rm_iso \
                 + hvplot_mi_iso).opts(shared_axes=False).cols(2)
@@ -1255,13 +1255,7 @@ class Align_plots(pm.Parameterized):
 
     rt_mzML_name = pm.Selector(["scan start time"], label="mzML file retention time", doc='Only adjust if mz file selected. Select the retention time column name')
     dt_mzML_name = pm.Selector(["ion mobility drift time"], label="mzML file drift time", doc='Only adjust if mz file selected. Select the retention time column name')
-    remove_notifications = pm.Action(lambda x: x.param.trigger('remove_notifications'), doc="Remove all notifications", label='Remove all notifications')
 
-    @pn.depends("remove_notifications", watch=True)
-    def remove_not(self):
-        '''Remove all notifications'''
-        pn.state.notifications.clear()
-            
     @pn.depends("file_folder", watch=True)
     def update_param(self, new_name = None):
         '''update the files selectable by the user after the folder updates'''
@@ -1372,7 +1366,6 @@ class Align_plots(pm.Parameterized):
             
                     list_plots.append((plot1 * plot2).opts(opts.Overlay(title=dim + ' vs ' + dim + ' ' + str(i))))
                 
-                pn.state.notifications.info('Finished aligning' + str(num + 1) +  " out of " + str(len(peak_file_list)), duration=10000)
             pn.state.notifications.info('Finished aligning all. Recreating plot', duration=0)
         return hv.Layout(list_plots).cols(2)
     
