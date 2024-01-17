@@ -26,7 +26,7 @@ conda install colorcet==3.0.1 holoviews==1.17.1 panel==1.2.3 xarray==2023.1.0 hv
 ```
 
 ```
-cd ./deimos_gui
+cd ./deimos_gui/code
 ```
 
 ## If conda doesn't work in installing DEIMoS:
@@ -50,16 +50,15 @@ In the terminal, cd to the downloaded folder deimos_gui
 ## If conda doesn't work in installing DEIMoS_GUI:
 
 ``` 
-cd ../deimos_gui
+cd ../deimos_gui/code
 #if conda didn't work:
 pip install -r requirements.txt
 ```
 
-## Run app
+## Run app from code folder
 
 Run app (from deimos_gui folder)
 ```
-cd code
 python run_app.py
 ```
 
@@ -78,7 +77,7 @@ This research was supported by the National Institutes of Health, National Insti
 Citing DEIMoS
 -------------
 If you would like to reference DEIMoS in an academic paper, we ask you include the following:
-* DEIMoS, version 0.1.0 http://github.com/pnnl/deimos (accessed MMM YYYY)
+* DEIMoS, version 1.3.3 http://github.com/pnnl/deimos (accessed MMM YYYY)
 
 ## Disclaimer
 
