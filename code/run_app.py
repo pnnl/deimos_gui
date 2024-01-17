@@ -48,6 +48,8 @@ hv.extension('bokeh', 'matplotlib')
 # view general exception 
 def exception_handler(ex):
     '''Return the error value to the user and stop running the code'''
+
+    pn.state.notifications.position = 'top-right'
     logging.error("Error", exc_info=ex)
     pn.state.notifications.error('Error: %s: see command line for more information' % str(ex), duration=0)
 
@@ -162,7 +164,7 @@ class Deimos_app(pm.Parameterized):
         # update all files if updating file folder
         # convert to posix
         if not os.path.isdir(self.file_folder_initial):
-            pn.state.notifications.error('Folder does not exist')
+            pn.state.notifications.error('Folder does not exist', duration=0)
         if self.file_folder_initial[-1] == '/':
             self.param.file_name_initial.path = self.file_folder_initial + "*"
         else:
@@ -183,7 +185,7 @@ class Deimos_app(pm.Parameterized):
         '''With new file folder update the files available in file selector files for calibration'''
         
         if not os.path.isdir(self.file_folder_cal):
-            pn.state.notifications.error('Folder does not exist')
+            pn.state.notifications.error('Folder does not exist', duration=0)
         # update all files if updating file folder
         if self.calibration_input[-1] == '/':
             path = self.file_folder_cal + "*"
@@ -1265,8 +1267,8 @@ class Align_plots(pm.Parameterized):
         '''update the files selectable by the user after the folder updates'''
         # update all files if updating file folder
         if not os.path.isdir(self.file_folder):
-            pn.state.notifications.error('Folder does not exist')
-            
+            pn.state.notifications.error('Folder does not exist', duration=0)
+
         if self.file_folder[-1] == '/':
             self.param.peak_ref.path = self.file_folder + "*"
         else:
@@ -1426,25 +1428,25 @@ instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes within 
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
-param_full = pn.Column('<b>View initial Data</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
+param_full = pn.Column('<b>View initial Data</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, Deimos_app.param.remove_notifications, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
                         Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth, '<b>Result</b>', Deimos_app.param.file_name_smooth)
-param_peak = pn.Column('<b>Peak-picking</b>', '<b>Adjust the plots</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak,  '<b>Result</b>', Deimos_app.param.file_name_peak)
-param_decon = pn.Column('<b>MS2 Deconvolution</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_folder_initial, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.threshold_slider_ms1_ms2, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon)
-param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.file_name_peak,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
+param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations,  Deimos_app.param.rerun_smooth,  Deimos_app.param.remove_notifications, '<b>Result</b>', Deimos_app.param.file_name_smooth)
+param_peak = pn.Column('<b>Peak-picking</b>', '<b>Adjust the plots</b>', Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak, Deimos_app.param.remove_notifications, '<b>Result</b>', Deimos_app.param.file_name_peak)
+param_decon = pn.Column('<b>MS2 Deconvolution</b>', Deimos_app.param.file_folder_initial, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.threshold_slider_ms1_ms2, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon, Deimos_app.param.remove_notifications)
+param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.file_name_peak,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, Deimos_app.param.remove_notifications,'<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
                     Deimos_app.param.feature_dt_axis_width_iso, Deimos_app.param.feature_rt_axis_width_iso, Deimos_app.param.feature_mz_axis_width_iso, \
                         Deimos_app.param.min_feature_dt_bin_size_iso, Deimos_app.param.min_feature_rt_bin_size_iso, Deimos_app.param.min_feature_mz_bin_size_iso, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.remove_notifications, Deimos_app.param.file_folder_cal, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
-                        Deimos_app.param.tfix, Deimos_app.param.traveling_wave, Deimos_app.param.calibrate_type, Deimos_app.param.rerun_calibrate)
+param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.file_folder_cal, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
+                        Deimos_app.param.tfix, Deimos_app.param.traveling_wave, Deimos_app.param.calibrate_type, Deimos_app.param.rerun_calibrate, Deimos_app.param.remove_notifications)
 
-
+plot_text = 'The color of the plots is the sum of the intensities for all ions with the same values of the plot’s x and y dimensions (i.e. retention time vs drift time). Before zooming in, datashader will aggregate the values into grids, so the color will represent the aggregate intensity for ions within the same grid. '
 app1 = pn.Tabs(
-    ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable()))))),        
-                ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, Deimos_app.smooth_viewable())))),\
-               ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, Deimos_app.peak_viewable())))),\
+    ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable(), plot_text))))),        
+                ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, pn.Column(Deimos_app.smooth_viewable(), plot_text))))),\
+               ('3. Peak Detection', pn.Row(pn.Column(instructions_peaks, pn.pane.PNG('box_select.png'),  pn.Row(param_peak, pn.Column(Deimos_app.peak_viewable(), plot_text))))),\
                ('Deconvolution', pn.Row(pn.Column(instructions_ms2,  pn.Row( param_decon, Deimos_app.decon_viewable())))),\
                ('Calibration',  pn.Row(pn.Column(instructions_calibrate,   pn.Row(param_cal, Deimos_app.calibrate_viewable())))),\
                 ('Isotope Detection', pn.Row(pn.Column(instructions_isotopes, pn.Row(param_iso, Deimos_app.iso_viewable())))),\
