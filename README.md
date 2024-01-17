@@ -26,7 +26,7 @@ conda install colorcet==3.0.1 holoviews==1.17.1 panel==1.2.3 xarray==2023.1.0 hv
 ```
 
 ```
-cd ./deimos_gui/code
+cd ./deimos_gui/src
 ```
 
 ## If conda doesn't work in installing DEIMoS:
@@ -50,14 +50,14 @@ In the terminal, cd to the downloaded folder deimos_gui
 ## If conda doesn't work in installing DEIMoS_GUI:
 
 ``` 
-cd ../deimos_gui/code
+cd ../deimos_gui/src
 #if conda didn't work:
 pip install -r requirements.txt
 ```
 
-## Run app from code folder
+## Run app from src folder
 
-Run app (from deimos_gui/code folder)
+Run app (from deimos_gui/src folder)
 ```
 python run_app.py
 ```
