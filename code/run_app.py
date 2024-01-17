@@ -120,6 +120,7 @@ class Deimos_app(pm.Parameterized):
                                      path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data (in Created_Data Folder)')
     ##TODO this is actually a lower theshold than originally in the paper - need to update the time
     threshold_slider = pm.Integer(default=1000, label='Threshold', doc= 'Filter the files to only keep peaks above this intensity')
+    pre_threshold_slider = pm.Integer(default=128, label='Pre-Threshold', doc= 'Filter the files to only keep peaks above this intensity before processing')
     threshold_slider_ms1_ms2 = pm.Integer(default=100, label='Min Threshold for MS1', doc= 'Filter the files to only keep peaks above this intensity for MS1')
     smooth_radius = pm.String(
         default='0-1-0', doc='Keep - between numbers. Best practice is to increase number of iterations', label='Smoothing radius by mz, drift time, and retention time, repectively, to use when smoothing')
@@ -474,7 +475,7 @@ class Deimos_app(pm.Parameterized):
         if len(self.data_smooth_ms1) == 0: 
             # name will be saved as
             new_smooth_name =  os.path.join( "created_data",  Path(self.file_name_initial).stem + \
-                '_smooth_radius_' + str(self.smooth_radius) +  '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
+                '_smooth_radius_' + str(self.smooth_radius) + '_threshold_' + str(self.threshold_slider) + '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
                    '_new_smooth_data.h5')
             if self.file_name_initial == "data/placeholder.csv":
                     self.data_smooth_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
@@ -482,7 +483,7 @@ class Deimos_app(pm.Parameterized):
                 pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Create smooth data from ' + str(self.file_name_initial), duration=0)
                 try:
                     ms1_smooth, self.index_ms1_peaks, self.index_ms2_peaks = additional_functions.create_smooth(self.file_name_initial, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity,  self.smooth_radius, \
-                                                                                                                self.smooth_iterations, new_smooth_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+                                                                                                                self.smooth_iterations, new_smooth_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, pre_threshold = int(self.pre_threshold_slider))
                 except Exception as e:
                     raise Exception(str(e))
                 # update file selector widget with new names from folder
@@ -570,7 +571,7 @@ class Deimos_app(pm.Parameterized):
                     # add boolean to use created threshold data and created smooth data or redo entiremely
                     try:
                         ms1_peaks = additional_functions.create_peak(self.file_name_smooth, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity, int(self.threshold_slider), self.peak_radius, self.index_ms1_peaks, self.index_ms2_peaks,\
-                                                                    new_peak_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name)
+                                                                    new_peak_name, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, pre_threshold = int(self.pre_threshold_slider))
                     except Exception as e:
                         raise Exception(str(e))
                 self.param.file_name_peak.update()
@@ -1241,6 +1242,7 @@ class Align_plots(pm.Parameterized):
     relative_text = pm.String(default = 'True-True-False',  doc="Keep - between numbers", label  = 'Relevant or abs val by mz, drift, and retention time used during tolarance')
     menu_kernel = pm.Selector(['linear',  'rbf'], default = "rbf", doc="Changes the alignment kernel", label='Support Vector Regression Kernel used during alignment')
     threshold_text = pm.String(default = '2000', label = 'Threshold', doc="Only keep values above this intensity")
+    pre_threshold_slider = pm.Integer(default=128, label='Pre-Threshold', doc= 'Filter the files to only keep peaks above this intensity before processing')
     rerun_align = pm.Action(lambda x: x.param.trigger('rerun_align'), label='(Re)Run align')
     
     feature_dt = pm.Selector(default='drift_time', objects = ["drift_time", 'retention_time', 'mz'], label="Drift Time", doc="This should be the name of one feature in the data. Change if data is using different column value")
@@ -1311,7 +1313,7 @@ class Align_plots(pm.Parameterized):
             relative_text = [bool(i) for i in list(self.relative_text.split('-'))]
             peak_ref, new_name = additional_functions.get_peak_file(self.peak_ref, self.feature_dt, self.feature_rt, self.feature_mz,\
                                                                         self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, \
-                                                                            theshold_presistence = theshold_presistence, key = ref_key)
+                                                                            theshold_presistence = theshold_presistence, key = ref_key, pre_threshold=int(self.pre_threshold_slider))
             # convert to h5 if mzML
             if new_name != None:
                         self.file_folder = "created_data"
@@ -1322,7 +1324,7 @@ class Align_plots(pm.Parameterized):
             for file in file_list:
                 peak_two, new_name = additional_functions.get_peak_file(file, self.feature_dt, self.feature_rt, self.feature_mz,\
                                                                         self.feature_intensity, rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, \
-                                                                            theshold_presistence = theshold_presistence, key = file_key)
+                                                                            theshold_presistence = theshold_presistence, key = file_key, pre_threshold=int(self.pre_threshold_slider))
            
                 peak_two_list.append(peak_two)
                 if new_name == None:

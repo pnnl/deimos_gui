@@ -63,7 +63,7 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_
         else:
              if extension == "":
                      extension = "Folder"
-             raise Exception(extension + " used. Please only use h5, mzML, or mzML.gz files")
+             raise Exception(extension + " used. Please only use h5, hdf, mzML, or mzML.gz files")
            
 def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name,  new_name = None,  key= 'ms1'):
         '''
@@ -90,7 +90,7 @@ def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_
         return full_data_1
 
         
-def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature_intensity,smooth_radius, smooth_iterations, new_smooth_name, rt_name, dt_name):
+def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature_intensity, smooth_radius, smooth_iterations, new_smooth_name, rt_name, dt_name, pre_threshold =128):
         '''
         Get the smooth data
 
@@ -100,12 +100,14 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
                         feature_rt (str): retention time name
                         feature_mz (str): mz name
                         feature_intensity (str): intensity name
+                        threshold_slider (int): threshold data with this value
                         radius (float or list): Radius of the sparse filter in each dimension. Values less than
                         zero indicate no connectivity in that dimension.
                         iterations (int): Maximum number of smoothing iterations to perform.
                         new_smooth_name (str): name of new smooth data
                         rt_name (list): name retention time accession if using mzML file
                         dt_name (list): name drift time accession if using mzML file
+                        pre_threshold (float): pre-threshold value
                 Returns:
                         pd DataFrame with data 
 
@@ -117,7 +119,7 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
         factors = deimos.build_factors(ms1, dims='detect')
                 
         # Nominal threshold
-        ms1 = deimos.threshold(ms1, threshold=128)
+        ms1 = deimos.threshold(ms1, threshold=pre_threshold)
         # Build index
         index_ms1_peaks = deimos.build_index(ms1, factors)
         # Smooth data
@@ -135,7 +137,7 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
 
         pn.state.notifications.info('Smooth MS2 data', duration=3000)
         # Nominal threshold
-        ms2 = deimos.threshold(ms2, threshold=128)
+        ms2 = deimos.threshold(ms2, threshold=pre_threshold)
         # Build index
         index_ms2_peaks = deimos.build_index(ms2, factors)
 
@@ -148,7 +150,7 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
         deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
         return ms1_smooth, index_ms1_peaks, index_ms2_peaks
 
-def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_intensity,  threshold_slider,  peak_radius, index_ms1_peaks, index_ms2_peaks, new_peak_name, rt_name = None, dt_name = None ):
+def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_intensity,  threshold_slider,  peak_radius, index_ms1_peaks, index_ms2_peaks, new_peak_name, rt_name = None, dt_name = None, pre_threshold=128 ):
         '''
         Get the smooth data
 
@@ -166,6 +168,7 @@ def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_in
                         new_peak_name (str): name of new peak data
                         rt_name (list): name retention time accession if using mzML file
                         dt_name (list): name drift time accession if using mzML file
+                        pre_threshold (float): pre-threshold value
                 Returns:
                         pd DataFrame with data 
         '''
@@ -180,7 +183,7 @@ def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_in
                 peak_radius= [int(i) for i in list(peak_radius.split('-'))]
 
                 # Perform peak detection
-                ms1_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms1_smooth,  threshold = 128),  index=index_ms1_peaks,
+                ms1_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms1_smooth,  threshold = pre_threshold),  index=index_ms1_peaks,
                                                                 dims=[feature_mz, feature_dt, feature_rt],
                                                                 radius=peak_radius)
                 # Sort by persistence
@@ -192,7 +195,7 @@ def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_in
 
 
                 # Perform peak detection
-                ms2_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms2_smooth,  threshold = 128), index=index_ms2_peaks,
+                ms2_peaks = deimos.peakpick.persistent_homology(deimos.threshold(ms2_smooth,  threshold = pre_threshold), index=index_ms2_peaks,
                                                                 dims=[feature_mz, feature_dt, feature_rt],
                                                                 radius=peak_radius)
                 
@@ -206,7 +209,7 @@ def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_in
                 deimos.save(new_peak_name, ms2_peaks, key='ms2', mode='a')
                 return ms1_peaks
 
-def align_peak_create(full_ref, theshold_presistence, feature_mz, feature_dt, feature_rt, feature_intensity):
+def align_peak_create(full_ref, theshold_presistence, feature_mz, feature_dt, feature_rt, feature_intensity, pre_threshold):
         '''
         Get the smooth data
 
@@ -217,13 +220,14 @@ def align_peak_create(full_ref, theshold_presistence, feature_mz, feature_dt, fe
                         feature_rt (str): retention time name
                         feature_mz (str): mz name
                         feature_intensity (str): intensity name
+                        pre_threshold (float): pre-threshold value
                 Returns:
                         pd DataFrame with data 
         '''
-        peak_ref  = deimos.peakpick.persistent_homology(deimos.threshold(full_ref,  threshold = 128),
+        peak_ref  = deimos.peakpick.persistent_homology(deimos.threshold(full_ref,  threshold = pre_threshold),
                                                 dims=[feature_mz, feature_dt, feature_rt])
-        peak_ref = deimos.threshold(peak_ref, by='persistence', threshold=1000)
-        peak_ref = deimos.threshold(peak_ref, by='intensity', threshold=1000)
+        peak_ref = deimos.threshold(peak_ref, by='persistence', threshold=theshold_presistence)
+        peak_ref = deimos.threshold(peak_ref, by='intensity', threshold=theshold_presistence)
         return peak_ref
 
 def offset_correction_model(dt_ms2, mz_ms2, mz_ms1, ce=0,
@@ -315,7 +319,7 @@ y_spacing=0,
 
 def new_name_if_mz(mz_file_name):
         extension = Path(mz_file_name).suffix
-        if extension == ".mzML" or extension == ".mzml" or extension == ".gz":
+        if extension == ".mzML" or extension == ".mzml" or extension == ".gz" or extension == ".h5" or extension == ".hdf":
                 new_name = os.path.join("created_data",  Path(mz_file_name).stem + '.h5')
         else:
                 new_name = None
@@ -356,7 +360,7 @@ def aligment(two_matched, ref_matched, two_matched_aligned, dim, kernel, paramet
         matchtable.to_csv(os.path.join("created_data", parameter_inputs + "_matchtable.csv"))
         return xy_drift_retention_time, matchtable
 
-def get_peak_file(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name,  theshold_presistence,  key= 'ms1'):
+def get_peak_file(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name,  theshold_presistence,  key= 'ms1', pre_threshold= 128):
 
         '''
         load the peak files for alignment
@@ -379,7 +383,7 @@ def get_peak_file(file_name_initial, feature_dt, feature_rt, feature_mz, feature
                 new_name = new_name_if_mz(file_name_initial)
                 peak_ref_initial = load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_mz, feature_intensity, rt_name, dt_name, key = key, new_name = new_name)
                 
-                peak_ref =align_peak_create(peak_ref_initial, theshold_presistence,feature_mz,  feature_dt, feature_rt, feature_intensity, )
+                peak_ref =align_peak_create(peak_ref_initial, theshold_presistence,feature_mz,  feature_dt, feature_rt, feature_intensity, pre_threshold)
         except Exception as e:
                 raise Exception(str(e))
         # if thesholding makes the files have lenght 0, bring up exception
