@@ -975,6 +975,7 @@ class Deimos_app(pm.Parameterized):
                 pn.state.notifications.clear()
                 pn.state.notifications.info('Finished getting isotopes', duration=10000)  
         else:
+            pn.state.notifications.clear()
             pn.state.notifications.info('Re-triggered rerun_iso function, loading previously loaded file', duration=10000)
             pass
         return hv.Dataset(self.isotopes_head)
@@ -1075,7 +1076,6 @@ class Deimos_app(pm.Parameterized):
         '''Main function to view the isotopes and if the user clicks on the isotopes table row, 
         to see the ms1 data and the mz data from that row'''
         pn.state.notifications.position = 'top-right'
-        pn.state.notifications.info('Return Isotope data', duration=10000)
         # dynamic map to return hvdata after loading it with deimos
         #get isotype data from peak  when run_iso or placeholder changes
         self.isotopes_head = pd.DataFrame({'A': []})
@@ -1124,10 +1124,7 @@ class Deimos_app(pm.Parameterized):
                     operation=self.rasterize_rm_iso,
                     streams=[stream_iso],
                 )
-
         
-        pn.state.notifications.clear() 
-        pn.state.notifications.info('Finished with Isotopes function', duration=10000) 
         return hv.Layout(iso_dataframe + iso_dataframe_filtered \
             +  self.rasterized_md_iso +  self.rasterized_dr_iso  + self.rasterized_rm_iso \
                 + hvplot_mi_iso).opts(shared_axes=False).cols(2)
