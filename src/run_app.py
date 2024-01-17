@@ -110,9 +110,9 @@ class Deimos_app(pm.Parameterized):
     min_feature_rt_bin_size_iso = pm.Number(default=0.2, bounds=(0,None), label="Min bin size: " + feature_rt.default, doc= 'The grid-size will never be smaller than this if using width input to zoom in. Only clicking Recreate plot will adjust the plots')
     min_feature_mz_bin_size_iso = pm.Number(default=0.02, bounds=(0,None), label="Min bin size: " + feature_mz.default, doc= 'The grid-size will never be smaller than this if using width input to zoom in. Only clicking Recreate plot will adjust the plots')
 
-    min_feature_rt_spacing = pm.Number(default=1.5, bounds=(0,None), label="Spacing: " + feature_rt.default, doc= "Check for MS2 within the range of the location clicked the MS1 plus and minus this value")
-    min_feature_dt_spacing = pm.Number(default=1.5, bounds=(0,None), label="Spacing: " + feature_dt.default, doc= "Check for MS2 within the range of the location clicked the MS1 plus and minus this value")
-    min_feature_mz_spacing = pm.Number(default=20, bounds=(0,None), label="Spacing: " + feature_mz.default, doc= "Check for MS2 within the range of the location clicked the MS1 plus and minus this value")
+    min_feature_rt_spacing = pm.Number(default=1.5, bounds=(0,None), label="Spacing: " + feature_rt.default, doc= "Check for MS2 data within the range of the location clicked in the MS1 plot plus and minus this value")
+    min_feature_dt_spacing = pm.Number(default=1.5, bounds=(0,None), label="Spacing: " + feature_dt.default, doc= "Check for MS2 data within the range of the location clicked in the MS1 plot plus and minus this value")
+    min_feature_mz_spacing = pm.Number(default=20, bounds=(0,None), label="Spacing: " + feature_mz.default, doc= "Check for MS2 data within the range of the location clicked in the MS1 plot plus and minus this value")
 
     file_name_smooth = pm.FileSelector(default = os.path.join("created_data", file_name_smooth_name),\
                                         path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data (in Created_Data Folder)')

@@ -50,7 +50,7 @@ In the terminal, cd to the downloaded folder deimos_gui
 ## If conda doesn't work in installing DEIMoS_GUI:
 
 ``` 
-cd ../deimos_gui/src
+cd ../deimos_gui
 #if conda didn't work:
 pip install -r requirements.txt
 ```
@@ -59,6 +59,7 @@ pip install -r requirements.txt
 
 Run app (from deimos_gui/src folder)
 ```
+cd src
 python run_app.py
 ```
 
