@@ -385,6 +385,7 @@ class Deimos_app(pm.Parameterized):
     # show plots of initial data before any smoothing, peakfinding, etc.
     @pm.depends('view_plot', watch = True)
     def initial_viewable(self, **kwargs):
+        pn.state.notifications.clear()
         pn.state.notifications.position = 'top-right'
         '''Full function to return the initial data in three graphs'''
         #update file selector widget with new names from folder
@@ -508,6 +509,7 @@ class Deimos_app(pm.Parameterized):
         '''Full function to load and process smooth function 
         If users already has peak data, this step can be skipped
         return three graphs and smooth_data.h5 in created_data'''
+        pn.state.notifications.clear()
         pn.state.notifications.position = 'top-right'
         self.data_smooth_ms1 = pd.DataFrame({'A' : []})
         pn.state.notifications.info('Loading smooth data: ' + str(self.file_name_smooth), duration=10000)
@@ -591,6 +593,7 @@ class Deimos_app(pm.Parameterized):
     def peak_viewable(self, **kwargs):
         '''Run full function to load smooth data, run peak function and return heatmaps'''
         # dynamic map to return hvdata after loading it with deimos
+        pn.state.notifications.clear()
         pn.state.notifications.position = 'top-right'
         
         self.param.file_name_initial.update()
@@ -820,6 +823,7 @@ class Deimos_app(pm.Parameterized):
     def decon_viewable(self, **kwargs):
         '''Main function to get the deconvolution values from peak and initial data'''
         pn.state.notifications.position = 'top-right'
+        pn.state.notifications.clear()
         # dynamic map to return hvdata after loading it with deimos
         # trigger with 'run decon' button
         self.m1, self.d1, self.d2, self.r2, self.r3, self.m3 = None, None, None, None, None, None
@@ -1076,6 +1080,7 @@ class Deimos_app(pm.Parameterized):
     def iso_viewable(self, **kwargs):
         '''Main function to view the isotopes and if the user clicks on the isotopes table row, 
         to see the ms1 data and the mz data from that row'''
+        pn.state.notifications.clear()
         pn.state.notifications.position = 'top-right'
         # dynamic map to return hvdata after loading it with deimos
         #get isotype data from peak  when run_iso or placeholder changes
@@ -1214,6 +1219,7 @@ class Deimos_app(pm.Parameterized):
         '''Main calibrate function to rerun calibration value
         Return plot with reduced ccs to ta
         and file with calibrated values in the created_data folder'''
+        pn.state.notifications.clear()
         pn.state.notifications.position = 'top-right'
         
         self.param.calibration_input.update()
@@ -1284,6 +1290,7 @@ class Align_plots(pm.Parameterized):
 
         
         pn.state.notifications.position = 'top-right'
+        pn.state.notifications.clear()
 
         list_plots = []
         if self.peak_ref == "data/placeholder.csv":
