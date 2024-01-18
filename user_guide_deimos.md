@@ -4,8 +4,9 @@
 
 Select the files from the folder indicated in the "location of data
 folder" folder. The files supported are .h5, .hdf, .mzML, or .mzML.gz 
-The h5 files can be made from a dataframe with a column for dimension 
-and intensity. A h5 files can also be created by following the directions
+The h5 files can be made from a dataframe with columns for the 
+dimensions and intensity. 
+A h5 files can also be created by following the directions
 https://deimos.readthedocs.io/en/latest/user_guide/loading_saving.html
 
 ![Graphical user interface, text, application Description automatically
