@@ -500,7 +500,7 @@ class Deimos_app(pm.Parameterized):
 # if the data value has already been updated from rerun, 
 #don't update again until user clicks rerun again
             
-            pn.state.notifications.info('Re-triggered create_smooth_data function, loading previously loaded file', duration=10000)
+            # pn.state.notifications.info('Re-triggered create_smooth_data function, loading previously loaded file', duration=10000)
             pass
         return hv.Dataset(self.data_smooth_ms1)
   
@@ -585,7 +585,7 @@ class Deimos_app(pm.Parameterized):
         else:   
         # if the data value has already been updated from rerun, 
         #don't update again until user clicks rerun again
-            pn.state.notifications.info('Re-triggered create_peak_data function, loading previously loaded file', duration=10000)
+            # pn.state.notifications.info('Re-triggered create_peak_data function, loading previously loaded file', duration=10000)
             pass
 
         return hv.Dataset(self.data_peak_ms1)
@@ -693,7 +693,8 @@ class Deimos_app(pm.Parameterized):
                     pn.state.notifications.info("Finished running deconvolution", duration=10000)
         
         else:   
-            pn.state.notifications.info('Re-triggered ms2_decon function, loading previously loaded file', duration=10000)
+            # pn.state.notifications.info('Re-triggered ms2_decon function, loading previously loaded file', duration=10000)
+            pass
         
         return hv.Dataset(self.res)
         
@@ -981,14 +982,14 @@ class Deimos_app(pm.Parameterized):
                 pn.state.notifications.info('Finished getting isotopes', duration=10000)  
         else:
             pn.state.notifications.clear()
-            pn.state.notifications.info('Re-triggered rerun_iso function, loading previously loaded file', duration=10000)
+            # pn.state.notifications.info('Re-triggered rerun_iso function, loading previously loaded file')
             pass
         return hv.Dataset(self.isotopes_head)
     
     def get_ids(self, table, index):
         '''Return a slice of the ms1 data based on user input of range 
         and the mz values of selected row in table'''
-        pn.state.notifications.info('Get index: ' + str(index) + " Click 'Recreate plots' to view with correct axis range", duration=10000) 
+        #pn.state.notifications.info('Get index: ' + str(index) + " Click 'Recreate plots' to view with correct axis range", duration=10000) 
         if self.file_name_peak == "created_data/placeholder.csv":
             mz1 = np.random.randint(0,9)
             mz2 = np.random.randint(0,9)
