@@ -56,7 +56,7 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_
                         pn.state.notifications.info("saving as h5 file in " + str(new_name))
                         pn.state.notifications.info("done loading", duration=0)
                         return load_file[key]
-        elif extension ==".h5":
+        elif extension in [".hdf5", ".hdf", ".h5"]:
                 return deimos.load(file_name_initial, key=key, columns=columns)
         elif extension ==".csv":
                 return pd.read_csv(file_name_initial)
