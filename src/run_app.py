@@ -316,7 +316,7 @@ class Deimos_app(pm.Parameterized):
         Run if steam value of 
         Recreate_plots_with_below_values changes'''
 
-        pn.state.notifications.info("Re-aggregating based on values below")
+        pn.state.notifications.info("Re-aggregating ")
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -861,7 +861,7 @@ class Deimos_app(pm.Parameterized):
         with x and y range and x and y spacing
         Run if steam value of 
         Recreate_plots_with_below_values_iso changes'''
-        pn.state.notifications.info("Re-aggregating based on values below")
+        pn.state.notifications.info("Re-aggregating ")
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
