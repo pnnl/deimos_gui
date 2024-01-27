@@ -305,6 +305,56 @@ class Deimos_app(pm.Parameterized):
         return
     
 
+    def refresh_axis_values_smooth(self):
+        '''Let axis ranges based on the data'''
+        self.reset_xy_stream()
+
+        mz_range = (
+            float(self.data_smooth_ms1.mz.min().compute()),
+            float(self.data_smooth_ms1.mz.max().compute()) + 1.0,
+        )
+        #self.param sets the features within the param, while self.x sets actual value of x
+        self.param.feature_mz_axis_width.default = mz_range
+        self.feature_mz_axis_width = mz_range
+        retention_range = (
+            float(self.data_smooth_ms1[self.feature_rt].min().compute()),
+            float(self.data_smooth_ms1[self.feature_rt].max().compute()) + 1.0,
+        )
+        self.param.feature_rt_axis_width.default = retention_range
+        self.feature_rt_axis_width = retention_range
+        drift_range = (
+            float(self.data_smooth_ms1[self.feature_dt].min().compute()),
+            float(self.data_smooth_ms1[self.feature_dt].max().compute()) + 1.0,
+        )
+        self.param.feature_dt_axis_width.default = drift_range
+        self.feature_dt_axis_width = drift_range
+        return
+    
+    def refresh_axis_values_peak(self):
+        '''Let axis ranges based on the data'''
+        self.reset_xy_stream()
+
+        mz_range = (
+            float(self.data_peak_ms1.mz.min().compute()),
+            float(self.data_peak_ms1.mz.max().compute()) + 1.0,
+        )
+        #self.param sets the features within the param, while self.x sets actual value of x
+        self.param.feature_mz_axis_width.default = mz_range
+        self.feature_mz_axis_width = mz_range
+        retention_range = (
+            float(self.data_peak_ms1[self.feature_rt].min().compute()),
+            float(self.data_peak_ms1[self.feature_rt].max().compute()) + 1.0,
+        )
+        self.param.feature_rt_axis_width.default = retention_range
+        self.feature_rt_axis_width = retention_range
+        drift_range = (
+            float(self.data_peak_ms1[self.feature_dt].min().compute()),
+            float(self.data_peak_ms1[self.feature_dt].max().compute()) + 1.0,
+        )
+        self.param.feature_dt_axis_width.default = drift_range
+        self.feature_dt_axis_width = drift_range
+        return
+
     def rasterize_md(
         self,
         element,
@@ -492,6 +542,7 @@ class Deimos_app(pm.Parameterized):
                 # set the file_folder and name of smooth data
                 self.file_name_smooth = new_smooth_name
                 self.data_smooth_ms1  = dd.from_pandas(ms1_smooth, npartitions=mp.cpu_count())
+                self.refresh_axis_values_smooth()
                 pn.state.notifications.clear()
                 pn.state.notifications.info('Finished data processing. Creating plots. Created smooth data from ' + str(self.file_name_smooth), duration=10000)
                 
@@ -580,6 +631,7 @@ class Deimos_app(pm.Parameterized):
                 self.file_name_peak = new_peak_name
                 self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
             pn.state.notifications.clear()
+            self.refresh_axis_values_peak()
             pn.state.notifications.info('Finished: Peak data at ' + str(self.file_name_peak), duration=10000)
             self.data_peak_ms1.persist()
         else:   
@@ -1429,8 +1481,14 @@ param_full = pn.Column('<b>View initial Data</b>', Deimos_app.param.file_folder_
                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
                         Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations, Deimos_app.param.pre_threshold_slider,  Deimos_app.param.rerun_smooth,  Deimos_app.param.remove_notifications, '<b>Result</b>', Deimos_app.param.file_name_smooth)
-param_peak = pn.Column('<b>Peak-picking</b>', '<b>Adjust the plots</b>', Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.pre_threshold_slider, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak, Deimos_app.param.remove_notifications, '<b>Result</b>', Deimos_app.param.file_name_peak)
+param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations, Deimos_app.param.pre_threshold_slider,  Deimos_app.param.rerun_smooth,  Deimos_app.param.remove_notifications, '<b>Result</b>', Deimos_app.param.file_name_smooth, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
+                    Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
+                        Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
+                            Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
+param_peak = pn.Column('<b>Peak-picking</b>', '<b>Adjust the plots</b>', Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.pre_threshold_slider, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak, Deimos_app.param.remove_notifications, '<b>Result</b>', Deimos_app.param.file_name_peak, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
+                    Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
+                        Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
+                            Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
 param_decon = pn.Column('<b>MS2 Deconvolution</b>', Deimos_app.param.file_folder_initial, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.threshold_slider_ms1_ms2, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon, Deimos_app.param.remove_notifications)
 param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.file_name_peak,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, Deimos_app.param.remove_notifications,'<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
                     Deimos_app.param.feature_dt_axis_width_iso, Deimos_app.param.feature_rt_axis_width_iso, Deimos_app.param.feature_mz_axis_width_iso, \
