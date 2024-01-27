@@ -67,9 +67,9 @@ hv.output(backend='bokeh')
 
 class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only changes when paramaters are updated'''
-    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5')
+    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5. (Placeholder.csv creates small sample data). Change column values by inputs below', label='Initial Data Default: example_data.h5')
     file_folder_initial =  pm.String(
-        default= "data", doc='Please use forward slashes / and starting from / if absolute. Data folder (use / at the end of the file).', label='Data folder (use /)')
+        default= "data", doc='Please use forward slashes / and starting from / if absolute. Data folder.', label='Data folder (use /)')
     file_folder_cal =  pm.String(
         default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Data folder (use /)')
     rt_mzML_name = pm.Selector(["scan start time"], doc='Select one of the columns within the mzML file. Only adjust if mz file selected. Select the retention time column name')
@@ -77,11 +77,11 @@ class Deimos_app(pm.Parameterized):
     # reset the manual filters to the data bounds and reset the rangexy of the plot
     reset_filter = pm.Action(
         lambda x: x.param.trigger('reset_filter'), doc = 'Refresh axis ranges to data min and max (will not update plot). Select (re)run to redo plot',
-        label='Reset axis ranges below')
+        label='Reset Axis ranges below')
   
     reset_filter_iso = pm.Action(
         lambda x: x.param.trigger('reset_filter_iso'), doc = 'Refresh axis ranges to data min and max (will not update plot). Select (re)run to redo plot',
-        label='Update axis ranges below')
+        label='Reset Axis ranges below')
     
     feature_dt = pm.Selector(default='drift_time', objects = ["drift_time", 'retention_time', 'mz'], label="Drift Time", doc="This should be the name of one feature (drift time is the default) in the data. Change if data is using different column value")
     feature_rt = pm.Selector(default='retention_time', objects = ["drift_time", 'retention_time', 'mz'], label="Retention Time", doc="This should be the name of one feature (retention time is the default) in the data. Change if data is using different column value")
@@ -90,9 +90,9 @@ class Deimos_app(pm.Parameterized):
     feature_intensity = pm.String(default = 'intensity', label='Intensity Feature', doc="This the value that will be summed and visualized in the plots. Change if data is using different column value")
 
     # manual filter bounds of plots
-    feature_dt_axis_width = pm.NumericTuple(default=(0.0, 200.0), label="Axis width: " + feature_dt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
-    feature_rt_axis_width = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_rt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
-    feature_mz_axis_width = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_mz.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
+    feature_dt_axis_width = pm.NumericTuple(default=(0.0, 200.0), label="Axis width: " + feature_dt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
+    feature_rt_axis_width = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_rt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
+    feature_mz_axis_width = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_mz.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
 
     # set the min spacing for all the dimensions for rasterizing
     min_feature_dt_bin_size = pm.Number(default=0.2,bounds=(0,None),  label="Min bin size: " + feature_dt.default, doc= 'The grid-size will never be smaller than this if using width input to zoom in. Only clicking Recreate plot will adjust the plots')
@@ -101,9 +101,9 @@ class Deimos_app(pm.Parameterized):
 
     # manual filter centers for the graphs in isotopes (smaller range than the full_plot, so don't want use the same bounds)
     
-    feature_dt_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_dt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
-    feature_rt_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_rt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
-    feature_mz_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_mz.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
+    feature_dt_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_dt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
+    feature_rt_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_rt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
+    feature_mz_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_mz.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
 
     # set the min spacing for all the dimensions for isotopes
     min_feature_dt_bin_size_iso = pm.Number(default=0.2, bounds=(0,None), label="Min bin size: " + feature_dt.default, doc= 'The grid-size will never be smaller than this if using width input to zoom in. Only clicking Recreate plot will adjust the plots')
@@ -115,19 +115,19 @@ class Deimos_app(pm.Parameterized):
     min_feature_mz_spacing = pm.Number(default=20, bounds=(0,None), label="Spacing: " + feature_mz.default, doc= "Check for MS2 data within the range of the location clicked in the MS1 plot plus and minus this value")
 
     file_name_smooth = pm.FileSelector(default = os.path.join("created_data", file_name_smooth_name),\
-                                        path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data (in Created_Data Folder)')
+                                        path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Smooth Data (in Created_Data Folder)')
     file_name_peak = pm.FileSelector(default = os.path.join("created_data", file_name_peak_name), \
-                                     path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data (in Created_Data Folder)')
+                                     path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Peak Data (in Created_Data Folder)')
     ##TODO this is actually a lower theshold than originally in the paper - need to update the time
-    threshold_slider = pm.Integer(default=1000, label='Threshold', doc= 'Filter the files to only keep peaks above this intensity')
+    threshold_slider = pm.Integer(default=1000, label='Threshold', doc= 'Filter the files to only keep peaks above this intensity after processing')
     pre_threshold_slider = pm.Integer(default=128, label='Pre-Threshold', doc= 'Filter the files to only keep peaks above this intensity before processing')
     threshold_slider_ms1_ms2 = pm.Integer(default=100, label='Min Threshold for MS1', doc= 'Filter the files to only keep peaks above this intensity for MS1')
     smooth_radius = pm.String(
-        default='0-1-0', doc='Keep - between numbers. Best practice is to increase number of iterations', label='Smoothing radius by mz, drift time, and retention time, repectively, to use when smoothing')
+        default='0-1-0', doc='Keep - between numbers  A radius per dimension by mz, drift time, and retention time', label='Smoothing radius')
     smooth_iterations = pm.String(
-        default='3', doc='Best practice is to increase number of iterations by mz, drift time, and retention time', label='Number of smoothing iterations')
+        default='3', doc='Best practice is to increase number of iterations ', label='Number of smoothing iterations')
     peak_radius = pm.String(
-        default='2-10-0', doc='Keep - between numbers. A radius per dimension by mz, drift time, and retention time', label='Weighted mean kernel size, respectively, for mz, drift time, and retention time')
+        default='2-10-0', doc='Keep - between numbers. A radius per dimension by mz, drift time, and retention time', label='Weighted mean kernel size')
     #
     view_plot = pm.Action(lambda x: x.param.trigger('view_plot'), doc="Click to view new file", label='Click to rerun after changing inputs')
     
@@ -142,15 +142,15 @@ class Deimos_app(pm.Parameterized):
     remove_notifications = pm.Action(lambda x: x.param.trigger('remove_notifications'), doc="Remove all notifications", label='Remove all notifications')
 
     # set the min spacing for all the dimensions for rasterizing 
-    slice_distance_dt = pm.Number(default=0.2, bounds=(0,None), label="Slice isotopes drift time", doc = "Add distance to selected isotope drift time to get plot range")
-    slice_distance_rt = pm.Number(default=0.2, bounds=(0,None), label="Slice isotopes retention time", doc = "Add distance to selected isotope retention time to get plot range")
-    slice_distance_mz = pm.Number(default=5, bounds=(0,None), label="Slice isotopes mz left", doc = "Add distance to selected isotope mz to get plot range")
+    slice_distance_dt = pm.Number(default=0.2, bounds=(0,None), label="Slice isotopes drift time", doc = "Add this distance to selected isotope drift time to get new plot range")
+    slice_distance_rt = pm.Number(default=0.2, bounds=(0,None), label="Slice isotopes retention time", doc = "Add this distance to selected isotope retention time to get new plot range")
+    slice_distance_mz = pm.Number(default=5, bounds=(0,None), label="Slice isotopes mz left", doc = "Add this distance to selected isotope mz to get new plot range")
 
     calibration_input = pm.FileSelector(default = os.path.join("data", calibration_input_name), path="data/*",  doc='Calibrate input file. Data must include mz, ccs, charge, and, if not tune mix, a ta column. File in .h5, .mzML, .mzML.gz or csv format. Default: cal_input.csv', label='Calibration Input. Default: cal_input.csv')
-    example_tune_file = pm.FileSelector(default = os.path.join("data", example_tune_file_name), path="data/*",  doc='Example tune file. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='Example Tune Data, Default: example_tune_pos.h5')
+    example_tune_file = pm.FileSelector(default = os.path.join("data", example_tune_file_name), path="data/*",  doc='Tune file. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='Example Tune Data, Default: example_tune_pos.h5')
     file_to_calibrate = pm.FileSelector(default = os.path.join("data", file_to_calibrate_name), path="data/*",  doc='Input that will be calibrated. Data must include mz, ta, and q values. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='File to Calib. Default: example_tune_pos.h5')
-    beta = pm.String(default = "0.12991516042484708", label='beta', doc ="Only necessary if selected fix_parameters")
-    tfix = pm.String(default = "-0.03528247661068562", label='tfix', doc ="Only necessary if selected fix_parameters")
+    beta = pm.String(default = "0.12991516042484708", label='beta', doc ="Only necessary to change if selected fix_parameters")
+    tfix = pm.String(default = "-0.03528247661068562", label='tfix', doc ="Only necessary to change if selected fix_parameters")
     traveling_wave = pm.Boolean(False, label='traveling_wave', doc="If true, then using travelling wave IMS, where the relationship between measurement and CCS will linearized by the natural logarithm")
     calibrate_type = pm.Selector(default = "load_all_values", objects=["load_all_values", "use_tunemix","fix_parameters"], doc= "Calibrate using one of possible functions, see user guide for more information")
 
@@ -273,7 +273,7 @@ class Deimos_app(pm.Parameterized):
         # if the data value has already been updated from rerun, 
         #don't update again until user clicks rerun again
             pn.state.notifications.clear()
-            pn.state.notifications.info('Re-trigged hvplot_initial function, loading previously loaded file', duration=10000)
+            #pn.state.notifications.info('Re-trigged hvplot_initial function, loading previously loaded file', duration=10000)
             pass
         return hv.Dataset(self.data_initial)
 
@@ -810,7 +810,6 @@ class Deimos_app(pm.Parameterized):
                     # if just one value of ms2 in list, convert to pandas dataframe rather than a series
                     numpy_dataframe = np.hstack((np.array(res.loc[max_idx, self.feature_mz + '_ms2']),
                     np.array(res.loc[max_idx, self.feature_intensity + '_ms2'])))
-            
                     highest_ms2  = pd.DataFrame(numpy_dataframe.reshape(-1, len(numpy_dataframe)), columns = [self.feature_mz, self.feature_intensity])
                 else:
                     highest_ms2 = pd.DataFrame({self.feature_mz: np.array(res.loc[max_idx, self.feature_mz + '_ms2']),
