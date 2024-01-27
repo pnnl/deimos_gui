@@ -968,29 +968,30 @@ class Deimos_app(pm.Parameterized):
     def refresh_axis_values_iso(self):
         '''Reset the manual filter to the min and max values from the input data'''
         self.reset_xy_stream()
-        if len(self.feature_iso) > 0:
-            # since manual filter is true, tthis will reset xy stream 
-            # and set the x and y range to the min and max of the new data via the rasterize functon
-            mz_range = (
-                int(self.feature_iso.mz.min()),
-                int(self.feature_iso.mz.max() + 1),
-            )
-            #self.param sets the features within the param, while self.x sets actual value of x
-            self.param.feature_mz_axis_width_iso.default = mz_range
-            self.feature_mz_axis_width_iso = mz_range
-            retention_range = (
-                int(self.feature_iso[self.feature_rt].min()),
-                int(self.feature_iso[self.feature_rt].max() + 1),
-            )
-            self.param.feature_rt_axis_width_iso.default = retention_range
-            self.feature_rt_axis_width_iso = retention_range
-            drift_range = (
-                int(self.feature_iso[self.feature_dt].min()),
-                int(self.feature_iso[self.feature_dt].max() + 1),
-            )
-            self.param.feature_dt_axis_width_iso.default = drift_range
-            self.feature_dt_axis_width_iso = drift_range
-        
+        if isinstance(self.feature_iso, pd.DataFrame): 
+            if len(self.feature_iso) > 0:
+                # since manual filter is true, tthis will reset xy stream 
+                # and set the x and y range to the min and max of the new data via the rasterize functon
+                mz_range = (
+                    int(self.feature_iso.mz.min()),
+                    int(self.feature_iso.mz.max() + 1),
+                )
+                #self.param sets the features within the param, while self.x sets actual value of x
+                self.param.feature_mz_axis_width_iso.default = mz_range
+                self.feature_mz_axis_width_iso = mz_range
+                retention_range = (
+                    int(self.feature_iso[self.feature_rt].min()),
+                    int(self.feature_iso[self.feature_rt].max() + 1),
+                )
+                self.param.feature_rt_axis_width_iso.default = retention_range
+                self.feature_rt_axis_width_iso = retention_range
+                drift_range = (
+                    int(self.feature_iso[self.feature_dt].min()),
+                    int(self.feature_iso[self.feature_dt].max() + 1),
+                )
+                self.param.feature_dt_axis_width_iso.default = drift_range
+                self.feature_dt_axis_width_iso = drift_range
+            
         return
     
     @pm.depends('rerun_iso', watch = True)
@@ -1053,6 +1054,7 @@ class Deimos_app(pm.Parameterized):
                 index = 0
             else:
                 index = index[0]
+              
             # should it include the idx column too (Plus idx iso)
             def lit_list(x):
                 '''Get python object of list from string'''
