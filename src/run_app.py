@@ -1379,7 +1379,7 @@ Align_plots = Align_plots()
 #using viewable() would be best practice for minimizing refresh, but need hard refresh in this case for new axis
 instructions_view = "<ul> <li>Click rerun to reflect changes</li> <li>Indicate the local path of the full data below to update</li>\
     <li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
-<li>Changing the axis widths and clicking 'Recreate plots with below values' to re-aggregrate with new widths</li>\
+<li>Change the axis widths and click 'Recreate plots with below values' to re-aggregrate with new widths</li>\
 <li>Toolbar's zoom and reset does not re-aggregate within this tool.</li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
