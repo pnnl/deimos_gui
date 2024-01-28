@@ -1479,7 +1479,7 @@ instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes within 
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
-reset_instuctions = "<p>Click Reset to reset values to the initial data range. <br> Otherwise the widths are all automatically updated to <br>the ranges of the last updated file (initial, smooth or peak) <br> They can also be manually changed <br> (Click Recreate Plots to update the plots)</p>"
+reset_instuctions = "<p>The widths are all automatically updated to <br>the ranges of the last updated file (initial, smooth or peak) <br> Click Reset to reset values to the initial data range. <br> They can also be manually changed <br> (Click Recreate Plots to actually update the plots)</p>"
 param_full = pn.Column('<b>View initial Data</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, Deimos_app.param.remove_notifications, \
                        '<b>Adjust the plots</b>', reset_instuctions, Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
