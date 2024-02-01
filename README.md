@@ -1,7 +1,7 @@
 DEIMoS Visualization
 =======
 
-Version 1.0
+Version 1.0.0
 
 ## User Guide
 [User Guide](user_guide_deimos.md)
