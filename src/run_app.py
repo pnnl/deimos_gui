@@ -214,7 +214,7 @@ class Deimos_app(pm.Parameterized):
     def update_mz_accession(self):
         '''If using mzML allow users to chose name from accession file'''
         if self.file_name_initial == None:
-            raise Exception("No file selected - check if you are running Python run_app.py from src folder")
+            raise Exception("No file selected - check if you are running Python run_app.py from src folder. 'cd src'")
         extension = Path(self.file_name_initial).suffix
         if extension == ".mzML" or extension == ".mzML.gz" :
             accessin_list = list(deimos.get_accessions(self.file_name_initial).keys())
