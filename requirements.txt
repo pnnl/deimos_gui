@@ -7,3 +7,4 @@ hvplot==0.9.0
 datashader==0.15.2
 pandas==2.0.3
 playwright==1.41.2
+pytest==8.0.0
