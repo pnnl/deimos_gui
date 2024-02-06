@@ -67,7 +67,7 @@ hv.output(backend='bokeh')
 
 class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only changes when paramaters are updated'''
-    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5. (Placeholder.csv creates small sample data). Change column values by inputs below', label='Initial Data Default: example_data.h5')
+    file_name_initial = pm.FileSelector( path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5. (Placeholder.csv creates small sample data). Change column values by inputs below', label='Initial Data Default: example_data.h5')
     file_folder_initial =  pm.String(
         default= "data", doc='Please use forward slashes / and starting from / if absolute. Data folder.', label='Data folder (use /)')
     file_folder_cal =  pm.String(
@@ -114,10 +114,8 @@ class Deimos_app(pm.Parameterized):
     min_feature_dt_spacing = pm.Number(default=1.5, bounds=(0,None), label="Spacing: " + feature_dt.default, doc= "Check for MS2 data within the range of the location clicked in the MS1 plot plus and minus this value")
     min_feature_mz_spacing = pm.Number(default=20, bounds=(0,None), label="Spacing: " + feature_mz.default, doc= "Check for MS2 data within the range of the location clicked in the MS1 plot plus and minus this value")
 
-    file_name_smooth = pm.FileSelector(default = os.path.join("created_data", file_name_smooth_name),\
-                                        path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Smooth Data (in Created_Data Folder)')
-    file_name_peak = pm.FileSelector(default = os.path.join("created_data", file_name_peak_name), \
-                                     path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Peak Data (in Created_Data Folder)')
+    file_name_smooth = pm.FileSelector( path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Smooth Data (in Created_Data Folder)')
+    file_name_peak = pm.FileSelector(path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Peak Data (in Created_Data Folder)')
     ##TODO this is actually a lower theshold than originally in the paper - need to update the time
     threshold_slider = pm.Integer(default=1000, label='Threshold', doc= 'Filter the files to only keep peaks above this intensity after processing')
     pre_threshold_slider = pm.Integer(default=128, label='Pre-Threshold', doc= 'Filter the files to only keep peaks above this intensity before processing')
@@ -146,9 +144,9 @@ class Deimos_app(pm.Parameterized):
     slice_distance_rt = pm.Number(default=0.2, bounds=(0,None), label="Slice isotopes retention time", doc = "Add this distance to selected isotope retention time to get new plot range")
     slice_distance_mz = pm.Number(default=5, bounds=(0,None), label="Slice isotopes mz left", doc = "Add this distance to selected isotope mz to get new plot range")
 
-    calibration_input = pm.FileSelector(default = os.path.join("data", calibration_input_name), path="data/*",  doc='Calibrate input file. Data must include mz, ccs, charge, and, if not tune mix, a ta column. File in .h5, .mzML, .mzML.gz or csv format. Default: cal_input.csv', label='Calibration Input. Default: cal_input.csv')
-    example_tune_file = pm.FileSelector(default = os.path.join("data", example_tune_file_name), path="data/*",  doc='Tune file. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='Example Tune Data, Default: example_tune_pos.h5')
-    file_to_calibrate = pm.FileSelector(default = os.path.join("data", file_to_calibrate_name), path="data/*",  doc='Input that will be calibrated. Data must include mz, ta, and q values. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='File to Calib. Default: example_tune_pos.h5')
+    calibration_input = pm.FileSelector(path="data/*",  doc='Calibrate input file. Data must include mz, ccs, charge, and, if not tune mix, a ta column. File in .h5, .mzML, .mzML.gz or csv format. Default: cal_input.csv', label='Calibration Input. Default: cal_input.csv')
+    example_tune_file = pm.FileSelector(path="data/*",  doc='Tune file. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='Example Tune Data, Default: example_tune_pos.h5')
+    file_to_calibrate = pm.FileSelector(path="data/*",  doc='Input that will be calibrated. Data must include mz, ta, and q values. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='File to Calib. Default: example_tune_pos.h5')
     beta = pm.String(default = "0.12991516042484708", label='beta', doc ="Only necessary to change if selected fix_parameters")
     tfix = pm.String(default = "-0.03528247661068562", label='tfix', doc ="Only necessary to change if selected fix_parameters")
     traveling_wave = pm.Boolean(False, label='traveling_wave', doc="If true, then using travelling wave IMS, where the relationship between measurement and CCS will linearized by the natural logarithm")
@@ -214,16 +212,17 @@ class Deimos_app(pm.Parameterized):
     def update_mz_accession(self):
         '''If using mzML allow users to chose name from accession file'''
         if self.file_name_initial == None:
-            raise Exception("No file selected")
-        extension = Path(self.file_name_initial).suffix
-        if extension == ".mzML" or extension == ".mzML.gz" :
-            accessin_list = list(deimos.get_accessions(self.file_name_initial).keys())
-            self.param.rt_mzML_name.objects = accessin_list
-            if self.rt_mzML_name not in self.param.rt_mzML_name.objects:
-                self.rt_mzML_name = self.param.rt_mzML_name.objects[0]
-            self.param.dt_mzML_name.objects = accessin_list
-            if self.dt_mzML_name not in self.param.dt_mzML_name.objects:
-                self.dt_mzML_name = self.param.dt_mzML_name.objects[0]
+            pass
+        else:
+            extension = Path(self.file_name_initial).suffix
+            if extension == ".mzML" or extension == ".mzML.gz" :
+                accessin_list = list(deimos.get_accessions(self.file_name_initial).keys())
+                self.param.rt_mzML_name.objects = accessin_list
+                if self.rt_mzML_name not in self.param.rt_mzML_name.objects:
+                    self.rt_mzML_name = self.param.rt_mzML_name.objects[0]
+                self.param.dt_mzML_name.objects = accessin_list
+                if self.dt_mzML_name not in self.param.dt_mzML_name.objects:
+                    self.dt_mzML_name = self.param.dt_mzML_name.objects[0]
 
  # load the h5 files and load to dask             
     @pm.depends('view_plot')
@@ -246,7 +245,7 @@ class Deimos_app(pm.Parameterized):
             self.param.min_feature_mz_bin_size.label = "Min bin size: " + self.feature_mz
             self.param.smooth_radius.label = 'Smoothing radius by ' + self.feature_mz + ', ' + self.feature_dt + ', and ' + self.feature_rt
             self.param.peak_radius.label = 'Weighted mean kernel size by ' + self.feature_mz + ', ' + self.feature_dt + ', and ' + self.feature_rt
-            if self.file_name_initial == "data/placeholder.csv":
+            if self.file_name_initial == None:
                     pn.state.notifications.info('Load data placeholder. Replace with real data', duration=10000)
                     self.data_initial = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
@@ -524,13 +523,14 @@ class Deimos_app(pm.Parameterized):
         # don't need to recreate for sequental graphs if already created for first graphs
         # self.res will be reset to empty dataframe with rerun 
         if len(self.data_smooth_ms1) == 0: 
-            # name will be saved as
-            new_smooth_name =  os.path.join( "created_data",  Path(self.file_name_initial).stem + \
-                '_smooth_radius_' + str(self.smooth_radius) + '_threshold_' + str(self.threshold_slider) + '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
-                   '_new_smooth_data.h5')
-            if self.file_name_initial == "data/placeholder.csv":
+
+            if self.file_name_initial == None:
                     self.data_smooth_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
+                            # name will be saved as
+                new_smooth_name =  os.path.join( "created_data",  Path(self.file_name_initial).stem + \
+                '_smooth_radius_' + str(self.smooth_radius) + '_threshold_' + str(self.threshold_slider) + '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
+                   '_new_smooth_data.h5')
                 pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Create smooth data from ' + str(self.file_name_initial), duration=0)
                 try:
                     ms1_smooth, self.index_ms1_peaks, self.index_ms2_peaks = additional_functions.create_smooth(self.file_name_initial, self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity,  self.smooth_radius, \
@@ -604,15 +604,17 @@ class Deimos_app(pm.Parameterized):
         Return the peak data to make the graphs'''
         if len(self.data_peak_ms1) == 0:
             
-            # name will be saved as, check if already exists, if so don't rerun
-            new_peak_name = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
-                '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
-                    '_new_peak_data.h5')
+
             pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Create peak data: ' + str(self.file_name_smooth), duration=0)
-            if self.file_name_initial == "data/placeholder.csv":
+            if self.file_name_initial == None:
                     self.data_peak_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
+                                                # name will be saved as, check if already exists, if so don't rerun
+                new_peak_name = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider) + \
+                '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
+                    '_new_peak_data.h5')
                 if os.path.isfile(new_peak_name):
+
                     try:
                         pn.state.notifications.info('Loading previously created peak file', duration=10000)
                         pn.state.notifications.info('If you wish to recreate the file, delete or rename ' + str(new_peak_name), duration=10000)
@@ -697,15 +699,16 @@ class Deimos_app(pm.Parameterized):
         # don't need to recreate for sequental graphs if already created for first graphs
         # self.res will be reset to empty dataframe with rerun 
         if len(self.res) == 0:
-            file_name_res = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider_ms1_ms2) + \
-                '_file_path_peak_' + Path(self.file_name_peak).stem  + \
-                    '_res.csv')
             pn.state.notifications.info("In progress. Cannot make additional changes until plots update. Run deconvolution", duration=10000)
-            if self.file_name_peak == "created_data/placeholder.csv":
+            if self.file_name_peak == None:
                     self.res = pd.DataFrame([[1,1,2,3,1,1,2,3],[2,1,3,4,1,1,2,3], [20,10,30,100,1,1,2,3]], \
                                     columns = ["mz_ms1","drift_time_ms1","retention_time_ms1",\
                                                 "intensity_ms1","mz_ms2","drift_time_ms2","retention_time_ms2","intensity_ms2"])
             else:
+
+                file_name_res = os.path.join( "created_data",  Path(self.file_name_initial).stem  + '_threshold_' + str(self.threshold_slider_ms1_ms2) + \
+                '_file_path_peak_' + Path(self.file_name_peak).stem  + \
+                    '_res.csv')
                 if os.path.isfile(file_name_res):
                         self.res = pd.read_csv(file_name_res)
                 else:
@@ -785,7 +788,7 @@ class Deimos_app(pm.Parameterized):
         Otherwise select the highest intensity of the selction, and return the ms2 decon values '''
         example_ms2= pd.DataFrame([[np.random.randint(0,2), np.random.randint(0,2)], [np.random.randint(0,2), np.random.randint(0,2)]],\
                                    columns = [self.feature_mz, self.feature_intensity])
-        if self.file_name_peak == "created_data/placeholder.csv":
+        if self.file_name_peak == None:
             
             return hv.Dataset(example_ms2)
         # get the decon plots if necessary
@@ -1001,7 +1004,7 @@ class Deimos_app(pm.Parameterized):
         # Load data
         if len(self.isotopes_head) == 0:
             
-            if self.file_name_peak == "created_data/placeholder.csv":
+            if self.file_name_peak == None:
                 self.isotopes_head = pd.DataFrame([[1,1,2,[3,2],[3,4],[3,3]],[2,2,3,[3,5],[3,6],[3,3]]], \
                                     columns = ["mz","idx","intensity","mz_iso","intensity_iso","idx_iso"])
                 self.ms1_peaks = pd.DataFrame([[3,10,12,3],[4,12,13,4], [2,12,314,2]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
@@ -1042,7 +1045,7 @@ class Deimos_app(pm.Parameterized):
         '''Return a slice of the ms1 data based on user input of range 
         and the mz values of selected row in table'''
         #pn.state.notifications.info('Get index: ' + str(index) + " Click 'Recreate plots' to view with correct axis range", duration=10000) 
-        if self.file_name_peak == "created_data/placeholder.csv":
+        if self.file_name_peak == None:
             mz1 = np.random.randint(0,9)
             mz2 = np.random.randint(0,9)
             mz3 = np.random.randint(0,9)
@@ -1115,19 +1118,22 @@ class Deimos_app(pm.Parameterized):
     @pm.depends('rerun_iso', watch = True)
     def get_ms1(self):
         '''Load ms1 data whenever either placeholder or rerun button is clicked'''
-        if len(self.ms1) == 0:
-            
-            try:
-                new_name = additional_functions.new_name_if_mz(self.file_name_initial)
-                self.ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name = new_name)
-                if new_name != None:
-                        self.file_folder_initial = "created_data"
-
-                        self.update_param(new_name)
-                        pn.state.notifications.info("initial input file has changed to " + str(new_name))
+        if self.file_name_initial == None:
+            self.ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
+        else:
+            if len(self.ms1) == 0:
                 
-            except Exception as e:
-                    raise Exception(str(e))
+                try:
+                    new_name = additional_functions.new_name_if_mz(self.file_name_initial)
+                    self.ms1 = additional_functions.load_mz_h5(self.file_name_initial, key='ms1', columns=[self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity], rt_name = self.rt_mzML_name, dt_name = self.dt_mzML_name, new_name = new_name)
+                    if new_name != None:
+                            self.file_folder_initial = "created_data"
+
+                            self.update_param(new_name)
+                            pn.state.notifications.info("initial input file has changed to " + str(new_name))
+                    
+                except Exception as e:
+                        raise Exception(str(e))
         return hv.Dataset(self.ms1)
     
     @pm.depends('rerun_iso', watch = True)
@@ -1194,7 +1200,7 @@ class Deimos_app(pm.Parameterized):
         '''Return the calibrated values from the user input in created_data folder
         depending on the type of calibration chosen by the user'''
         if len(self.cal_values) == 0:
-            if self.calibration_input == "data/placeholder.csv":
+            if self.calibration_input == None:
                 self.cal_values = pd.DataFrame({'reduced_ccs': np.array([1,1]), 'ta': np.array([1,1])}, columns=['reduced_ccs', 'ta'])
                 #https://panel.holoviz.org/reference/global/Notifications.html
                 
@@ -1292,7 +1298,7 @@ class Deimos_app(pm.Parameterized):
 class Align_plots(pm.Parameterized):
     '''New class for aligning peak data to a reference file'''
 
-    peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5. Also can change to refresh peak folder files', label='Initial Data. Default: example_alignment.h5')
+    peak_ref = pm.FileSelector( path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5. Also can change to refresh peak folder files', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
         default= 'data', doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
     peak_folder =  pm.String(
@@ -1347,7 +1353,7 @@ class Align_plots(pm.Parameterized):
         pn.state.notifications.clear()
 
         list_plots = []
-        if self.peak_ref == "data/placeholder.csv":
+        if self.peak_ref == None:
             #return placeholder plots
             i = 0
             for file in range(2):

@@ -318,11 +318,14 @@ y_spacing=0,
         return rasterize_plot
 
 def new_name_if_mz(mz_file_name):
-        extension = Path(mz_file_name).suffix
-        if extension == ".mzML" or extension == ".mzml" or extension == ".gz":
-                new_name = os.path.join("created_data",  Path(mz_file_name).stem + '.h5')
-        else:
+        if mz_file_name == None:
                 new_name = None
+        else:
+                extension = Path(mz_file_name).suffix
+                if extension == ".mzML" or extension == ".mzml" or extension == ".gz":
+                        new_name = os.path.join("created_data",  Path(mz_file_name).stem + '.h5')
+                else:
+                        new_name = None
         return new_name
 
 def aligment(two_matched, ref_matched, two_matched_aligned, dim, kernel, parameter_inputs ):
