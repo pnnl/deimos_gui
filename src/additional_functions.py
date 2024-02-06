@@ -128,7 +128,9 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
         pn.state.notifications.info('Smooth MS1 data', duration=3000)
         ms1_smooth = deimos.filters.smooth(ms1, index=index_ms1_peaks, dims=[feature_mz, feature_dt, feature_rt],
                                 radius=smooth_radius, iterations=iterations)
-
+        if len(ms1_smooth) == 0:
+                raise Exception("No smooth ms1 data created. Perhaps there isn't enough data in the initial files")
+           
         ## save with date and time because user won't reuse. 
         deimos.save(new_smooth_name, ms1_smooth, key='ms1', mode='w')
 
@@ -146,6 +148,8 @@ def create_smooth(file_name_initial, feature_mz, feature_dt, feature_rt, feature
         # Smooth data
         ms2_smooth = deimos.filters.smooth(ms2, index=index_ms2_peaks, dims=[feature_mz, feature_dt, feature_rt],
                                 radius=smooth_radius, iterations=iterations)
+        if len(ms2_smooth) == 0:
+                raise Exception("No smooth ms2 data created. Perhaps there isn't enough data in the initial files")
         ## save with date and time because user won't reuse. 
         deimos.save(new_smooth_name, ms2_smooth, key='ms2', mode='a')
         return ms1_smooth, index_ms1_peaks, index_ms2_peaks
@@ -191,6 +195,8 @@ def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_in
                 # Save ms1 to new file
                 ms1_peaks = deimos.threshold(ms1_peaks, by='persistence', threshold=int(threshold_slider))
                 ms1_peaks = deimos.threshold(ms1_peaks, by='intensity', threshold=int(threshold_slider))
+                if len(ms1_peaks) == 0:
+                        raise Exception("No peak ms1 data created. Perhaps there isn't enough data in the initial files")
                 deimos.save(new_peak_name, ms1_peaks, key='ms1', mode='w')
 
 
@@ -204,6 +210,8 @@ def create_peak(file_name_smooth, feature_mz, feature_dt, feature_rt, feature_in
                 # Sort by persistence
                 ms2_peaks = ms2_peaks.sort_values(by='persistence', ascending=False).reset_index(drop=True)
                 # update list of options in file selections
+                if len(ms2_peaks) == 0:
+                        raise Exception("No peak ms2 data created. Perhaps there isn't enough data in the initial files")
                 
                 # Save ms2 to new file with _new_peak_data.h5 suffix
                 deimos.save(new_peak_name, ms2_peaks, key='ms2', mode='a')
