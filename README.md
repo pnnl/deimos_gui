@@ -7,53 +7,24 @@ Version 1.0.1
 [User Guide](user_guide_deimos.md)
 
 
-## Install DEIMoS
-
-Follow all directions at https://deimos.readthedocs.io/en/latest/getting_started/installation.html
-
 ## Clone Repository
 
 ``` 
-# cd next to the deimos folder
-cd ../
+
 git clone https://github.com/pnnl/deimos_gui
 ``` 
 
-## Install additional packages
-
-``` 
-conda install colorcet==3.0.1 holoviews==1.17.1 panel==1.2.3 xarray==2023.1.0 hvplot==0.9.0  datashader==0.15.2 pandas==2.0.3
-```
-
-```
-cd ./deimos_gui/src
-```
-
-## If conda doesn't work in installing DEIMoS:
-
 Create environment
 ``` 
-conda create -n deimos_env python=3.8
+conda create -n deimos_env python=3.10
 conda activate deimos_env
 ``` 
-Install DEIMoS
+Install DEIMoS and DEIMoS GUI
 ``` 
-cd deimos
-pip install -r requirements.txt
+cd deimos_gui
 pip install -e .
 ```
 
-
-
-In the terminal, cd to the downloaded folder deimos_gui
-
-## If conda doesn't work in installing DEIMoS_GUI:
-
-``` 
-cd ../deimos_gui
-#if conda didn't work:
-pip install -r requirements.txt
-```
 
 ## Run app from src folder
 
