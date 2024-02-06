@@ -24,25 +24,6 @@ from datetime import datetime
 #from pyinstrument import Profiler
 
 
-
-file_name_initial_name = "placeholder.csv"  #example_data.h5
-file_name_smooth_name = "placeholder.csv"
-file_name_peak_name = "placeholder.csv"
-calibration_input_name = "placeholder.csv" #cal_input.csv
-example_tune_file_name = "placeholder.csv" #example_tune_pos.h5
-file_to_calibrate_name = "placeholder.csv" #example_tune_pos.h5 
-peak_ref_name = "placeholder.csv" #example_alignment.h5
-
-# file_name_initial_name = "example_data.h5"  #example_data.h5
-# file_name_smooth_name = "placeholder.csv"
-# file_name_peak_name = "placeholder.csv"
-# file_name_smooth_name = "example_data_smooth_radius_0-1-0_smooth_iterations_3_feature_rt_retention_time_new_smooth_data.h5" 
-# file_name_peak_name = "example_data_threshold_1000_peak_radius_2-10-0_feature_rt_retention_time_new_peak_data.h5"
-# calibration_input_name = "cal_input.csv"
-# example_tune_file_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-# file_to_calibrate_name = "example_tune_pos.h5" #"example_tune_pos.h5"
-# peak_ref_name = "example_alignment.h5" #"example_alignment.h5"
-
 hv.extension('bokeh', 'matplotlib')
 
 # view general exception 
@@ -67,7 +48,7 @@ hv.output(backend='bokeh')
 
 class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only changes when paramaters are updated'''
-    file_name_initial = pm.FileSelector( path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5. (Placeholder.csv creates small sample data). Change column values by inputs below', label='Initial Data Default: example_data.h5')
+    file_name_initial = pm.FileSelector(default = None,  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5. (Placeholder.csv creates small sample data). Change column values by inputs below', label='Initial Data Default: example_data.h5')
     file_folder_initial =  pm.String(
         default= "data", doc='Please use forward slashes / and starting from / if absolute. Data folder.', label='Data folder (use /)')
     file_folder_cal =  pm.String(
@@ -114,8 +95,8 @@ class Deimos_app(pm.Parameterized):
     min_feature_dt_spacing = pm.Number(default=1.5, bounds=(0,None), label="Spacing: " + feature_dt.default, doc= "Check for MS2 data within the range of the location clicked in the MS1 plot plus and minus this value")
     min_feature_mz_spacing = pm.Number(default=20, bounds=(0,None), label="Spacing: " + feature_mz.default, doc= "Check for MS2 data within the range of the location clicked in the MS1 plot plus and minus this value")
 
-    file_name_smooth = pm.FileSelector( path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Smooth Data (in Created_Data Folder)')
-    file_name_peak = pm.FileSelector(path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Peak Data (in Created_Data Folder)')
+    file_name_smooth = pm.FileSelector(default = None, path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Smooth Data (in Created_Data Folder)')
+    file_name_peak = pm.FileSelector(default = None, path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Peak Data (in Created_Data Folder)')
     ##TODO this is actually a lower theshold than originally in the paper - need to update the time
     threshold_slider = pm.Integer(default=1000, label='Threshold', doc= 'Filter the files to only keep peaks above this intensity after processing')
     pre_threshold_slider = pm.Integer(default=128, label='Pre-Threshold', doc= 'Filter the files to only keep peaks above this intensity before processing')
@@ -144,9 +125,9 @@ class Deimos_app(pm.Parameterized):
     slice_distance_rt = pm.Number(default=0.2, bounds=(0,None), label="Slice isotopes retention time", doc = "Add this distance to selected isotope retention time to get new plot range")
     slice_distance_mz = pm.Number(default=5, bounds=(0,None), label="Slice isotopes mz left", doc = "Add this distance to selected isotope mz to get new plot range")
 
-    calibration_input = pm.FileSelector(path="data/*",  doc='Calibrate input file. Data must include mz, ccs, charge, and, if not tune mix, a ta column. File in .h5, .mzML, .mzML.gz or csv format. Default: cal_input.csv', label='Calibration Input. Default: cal_input.csv')
-    example_tune_file = pm.FileSelector(path="data/*",  doc='Tune file. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='Example Tune Data, Default: example_tune_pos.h5')
-    file_to_calibrate = pm.FileSelector(path="data/*",  doc='Input that will be calibrated. Data must include mz, ta, and q values. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='File to Calib. Default: example_tune_pos.h5')
+    calibration_input = pm.FileSelector(default = None, path="data/*",  doc='Calibrate input file. Data must include mz, ccs, charge, and, if not tune mix, a ta column. File in .h5, .mzML, .mzML.gz or csv format. Default: cal_input.csv', label='Calibration Input. Default: cal_input.csv')
+    example_tune_file = pm.FileSelector(default = None, path="data/*",  doc='Tune file. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='Example Tune Data, Default: example_tune_pos.h5')
+    file_to_calibrate = pm.FileSelector(default = None, path="data/*",  doc='Input that will be calibrated. Data must include mz, ta, and q values. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='File to Calib. Default: example_tune_pos.h5')
     beta = pm.String(default = "0.12991516042484708", label='beta', doc ="Only necessary to change if selected fix_parameters")
     tfix = pm.String(default = "-0.03528247661068562", label='tfix', doc ="Only necessary to change if selected fix_parameters")
     traveling_wave = pm.Boolean(False, label='traveling_wave', doc="If true, then using travelling wave IMS, where the relationship between measurement and CCS will linearized by the natural logarithm")
@@ -174,7 +155,7 @@ class Deimos_app(pm.Parameterized):
             self.file_name_initial = new_name
         else:
             if self.file_name_initial not in self.param.file_name_initial.objects:
-                self.file_name_initial = self.param.file_name_initial.objects[0]
+                self.file_name_initial = None
             else:
                 pass
                 
@@ -200,13 +181,13 @@ class Deimos_app(pm.Parameterized):
         self.param.file_to_calibrate.update()
 
         if self.calibration_input not in self.param.calibration_input.objects:
-            self.calibration_input = self.param.calibration_input.objects[0]
+            self.calibration_input = None
 
         if self.example_tune_file not in self.param.example_tune_file.objects:
-            self.example_tune_file = self.param.example_tune_file.objects[0]
+            self.example_tune_file =  None
 
         if self.file_to_calibrate not in self.param.file_to_calibrate.objects:
-            self.file_to_calibrate = self.param.file_to_calibrate.objects[0]
+            self.file_to_calibrate = None
 
     @pn.depends("file_name_initial", watch=True)
     def update_mz_accession(self):
@@ -219,10 +200,10 @@ class Deimos_app(pm.Parameterized):
                 accessin_list = list(deimos.get_accessions(self.file_name_initial).keys())
                 self.param.rt_mzML_name.objects = accessin_list
                 if self.rt_mzML_name not in self.param.rt_mzML_name.objects:
-                    self.rt_mzML_name = self.param.rt_mzML_name.objects[0]
+                    self.rt_mzML_name =  None
                 self.param.dt_mzML_name.objects = accessin_list
                 if self.dt_mzML_name not in self.param.dt_mzML_name.objects:
-                    self.dt_mzML_name = self.param.dt_mzML_name.objects[0]
+                    self.dt_mzML_name =  None
 
  # load the h5 files and load to dask             
     @pm.depends('view_plot')
@@ -1298,7 +1279,7 @@ class Deimos_app(pm.Parameterized):
 class Align_plots(pm.Parameterized):
     '''New class for aligning peak data to a reference file'''
 
-    peak_ref = pm.FileSelector( path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5. Also can change to refresh peak folder files', label='Initial Data. Default: example_alignment.h5')
+    peak_ref = pm.FileSelector(default = None,  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5. Also can change to refresh peak folder files', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
         default= 'data', doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
     peak_folder =  pm.String(
@@ -1336,7 +1317,7 @@ class Align_plots(pm.Parameterized):
             self.peak_ref = new_name
         else:
             if self.peak_ref not in self.param.peak_ref.objects:
-                self.peak_ref = self.param.peak_ref.objects[0]
+                self.peak_ref =  None
             else:
                 pass
 
