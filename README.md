@@ -39,6 +39,7 @@ Use example data (rather than placeholder data)
 
 Follow instructions here to download the data: 
 https://deimos.readthedocs.io/en/latest/getting_started/example_data.html
+Use ftp://massive.ucsd.edu/v01/MSV000091746 as the FTP Download Link
 
 Provide path to data within the application (default: data folder within DEIMOS_GUI folder)
 
