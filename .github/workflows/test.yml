@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [ubuntu-latest] #, macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
@@ -27,8 +27,3 @@ jobs:
     - name: Run your tests
       working-directory: ./tests
       run: pytest --tracing=retain-on-failure
-    - uses: actions/upload-artifact@v3
-      if: always()
-      with:
-        name: playwright-traces
-        path: test-results/
