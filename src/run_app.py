@@ -67,9 +67,9 @@ hv.output(backend='bokeh')
 
 class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only changes when paramaters are updated'''
-    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5. (Placeholder.csv creates small sample data). Change column values by inputs below', label='Initial Data Default: example_data.h5')
+    file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5', label='Initial Data Default: example_data.h5')
     file_folder_initial =  pm.String(
-        default= "data", doc='Please use forward slashes / and starting from / if absolute. Data folder.', label='Data folder (use /)')
+        default= "data", doc='Please use forward slashes / and starting from / if absolute. Data folder (use / at the end of the file).', label='Data folder (use /)')
     file_folder_cal =  pm.String(
         default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Data folder (use /)')
     rt_mzML_name = pm.Selector(["scan start time"], doc='Select one of the columns within the mzML file. Only adjust if mz file selected. Select the retention time column name')
@@ -77,11 +77,11 @@ class Deimos_app(pm.Parameterized):
     # reset the manual filters to the data bounds and reset the rangexy of the plot
     reset_filter = pm.Action(
         lambda x: x.param.trigger('reset_filter'), doc = 'Refresh axis ranges to data min and max (will not update plot). Select (re)run to redo plot',
-        label='Reset Axis ranges below')
+        label='Reset axis ranges below')
   
     reset_filter_iso = pm.Action(
         lambda x: x.param.trigger('reset_filter_iso'), doc = 'Refresh axis ranges to data min and max (will not update plot). Select (re)run to redo plot',
-        label='Reset Axis ranges below')
+        label='Update axis ranges below')
     
     feature_dt = pm.Selector(default='drift_time', objects = ["drift_time", 'retention_time', 'mz'], label="Drift Time", doc="This should be the name of one feature (drift time is the default) in the data. Change if data is using different column value")
     feature_rt = pm.Selector(default='retention_time', objects = ["drift_time", 'retention_time', 'mz'], label="Retention Time", doc="This should be the name of one feature (retention time is the default) in the data. Change if data is using different column value")
@@ -90,9 +90,9 @@ class Deimos_app(pm.Parameterized):
     feature_intensity = pm.String(default = 'intensity', label='Intensity Feature', doc="This the value that will be summed and visualized in the plots. Change if data is using different column value")
 
     # manual filter bounds of plots
-    feature_dt_axis_width = pm.NumericTuple(default=(0.0, 200.0), label="Axis width: " + feature_dt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
-    feature_rt_axis_width = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_rt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
-    feature_mz_axis_width = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_mz.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
+    feature_dt_axis_width = pm.NumericTuple(default=(0.0, 200.0), label="Axis width: " + feature_dt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
+    feature_rt_axis_width = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_rt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
+    feature_mz_axis_width = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_mz.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
 
     # set the min spacing for all the dimensions for rasterizing
     min_feature_dt_bin_size = pm.Number(default=0.2,bounds=(0,None),  label="Min bin size: " + feature_dt.default, doc= 'The grid-size will never be smaller than this if using width input to zoom in. Only clicking Recreate plot will adjust the plots')
@@ -101,9 +101,9 @@ class Deimos_app(pm.Parameterized):
 
     # manual filter centers for the graphs in isotopes (smaller range than the full_plot, so don't want use the same bounds)
     
-    feature_dt_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_dt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
-    feature_rt_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_rt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
-    feature_mz_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_mz.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Reset Axis Range')
+    feature_dt_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_dt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
+    feature_rt_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_rt.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
+    feature_mz_axis_width_iso = pm.NumericTuple(default=(0.0, 200.0),label="Axis width: " + feature_mz.default, doc='Only clicking Recreate plot will adjust the plots. Reset by clicking Update Axis Range to data ranges')
 
     # set the min spacing for all the dimensions for isotopes
     min_feature_dt_bin_size_iso = pm.Number(default=0.2, bounds=(0,None), label="Min bin size: " + feature_dt.default, doc= 'The grid-size will never be smaller than this if using width input to zoom in. Only clicking Recreate plot will adjust the plots')
@@ -115,19 +115,19 @@ class Deimos_app(pm.Parameterized):
     min_feature_mz_spacing = pm.Number(default=20, bounds=(0,None), label="Spacing: " + feature_mz.default, doc= "Check for MS2 data within the range of the location clicked in the MS1 plot plus and minus this value")
 
     file_name_smooth = pm.FileSelector(default = os.path.join("created_data", file_name_smooth_name),\
-                                        path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Smooth Data (in Created_Data Folder)')
+                                        path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Smooth Data (in Created_Data Folder)')
     file_name_peak = pm.FileSelector(default = os.path.join("created_data", file_name_peak_name), \
-                                     path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.  (Placeholder.csv creates small sample data)', label='Peak Data (in Created_Data Folder)')
+                                     path="created_data/*",  doc='Automatically updated with new file name after created. View in created folder. File in .h5, .mzML, or .mzML.gz format.', label='Peak Data (in Created_Data Folder)')
     ##TODO this is actually a lower theshold than originally in the paper - need to update the time
-    threshold_slider = pm.Integer(default=1000, label='Threshold', doc= 'Filter the files to only keep peaks above this intensity after processing')
+    threshold_slider = pm.Integer(default=1000, label='Threshold', doc= 'Filter the files to only keep peaks above this intensity')
     pre_threshold_slider = pm.Integer(default=128, label='Pre-Threshold', doc= 'Filter the files to only keep peaks above this intensity before processing')
     threshold_slider_ms1_ms2 = pm.Integer(default=100, label='Min Threshold for MS1', doc= 'Filter the files to only keep peaks above this intensity for MS1')
     smooth_radius = pm.String(
-        default='0-1-0', doc='Keep - between numbers  A radius per dimension by mz, drift time, and retention time', label='Smoothing radius')
+        default='0-1-0', doc='Keep - between numbers. Best practice is to increase number of iterations', label='Smoothing radius by mz, drift time, and retention time, repectively, to use when smoothing')
     smooth_iterations = pm.String(
-        default='3', doc='Best practice is to increase number of iterations ', label='Number of smoothing iterations')
+        default='3', doc='Best practice is to increase number of iterations by mz, drift time, and retention time', label='Number of smoothing iterations')
     peak_radius = pm.String(
-        default='2-10-0', doc='Keep - between numbers. A radius per dimension by mz, drift time, and retention time', label='Weighted mean kernel size')
+        default='2-10-0', doc='Keep - between numbers. A radius per dimension by mz, drift time, and retention time', label='Weighted mean kernel size, respectively, for mz, drift time, and retention time')
     #
     view_plot = pm.Action(lambda x: x.param.trigger('view_plot'), doc="Click to view new file", label='Click to rerun after changing inputs')
     
@@ -142,15 +142,15 @@ class Deimos_app(pm.Parameterized):
     remove_notifications = pm.Action(lambda x: x.param.trigger('remove_notifications'), doc="Remove all notifications", label='Remove all notifications')
 
     # set the min spacing for all the dimensions for rasterizing 
-    slice_distance_dt = pm.Number(default=0.2, bounds=(0,None), label="Slice isotopes drift time", doc = "Add this distance to selected isotope drift time to get new plot range")
-    slice_distance_rt = pm.Number(default=0.2, bounds=(0,None), label="Slice isotopes retention time", doc = "Add this distance to selected isotope retention time to get new plot range")
-    slice_distance_mz = pm.Number(default=5, bounds=(0,None), label="Slice isotopes mz left", doc = "Add this distance to selected isotope mz to get new plot range")
+    slice_distance_dt = pm.Number(default=0.2, bounds=(0,None), label="Slice isotopes drift time", doc = "Add distance to selected isotope drift time to get plot range")
+    slice_distance_rt = pm.Number(default=0.2, bounds=(0,None), label="Slice isotopes retention time", doc = "Add distance to selected isotope retention time to get plot range")
+    slice_distance_mz = pm.Number(default=5, bounds=(0,None), label="Slice isotopes mz left", doc = "Add distance to selected isotope mz to get plot range")
 
     calibration_input = pm.FileSelector(default = os.path.join("data", calibration_input_name), path="data/*",  doc='Calibrate input file. Data must include mz, ccs, charge, and, if not tune mix, a ta column. File in .h5, .mzML, .mzML.gz or csv format. Default: cal_input.csv', label='Calibration Input. Default: cal_input.csv')
-    example_tune_file = pm.FileSelector(default = os.path.join("data", example_tune_file_name), path="data/*",  doc='Tune file. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='Example Tune Data, Default: example_tune_pos.h5')
+    example_tune_file = pm.FileSelector(default = os.path.join("data", example_tune_file_name), path="data/*",  doc='Example tune file. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='Example Tune Data, Default: example_tune_pos.h5')
     file_to_calibrate = pm.FileSelector(default = os.path.join("data", file_to_calibrate_name), path="data/*",  doc='Input that will be calibrated. Data must include mz, ta, and q values. File in .h5, .mzML, .mzML.gz or csv format. Default: example_tune_pos.h5', label='File to Calib. Default: example_tune_pos.h5')
-    beta = pm.String(default = "0.12991516042484708", label='beta', doc ="Only necessary to change if selected fix_parameters")
-    tfix = pm.String(default = "-0.03528247661068562", label='tfix', doc ="Only necessary to change if selected fix_parameters")
+    beta = pm.String(default = "0.12991516042484708", label='beta', doc ="Only necessary if selected fix_parameters")
+    tfix = pm.String(default = "-0.03528247661068562", label='tfix', doc ="Only necessary if selected fix_parameters")
     traveling_wave = pm.Boolean(False, label='traveling_wave', doc="If true, then using travelling wave IMS, where the relationship between measurement and CCS will linearized by the natural logarithm")
     calibrate_type = pm.Selector(default = "load_all_values", objects=["load_all_values", "use_tunemix","fix_parameters"], doc= "Calibrate using one of possible functions, see user guide for more information")
 
@@ -214,7 +214,7 @@ class Deimos_app(pm.Parameterized):
     def update_mz_accession(self):
         '''If using mzML allow users to chose name from accession file'''
         if self.file_name_initial == None:
-            raise Exception("No file selected - check if you are running Python run_app.py from src folder. 'cd src'")
+            raise Exception("No file selected")
         extension = Path(self.file_name_initial).suffix
         if extension == ".mzML" or extension == ".mzML.gz" :
             accessin_list = list(deimos.get_accessions(self.file_name_initial).keys())
@@ -246,7 +246,7 @@ class Deimos_app(pm.Parameterized):
             self.param.min_feature_mz_bin_size.label = "Min bin size: " + self.feature_mz
             self.param.smooth_radius.label = 'Smoothing radius by ' + self.feature_mz + ', ' + self.feature_dt + ', and ' + self.feature_rt
             self.param.peak_radius.label = 'Weighted mean kernel size by ' + self.feature_mz + ', ' + self.feature_dt + ', and ' + self.feature_rt
-            if Path(self.file_name_initial).stem == "placeholder":
+            if self.file_name_initial == "data/placeholder.csv":
                     pn.state.notifications.info('Load data placeholder. Replace with real data', duration=10000)
                     self.data_initial = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
@@ -273,7 +273,7 @@ class Deimos_app(pm.Parameterized):
         # if the data value has already been updated from rerun, 
         #don't update again until user clicks rerun again
             pn.state.notifications.clear()
-            #pn.state.notifications.info('Re-trigged hvplot_initial function, loading previously loaded file', duration=10000)
+            pn.state.notifications.info('Re-trigged hvplot_initial function, loading previously loaded file', duration=10000)
             pass
         return hv.Dataset(self.data_initial)
 
@@ -305,56 +305,6 @@ class Deimos_app(pm.Parameterized):
         return
     
 
-    def refresh_axis_values_smooth(self):
-        '''Let axis ranges based on the data'''
-        self.reset_xy_stream()
-
-        mz_range = (
-            float(self.data_smooth_ms1.mz.min().compute()),
-            float(self.data_smooth_ms1.mz.max().compute()) + 1.0,
-        )
-        #self.param sets the features within the param, while self.x sets actual value of x
-        self.param.feature_mz_axis_width.default = mz_range
-        self.feature_mz_axis_width = mz_range
-        retention_range = (
-            float(self.data_smooth_ms1[self.feature_rt].min().compute()),
-            float(self.data_smooth_ms1[self.feature_rt].max().compute()) + 1.0,
-        )
-        self.param.feature_rt_axis_width.default = retention_range
-        self.feature_rt_axis_width = retention_range
-        drift_range = (
-            float(self.data_smooth_ms1[self.feature_dt].min().compute()),
-            float(self.data_smooth_ms1[self.feature_dt].max().compute()) + 1.0,
-        )
-        self.param.feature_dt_axis_width.default = drift_range
-        self.feature_dt_axis_width = drift_range
-        return
-    
-    def refresh_axis_values_peak(self):
-        '''Let axis ranges based on the data'''
-        self.reset_xy_stream()
-
-        mz_range = (
-            float(self.data_peak_ms1.mz.min().compute()),
-            float(self.data_peak_ms1.mz.max().compute()) + 1.0,
-        )
-        #self.param sets the features within the param, while self.x sets actual value of x
-        self.param.feature_mz_axis_width.default = mz_range
-        self.feature_mz_axis_width = mz_range
-        retention_range = (
-            float(self.data_peak_ms1[self.feature_rt].min().compute()),
-            float(self.data_peak_ms1[self.feature_rt].max().compute()) + 1.0,
-        )
-        self.param.feature_rt_axis_width.default = retention_range
-        self.feature_rt_axis_width = retention_range
-        drift_range = (
-            float(self.data_peak_ms1[self.feature_dt].min().compute()),
-            float(self.data_peak_ms1[self.feature_dt].max().compute()) + 1.0,
-        )
-        self.param.feature_dt_axis_width.default = drift_range
-        self.feature_dt_axis_width = drift_range
-        return
-
     def rasterize_md(
         self,
         element,
@@ -366,7 +316,7 @@ class Deimos_app(pm.Parameterized):
         Run if steam value of 
         Recreate_plots_with_below_values changes'''
 
-        pn.state.notifications.info("Re-aggregating ")
+        pn.state.notifications.info("Re-aggregating based on values below")
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -528,7 +478,7 @@ class Deimos_app(pm.Parameterized):
             new_smooth_name =  os.path.join( "created_data",  Path(self.file_name_initial).stem + \
                 '_smooth_radius_' + str(self.smooth_radius) + '_threshold_' + str(self.threshold_slider) + '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
                    '_new_smooth_data.h5')
-            if Path(self.file_name_initial).stem == "placeholder":
+            if self.file_name_initial == "data/placeholder.csv":
                     self.data_smooth_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
                 pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Create smooth data from ' + str(self.file_name_initial), duration=0)
@@ -542,7 +492,6 @@ class Deimos_app(pm.Parameterized):
                 # set the file_folder and name of smooth data
                 self.file_name_smooth = new_smooth_name
                 self.data_smooth_ms1  = dd.from_pandas(ms1_smooth, npartitions=mp.cpu_count())
-                self.refresh_axis_values_smooth()
                 pn.state.notifications.clear()
                 pn.state.notifications.info('Finished data processing. Creating plots. Created smooth data from ' + str(self.file_name_smooth), duration=10000)
                 
@@ -609,7 +558,7 @@ class Deimos_app(pm.Parameterized):
                 '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
                     '_new_peak_data.h5')
             pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Create peak data: ' + str(self.file_name_smooth), duration=0)
-            if Path(self.file_name_initial).stem == "placeholder":
+            if self.file_name_initial == "data/placeholder.csv":
                     self.data_peak_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
                 if os.path.isfile(new_peak_name):
@@ -631,7 +580,6 @@ class Deimos_app(pm.Parameterized):
                 self.file_name_peak = new_peak_name
                 self.data_peak_ms1  = dd.from_pandas(ms1_peaks, npartitions=mp.cpu_count())
             pn.state.notifications.clear()
-            self.refresh_axis_values_peak()
             pn.state.notifications.info('Finished: Peak data at ' + str(self.file_name_peak), duration=10000)
             self.data_peak_ms1.persist()
         else:   
@@ -701,7 +649,7 @@ class Deimos_app(pm.Parameterized):
                 '_file_path_peak_' + Path(self.file_name_peak).stem  + \
                     '_res.csv')
             pn.state.notifications.info("In progress. Cannot make additional changes until plots update. Run deconvolution", duration=10000)
-            if Path(self.file_name_peak).stem == "placeholder":
+            if self.file_name_peak == "created_data/placeholder.csv":
                     self.res = pd.DataFrame([[1,1,2,3,1,1,2,3],[2,1,3,4,1,1,2,3], [20,10,30,100,1,1,2,3]], \
                                     columns = ["mz_ms1","drift_time_ms1","retention_time_ms1",\
                                                 "intensity_ms1","mz_ms2","drift_time_ms2","retention_time_ms2","intensity_ms2"])
@@ -785,7 +733,7 @@ class Deimos_app(pm.Parameterized):
         Otherwise select the highest intensity of the selction, and return the ms2 decon values '''
         example_ms2= pd.DataFrame([[np.random.randint(0,2), np.random.randint(0,2)], [np.random.randint(0,2), np.random.randint(0,2)]],\
                                    columns = [self.feature_mz, self.feature_intensity])
-        if Path(self.file_name_peak).stem == "placeholder":
+        if self.file_name_peak == "created_data/placeholder.csv":
             
             return hv.Dataset(example_ms2)
         # get the decon plots if necessary
@@ -862,6 +810,7 @@ class Deimos_app(pm.Parameterized):
                     # if just one value of ms2 in list, convert to pandas dataframe rather than a series
                     numpy_dataframe = np.hstack((np.array(res.loc[max_idx, self.feature_mz + '_ms2']),
                     np.array(res.loc[max_idx, self.feature_intensity + '_ms2'])))
+            
                     highest_ms2  = pd.DataFrame(numpy_dataframe.reshape(-1, len(numpy_dataframe)), columns = [self.feature_mz, self.feature_intensity])
                 else:
                     highest_ms2 = pd.DataFrame({self.feature_mz: np.array(res.loc[max_idx, self.feature_mz + '_ms2']),
@@ -913,7 +862,7 @@ class Deimos_app(pm.Parameterized):
         with x and y range and x and y spacing
         Run if steam value of 
         Recreate_plots_with_below_values_iso changes'''
-        pn.state.notifications.info("Re-aggregating ")
+        pn.state.notifications.info("Re-aggregating based on values below")
         rasterize_plot = additional_functions.rasterize_plot(
         element = element,
         feature_intensity = self.feature_intensity, 
@@ -968,30 +917,29 @@ class Deimos_app(pm.Parameterized):
     def refresh_axis_values_iso(self):
         '''Reset the manual filter to the min and max values from the input data'''
         self.reset_xy_stream()
-        if isinstance(self.feature_iso, pd.DataFrame): 
-            if len(self.feature_iso) > 0:
-                # since manual filter is true, tthis will reset xy stream 
-                # and set the x and y range to the min and max of the new data via the rasterize functon
-                mz_range = (
-                    int(self.feature_iso.mz.min()),
-                    int(self.feature_iso.mz.max() + 1),
-                )
-                #self.param sets the features within the param, while self.x sets actual value of x
-                self.param.feature_mz_axis_width_iso.default = mz_range
-                self.feature_mz_axis_width_iso = mz_range
-                retention_range = (
-                    int(self.feature_iso[self.feature_rt].min()),
-                    int(self.feature_iso[self.feature_rt].max() + 1),
-                )
-                self.param.feature_rt_axis_width_iso.default = retention_range
-                self.feature_rt_axis_width_iso = retention_range
-                drift_range = (
-                    int(self.feature_iso[self.feature_dt].min()),
-                    int(self.feature_iso[self.feature_dt].max() + 1),
-                )
-                self.param.feature_dt_axis_width_iso.default = drift_range
-                self.feature_dt_axis_width_iso = drift_range
-            
+        if len(self.feature_iso) > 0:
+            # since manual filter is true, tthis will reset xy stream 
+            # and set the x and y range to the min and max of the new data via the rasterize functon
+            mz_range = (
+                int(self.feature_iso.mz.min()),
+                int(self.feature_iso.mz.max() + 1),
+            )
+            #self.param sets the features within the param, while self.x sets actual value of x
+            self.param.feature_mz_axis_width_iso.default = mz_range
+            self.feature_mz_axis_width_iso = mz_range
+            retention_range = (
+                int(self.feature_iso[self.feature_rt].min()),
+                int(self.feature_iso[self.feature_rt].max() + 1),
+            )
+            self.param.feature_rt_axis_width_iso.default = retention_range
+            self.feature_rt_axis_width_iso = retention_range
+            drift_range = (
+                int(self.feature_iso[self.feature_dt].min()),
+                int(self.feature_iso[self.feature_dt].max() + 1),
+            )
+            self.param.feature_dt_axis_width_iso.default = drift_range
+            self.feature_dt_axis_width_iso = drift_range
+        
         return
     
     @pm.depends('rerun_iso', watch = True)
@@ -1001,7 +949,7 @@ class Deimos_app(pm.Parameterized):
         # Load data
         if len(self.isotopes_head) == 0:
             
-            if Path(self.file_name_peak).stem == "placeholder":
+            if self.file_name_peak == "created_data/placeholder.csv":
                 self.isotopes_head = pd.DataFrame([[1,1,2,[3,2],[3,4],[3,3]],[2,2,3,[3,5],[3,6],[3,3]]], \
                                     columns = ["mz","idx","intensity","mz_iso","intensity_iso","idx_iso"])
                 self.ms1_peaks = pd.DataFrame([[3,10,12,3],[4,12,13,4], [2,12,314,2]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
@@ -1042,7 +990,7 @@ class Deimos_app(pm.Parameterized):
         '''Return a slice of the ms1 data based on user input of range 
         and the mz values of selected row in table'''
         #pn.state.notifications.info('Get index: ' + str(index) + " Click 'Recreate plots' to view with correct axis range", duration=10000) 
-        if Path(self.file_name_peak).stem == "placeholder":
+        if self.file_name_peak == "created_data/placeholder.csv":
             mz1 = np.random.randint(0,9)
             mz2 = np.random.randint(0,9)
             mz3 = np.random.randint(0,9)
@@ -1054,7 +1002,6 @@ class Deimos_app(pm.Parameterized):
                 index = 0
             else:
                 index = index[0]
-              
             # should it include the idx column too (Plus idx iso)
             def lit_list(x):
                 '''Get python object of list from string'''
@@ -1194,7 +1141,7 @@ class Deimos_app(pm.Parameterized):
         '''Return the calibrated values from the user input in created_data folder
         depending on the type of calibration chosen by the user'''
         if len(self.cal_values) == 0:
-            if Path(self.calibration_input).stem == "placeholder":
+            if self.calibration_input == "data/placeholder.csv":
                 self.cal_values = pd.DataFrame({'reduced_ccs': np.array([1,1]), 'ta': np.array([1,1])}, columns=['reduced_ccs', 'ta'])
                 #https://panel.holoviz.org/reference/global/Notifications.html
                 
@@ -1347,7 +1294,7 @@ class Align_plots(pm.Parameterized):
         pn.state.notifications.clear()
 
         list_plots = []
-        if Path(self.peak_ref).stem == "placeholder":
+        if self.peak_ref == "data/placeholder.csv":
             #return placeholder plots
             i = 0
             for file in range(2):
@@ -1433,7 +1380,7 @@ Align_plots = Align_plots()
 #using viewable() would be best practice for minimizing refresh, but need hard refresh in this case for new axis
 instructions_view = "<ul> <li>Click rerun to reflect changes</li> <li>Indicate the local path of the full data below to update</li>\
     <li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
-<li>Change the axis widths and click 'Recreate plots with below values' to re-aggregrate with new widths</li>\
+<li>Changing the axis widths and clicking 'Recreate plots with below values' to re-aggregrate with new widths</li>\
 <li>Toolbar's zoom and reset does not re-aggregate within this tool.</li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
@@ -1479,20 +1426,12 @@ instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes within 
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
-reset_instuctions = "<p>The widths are all automatically updated to <br>the ranges of the last updated file (initial, smooth or peak) <br> Click Reset to reset values to the initial data range. <br> They can also be manually changed <br> (Click Recreate Plots to actually update the plots)</p>"
-param_full = pn.Column('<b>View initial Data</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, Deimos_app.param.remove_notifications, \
-                       '<b>Adjust the plots</b>', reset_instuctions, Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
+param_full = pn.Column('<b>View initial Data</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.rt_mzML_name, Deimos_app.param.dt_mzML_name, Deimos_app.param.view_plot, Deimos_app.param.remove_notifications, '<b>Adjust the plots</b>', Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
                     Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
                         Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
                             Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations, Deimos_app.param.pre_threshold_slider,  Deimos_app.param.rerun_smooth,  Deimos_app.param.remove_notifications, '<b>Result</b>', Deimos_app.param.file_name_smooth, '<b>Adjust the plots</b>', reset_instuctions,  Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
-                    Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
-                        Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
-                            Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
-param_peak = pn.Column('<b>Peak-picking</b>', '<b>Adjust the plots</b>', Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.pre_threshold_slider, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak, Deimos_app.param.remove_notifications, '<b>Result</b>', Deimos_app.param.file_name_peak, '<b>Adjust the plots</b>', reset_instuctions,  Deimos_app.param.reset_filter, Deimos_app.param.Recreate_plots_with_below_values,
-                    Deimos_app.param.feature_dt_axis_width, Deimos_app.param.feature_rt_axis_width, Deimos_app.param.feature_mz_axis_width, \
-                        Deimos_app.param.min_feature_dt_bin_size, Deimos_app.param.min_feature_rt_bin_size, Deimos_app.param.min_feature_mz_bin_size, \
-                            Deimos_app.param.feature_dt, Deimos_app.param.feature_rt, Deimos_app.param.feature_mz, Deimos_app.param.feature_intensity)
+param_smooth = pn.Column('<b>Smooth</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial, Deimos_app.param.smooth_radius, Deimos_app.param.smooth_iterations, Deimos_app.param.pre_threshold_slider,  Deimos_app.param.rerun_smooth,  Deimos_app.param.remove_notifications, '<b>Result</b>', Deimos_app.param.file_name_smooth)
+param_peak = pn.Column('<b>Peak-picking</b>', '<b>Adjust the plots</b>', Deimos_app.param.file_name_smooth,   Deimos_app.param.peak_radius, Deimos_app.param.pre_threshold_slider, Deimos_app.param.threshold_slider, Deimos_app.param.rerun_peak, Deimos_app.param.remove_notifications, '<b>Result</b>', Deimos_app.param.file_name_peak)
 param_decon = pn.Column('<b>MS2 Deconvolution</b>', Deimos_app.param.file_folder_initial, Deimos_app.param.file_name_initial, Deimos_app.param.file_name_peak, Deimos_app.param.threshold_slider_ms1_ms2, Deimos_app.param.min_feature_rt_spacing, Deimos_app.param.min_feature_dt_spacing, Deimos_app.param.min_feature_mz_spacing, Deimos_app.param.rerun_decon, Deimos_app.param.remove_notifications)
 param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.file_folder_initial,  Deimos_app.param.file_name_initial,  Deimos_app.param.file_name_peak,  Deimos_app.param.slice_distance_dt, Deimos_app.param.slice_distance_rt,  Deimos_app.param.slice_distance_mz,  Deimos_app.param.rerun_iso, Deimos_app.param.remove_notifications,'<b>Adjust the plots</b>', Deimos_app.param.reset_filter_iso, Deimos_app.param.Recreate_plots_with_below_values_iso,
                     Deimos_app.param.feature_dt_axis_width_iso, Deimos_app.param.feature_rt_axis_width_iso, Deimos_app.param.feature_mz_axis_width_iso, \
@@ -1501,7 +1440,7 @@ param_iso = pn.Column('<b>View Isotopes</b>', Deimos_app.param.file_folder_initi
 param_cal = pn.Column('<b>Calibrate</b>', Deimos_app.param.file_folder_cal, Deimos_app.param.calibration_input, Deimos_app.param.example_tune_file, Deimos_app.param.file_to_calibrate, Deimos_app.param.beta,\
                         Deimos_app.param.tfix, Deimos_app.param.traveling_wave, Deimos_app.param.calibrate_type, Deimos_app.param.rerun_calibrate, Deimos_app.param.remove_notifications)
 
-plot_text = '<p><li>Only changing the values with the widgets and clicking Recreate Plot will re-aggregate the plot and reset the width.</li><li> The color of the plots (and the hover value) is the sum of the intensities for all ions with the same values of the plot’s x and y dimensions (i.e. retention time vs drift time).</li><li> Before zooming in, datashader will aggregate the values into grids, so the color will represent the aggregate intensity for ions within the same grid.</li> </p>'
+plot_text = '<p><li>Only changing the values with the widgets and clicking Recreate Plot will re-aggregate the plot and reset the width.</li><li> The color of the plots is the sum of the intensities for all ions with the same values of the plot’s x and y dimensions (i.e. retention time vs drift time).</li><li> Before zooming in, datashader will aggregate the values into grids, so the color will represent the aggregate intensity for ions within the same grid.</li> </p>'
 app1 = pn.Tabs(
     ('1. Load Initial Data', pn.Row(pn.Column(instructions_view, pn.pane.PNG('box_select.png'),  pn.Row(param_full, pn.Column(Deimos_app.initial_viewable(), plot_text))))),        
                 ('2. Smoothing', pn.Row(pn.Column(instructions_smooth, pn.pane.PNG('box_select.png'),  pn.Row(param_smooth, pn.Column(Deimos_app.smooth_viewable(), plot_text))))),\
