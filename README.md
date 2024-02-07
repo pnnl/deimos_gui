@@ -31,7 +31,7 @@ pip install -e .
 Run app (from deimos_gui/src folder)
 ```
 cd src
-python run_app.py
+panel serve run_app.py
 ```
 
 

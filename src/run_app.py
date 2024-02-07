@@ -1451,4 +1451,4 @@ app1 = pn.Tabs(
                 ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
                 ).servable(title='Deimos App')
 
-pn.serve(app1)
+app1
