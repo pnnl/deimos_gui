@@ -82,7 +82,7 @@ def load_initial_deimos_data(file_name_initial, feature_dt, feature_rt, feature_
                         pd DataFrame with data 
 
         '''
-        if file_name_initial == 'data/placeholder.csv' or file_name_initial == 'data/created_data/placeholder.csv' :     
+        if Path(file_name_initial).stem == 'placeholder':     
                 raise Exception("Select files and adjust Args before clicking 'Rerun'")
         full_data_1 = load_mz_h5(file_name_initial, key=key, columns=[feature_mz, feature_dt, feature_rt, feature_intensity], rt_name = rt_name, dt_name = dt_name, new_name = new_name)
         full_data_1 = full_data_1[[feature_dt, feature_rt, feature_mz, feature_intensity]]

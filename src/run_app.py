@@ -609,7 +609,7 @@ class Deimos_app(pm.Parameterized):
                 '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
                     '_new_peak_data.h5')
             pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Create peak data: ' + str(self.file_name_smooth), duration=0)
-            if self.file_name_initial == "data/placeholder.csv":
+            if Path(self.file_name_initial).stem == "placeholder":
                     self.data_peak_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
                 if os.path.isfile(new_peak_name):
@@ -1512,4 +1512,4 @@ app1 = pn.Tabs(
                 ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
                 ).servable(title='Deimos App')
 
-app1
+pn.serve(app1)
