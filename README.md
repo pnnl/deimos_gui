@@ -28,7 +28,8 @@ pip install -e .
 
 ## Run app from src folder
 
-Run app (from deimos_gui/src folder)
+Run app (from deimos_gui/src folder).
+Copy/paste the resulting address after 'Bokeh app running at:' in your browser
 ```
 cd src
 panel serve run_app.py
@@ -45,7 +46,7 @@ Provide path to data within the application (default: data folder within DEIMOS_
 
 
 ## Funding
-This research was supported by the National Institutes of Health, National Institute of Environmental Health Sciences grant U2CES030170 and is a contribution of the Pacific Northwest Advanced Compound Identification Core. Pacific Northwest National Laboratory is a multi-program national laboratory operated by Battelle for the DOE under Contract DE-AC05-76RLO 1830.
+This research was supported by the National Institutes of Health, National Institute of Environmental Health Sciences grant U2CES030170 and is a contribution of the Pacific Northwest Advanced Compound Identification Core. A portion of the work was conducted under the Laboratory Directed Research and Development Program at Pacific Northwest National Laboratory (PNNL). PNNL is a multi-program national laboratory operated by Battelle for the DOE under Contract DE-AC05-76RLO 1830.
 
 Citing DEIMoS
 -------------
