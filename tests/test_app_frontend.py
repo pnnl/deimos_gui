@@ -13,7 +13,7 @@ def test_component(page, port):
     server = pn.serve(app1, port=port, threaded=True, show=False)
     time.sleep(0.2)
     page.goto(url, timeout=0)   
-    page.wait_for_selector('div > div > input')
+    page.wait_for_selector('div > div > input', timeout = 0)
     server.stop()
 
 
