@@ -1293,9 +1293,9 @@ class Deimos_app(pm.Parameterized):
 class Align_plots(pm.Parameterized):
     '''New class for aligning peak data to a reference file'''
 
-    peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5. Also can change to refresh peak folder files', label='Initial Data. Default: example_alignment.h5')
+    peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5 will automatically compare two example files rather than compare example_align with folder contents', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
-        default= 'data', doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
+        default= 'data', doc='Please use forward slashes / and starting from / if absolute. Also can change to refresh peak folder files', label='Location of data folder (use /).')
     peak_folder =  pm.String(
         default= "data", doc='Either relative path to file or absolute path to folder with peak files', label='Location of peak folder')
     align_endswith =  pm.String(default="*.h5", doc='Use * for wildcard (ie. *end.h5)', label='Only use files that end with this value')
