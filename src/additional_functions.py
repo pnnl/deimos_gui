@@ -14,9 +14,6 @@ import datashader as ds
 from holoviews.operation.datashader import aggregate, datashade, rasterize
 import os
 from pathlib import Path
-import xlrd
-xlrd.xlsx.ensure_elementtree_imported(False, None)
-xlrd.xlsx.Element_has_iter = True
 
 def exception_handler(ex):
     logging.error("Error", exc_info=ex)

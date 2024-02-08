@@ -20,9 +20,7 @@ import logging
 from pathlib import Path
 import additional_functions as additional_functions
 from datetime import datetime
-import xlrd
-xlrd.xlsx.ensure_elementtree_imported(False, None)
-xlrd.xlsx.Element_has_iter = True
+
 # from pathlib import PurePath, PureWindowsPath
 #from pyinstrument import Profiler
 
