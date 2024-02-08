@@ -18,7 +18,9 @@ generated](./myMediaFolder/media/image11.png)
 
 
 The initial data is a placeholder. 
-Example data can be found here: https://massive.ucsd.edu/ProteoSAFe/dataset.jsp?task=a407f040a3d3422d94b1dde95fc0178c 
+Follow instructions here to download the data: 
+https://deimos.readthedocs.io/en/latest/getting_started/example_data.html
+Use ftp://massive.ucsd.edu/v01/MSV000091746 as the FTP Download Link
 
 # Smooth data: 
 

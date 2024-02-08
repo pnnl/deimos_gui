@@ -29,10 +29,12 @@ pip install -e .
 ## Run app from src folder
 
 Run app (from deimos_gui/src folder).
+
 Copy/paste the resulting address after 'Bokeh app running at:' in your browser
 ```
 cd src
 panel serve run_app.py
+# Copy/paste the resulting address after 'Bokeh app running at:' in your browser
 ```
 
 
