@@ -268,7 +268,6 @@ class Deimos_app(pm.Parameterized):
             self.data_initial.persist()
             self.refresh_axis_values()
             pn.state.notifications.clear()
-            pn.state.notifications.info('Finished loading initial data. Now creating plots which might take a minutes', duration=0)
             
         else:   
         # if the data value has already been updated from rerun, 

@@ -44,7 +44,7 @@ def load_mz_h5(file_name_initial, key, columns, rt_name=None, dt_name=None, new_
                         rt_name_value = deimos.get_accessions(file_name_initial)[rt_name]
                         dt_name_value = deimos.get_accessions(file_name_initial)[dt_name]
                         pn.state.notifications.info("load deimos mz using " + str({rt_name: rt_name_value, dt_name: dt_name_value}), duration=0)
-                        pn.state.notifications.info("loading an mz file will take a while, will see 'done loading' when finished", duration=0)
+                        pn.state.notifications.info("loading an mz file will take a while, will see 'done loading' when finished loading. After that, creating the plots could take a minute", duration=0)
                         pn.state.notifications.info("See https://deimos.readthedocs.io/en/latest/user_guide/loading_saving.html to convert with DEIMoS directly", duration=0)
                         load_file = deimos.load(file_name_initial, accession={'retention_time': rt_name_value, 'drift_time': dt_name_value})
                         
