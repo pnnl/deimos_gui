@@ -1,4 +1,5 @@
 deimos @ git+https://github.com/pnnl/deimos
+pymzml @ git+https://github.com/pymzml/pymzML.git@b536dc48429e442bb637ca277cf16a14e2047c2d
 colorcet==3.0.1
 holoviews==1.17.1
 panel==1.2.3
