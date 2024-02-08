@@ -7,11 +7,11 @@ on:
 jobs:
   test:
     timeout-minutes: 60
-    runs-on: windows-2019
     strategy:
       fail-fast: true
       matrix:
         os: [windows-2019]
+    runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python

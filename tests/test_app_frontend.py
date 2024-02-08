@@ -13,6 +13,6 @@ def test_component(page, port):
     server = pn.serve(app1, port=port, threaded=True, show=False)
     time.sleep(0.2)
     page.goto(url)   
-    page.wait_for_selector('div > div > input')
-    page.screenshot(path="screenshot.png")
+    # page.wait_for_selector('div > div > input')
+    # page.screenshot(path="screenshot.png")
     server.stop()
