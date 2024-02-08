@@ -12,9 +12,8 @@ def test_component(page, port):
     # When
     server = pn.serve(app1, port=port, threaded=True, show=False)
     time.sleep(0.2)
-    page.goto(url)   
+    page.goto(url, timeout=0)   
     page.wait_for_selector('div > div > input')
-    # page.screenshot(path="screenshot.png")
     server.stop()
 
 
