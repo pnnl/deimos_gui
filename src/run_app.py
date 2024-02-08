@@ -20,7 +20,6 @@ import logging
 from pathlib import Path
 import additional_functions as additional_functions
 from datetime import datetime
-
 # from pathlib import PurePath, PureWindowsPath
 #from pyinstrument import Profiler
 
@@ -215,7 +214,7 @@ class Deimos_app(pm.Parameterized):
     def update_mz_accession(self):
         '''If using mzML allow users to chose name from accession file'''
         if self.file_name_initial == None:
-            raise Exception("No file selected - check if you are running Python run_app.py from src folder. 'cd src'")
+            raise Exception("No file selected")
         extension = Path(self.file_name_initial).suffix
         if extension == ".mzML" or extension == ".mzML.gz" :
             accessin_list = list(deimos.get_accessions(self.file_name_initial).keys())
@@ -247,7 +246,7 @@ class Deimos_app(pm.Parameterized):
             self.param.min_feature_mz_bin_size.label = "Min bin size: " + self.feature_mz
             self.param.smooth_radius.label = 'Smoothing radius by ' + self.feature_mz + ', ' + self.feature_dt + ', and ' + self.feature_rt
             self.param.peak_radius.label = 'Weighted mean kernel size by ' + self.feature_mz + ', ' + self.feature_dt + ', and ' + self.feature_rt
-            if Path(self.file_name_initial).stem == "placeholder":
+            if self.file_name_initial == "data/placeholder.csv":
                     pn.state.notifications.info('Load data placeholder. Replace with real data', duration=10000)
                     self.data_initial = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
@@ -268,6 +267,7 @@ class Deimos_app(pm.Parameterized):
             self.data_initial.persist()
             self.refresh_axis_values()
             pn.state.notifications.clear()
+            pn.state.notifications.info('Finished loading initial data', duration=10000)
             
         else:   
         # if the data value has already been updated from rerun, 
@@ -528,7 +528,7 @@ class Deimos_app(pm.Parameterized):
             new_smooth_name =  os.path.join( "created_data",  Path(self.file_name_initial).stem + \
                 '_smooth_radius_' + str(self.smooth_radius) + '_threshold_' + str(self.threshold_slider) + '_smooth_iterations_' + str(self.smooth_iterations) +  "_feature_rt_" + str(self.feature_rt) +\
                    '_new_smooth_data.h5')
-            if Path(self.file_name_initial).stem == "placeholder":
+            if self.file_name_initial == "data/placeholder.csv":
                     self.data_smooth_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
                 pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Create smooth data from ' + str(self.file_name_initial), duration=0)
@@ -609,7 +609,7 @@ class Deimos_app(pm.Parameterized):
                 '_peak_radius_' + str(self.peak_radius) +  "_feature_rt_" + str(self.feature_rt) +\
                     '_new_peak_data.h5')
             pn.state.notifications.info('In progress. Cannot make additional changes until plots update. Create peak data: ' + str(self.file_name_smooth), duration=0)
-            if Path(self.file_name_initial).stem == "placeholder":
+            if self.file_name_initial == "data/placeholder.csv":
                     self.data_peak_ms1 = dd.from_pandas(pd.DataFrame([[0,0,0,0],[2000,200,200,4], [20,10,30,100]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity]), npartitions=mp.cpu_count())
             else:
                 if os.path.isfile(new_peak_name):
@@ -701,7 +701,7 @@ class Deimos_app(pm.Parameterized):
                 '_file_path_peak_' + Path(self.file_name_peak).stem  + \
                     '_res.csv')
             pn.state.notifications.info("In progress. Cannot make additional changes until plots update. Run deconvolution", duration=10000)
-            if Path(self.file_name_peak).stem == "placeholder":
+            if self.file_name_peak == "created_data/placeholder.csv":
                     self.res = pd.DataFrame([[1,1,2,3,1,1,2,3],[2,1,3,4,1,1,2,3], [20,10,30,100,1,1,2,3]], \
                                     columns = ["mz_ms1","drift_time_ms1","retention_time_ms1",\
                                                 "intensity_ms1","mz_ms2","drift_time_ms2","retention_time_ms2","intensity_ms2"])
@@ -785,7 +785,7 @@ class Deimos_app(pm.Parameterized):
         Otherwise select the highest intensity of the selction, and return the ms2 decon values '''
         example_ms2= pd.DataFrame([[np.random.randint(0,2), np.random.randint(0,2)], [np.random.randint(0,2), np.random.randint(0,2)]],\
                                    columns = [self.feature_mz, self.feature_intensity])
-        if Path(self.file_name_peak).stem == "placeholder":
+        if self.file_name_peak == "created_data/placeholder.csv":
             
             return hv.Dataset(example_ms2)
         # get the decon plots if necessary
@@ -1001,7 +1001,7 @@ class Deimos_app(pm.Parameterized):
         # Load data
         if len(self.isotopes_head) == 0:
             
-            if Path(self.file_name_peak).stem == "placeholder":
+            if self.file_name_peak == "created_data/placeholder.csv":
                 self.isotopes_head = pd.DataFrame([[1,1,2,[3,2],[3,4],[3,3]],[2,2,3,[3,5],[3,6],[3,3]]], \
                                     columns = ["mz","idx","intensity","mz_iso","intensity_iso","idx_iso"])
                 self.ms1_peaks = pd.DataFrame([[3,10,12,3],[4,12,13,4], [2,12,314,2]], columns = [self.feature_mz, self.feature_dt, self.feature_rt, self.feature_intensity])
@@ -1042,7 +1042,7 @@ class Deimos_app(pm.Parameterized):
         '''Return a slice of the ms1 data based on user input of range 
         and the mz values of selected row in table'''
         #pn.state.notifications.info('Get index: ' + str(index) + " Click 'Recreate plots' to view with correct axis range", duration=10000) 
-        if Path(self.file_name_peak).stem == "placeholder":
+        if self.file_name_peak == "created_data/placeholder.csv":
             mz1 = np.random.randint(0,9)
             mz2 = np.random.randint(0,9)
             mz3 = np.random.randint(0,9)
@@ -1194,7 +1194,7 @@ class Deimos_app(pm.Parameterized):
         '''Return the calibrated values from the user input in created_data folder
         depending on the type of calibration chosen by the user'''
         if len(self.cal_values) == 0:
-            if Path(self.calibration_input).stem == "placeholder":
+            if self.calibration_input == "data/placeholder.csv":
                 self.cal_values = pd.DataFrame({'reduced_ccs': np.array([1,1]), 'ta': np.array([1,1])}, columns=['reduced_ccs', 'ta'])
                 #https://panel.holoviz.org/reference/global/Notifications.html
                 
@@ -1292,9 +1292,9 @@ class Deimos_app(pm.Parameterized):
 class Align_plots(pm.Parameterized):
     '''New class for aligning peak data to a reference file'''
 
-    peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5 will automatically compare two example files rather than compare example_align with folder contents', label='Initial Data. Default: example_alignment.h5')
+    peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5. Also can change to refresh peak folder files', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
-        default= 'data', doc='Please use forward slashes / and starting from / if absolute. Also can change to refresh peak folder files', label='Location of data folder (use /).')
+        default= 'data', doc='Please use forward slashes / and starting from / if absolute ', label='Location of data folder (use /).')
     peak_folder =  pm.String(
         default= "data", doc='Either relative path to file or absolute path to folder with peak files', label='Location of peak folder')
     align_endswith =  pm.String(default="*.h5", doc='Use * for wildcard (ie. *end.h5)', label='Only use files that end with this value')
@@ -1347,7 +1347,7 @@ class Align_plots(pm.Parameterized):
         pn.state.notifications.clear()
 
         list_plots = []
-        if Path(self.peak_ref).stem == "placeholder":
+        if self.peak_ref == "data/placeholder.csv":
             #return placeholder plots
             i = 0
             for file in range(2):
@@ -1435,47 +1435,47 @@ instructions_view = "<ul> <li>Click rerun to reflect changes</li> <li>Indicate t
     <li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
 <li>Change the axis widths and click 'Recreate plots with below values' to re-aggregrate with new widths</li>\
 <li>Toolbar's zoom and reset does not re-aggregate within this tool.</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a>. Use ftp://massive.ucsd.edu/v01/MSV000091746 as the FTP Download Link</li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_smooth = "<ul> <li>Click rerun to reflect changes</li> <li>Click 'Run smooth' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li>\
     <li>Keeping the <b>smooth radius</b> small and increasing number of iterations <br> is preferable to a larger smoothing radius, albeit at greater computational expense.</li>\
     <li>Output files will be in the created_data folder besides the run_app.py file</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a>. Use ftp://massive.ucsd.edu/v01/MSV000091746 as the FTP Download Link</li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_peaks = "<p>Feature detection, also referred to as peak detection, is the process by which local maxima that fulfill certain criteria (such as sufficient signal-to-noise ratio) are located in the signal acquired by a given analytical instrument. </p><ul> <li>Click rerun to reflect changes</li> <li>Click 'Run peak' after updating parameters to get new graph</li><li>Use the box selector (as seen on the bottom) to filter data in all plots based on the box's range</li> \
     <li>The <b>radius per dimension</b> insures an intensity-weighted per-dimension coordinate will be returned for each feature.</li>\
     <li>Output files will be in the created_data folder besides the run_app.py file</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a>. Use ftp://massive.ucsd.edu/v01/MSV000091746 as the FTP Download Link</li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_ms2 = "<p>With MS1 features of interest determined by peak detection, corresponding tandem mass spectra, if available, must be extracted and assigned to the MS1 parent ion feature. </p><ul> <li>The original data is a placeholder, clicking will not work without real data </li> <li>Click 'Run decon' after updating parameters to get new graph</li><li>The MS2 data associated with user-selected MS1 data, with the MS1 data with the highest intensity used if there are multiple MS1 data points within a small range of the user-click </li>\
     <li>Output files will be in the created_data folder besides the run_app.py file</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a>. Use ftp://massive.ucsd.edu/v01/MSV000091746 as the FTP Download Link</li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_align = "<ul><li>Alignment is the process by which feature coordinates across samples are adjusted to account for instrument variation such that matching features are aligned to adjust for small differences in coordinates</li>\
     <li>Click rerun to reflect changes</li> <li>Indicate the reference file and folder of files to align</li><li>Determine matches within <b>tolerance</b> per feature with the alignment determined by the <b>kernel</b> by <b>relative or absolute </b> value by <b>support vector regression kernel </b> </li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a>. Use ftp://massive.ucsd.edu/v01/MSV000091746 as the FTP Download Link</li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
     <li>Output files will be in the created_data folder besides the run_app.py file</li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_calibrate = "<ul><li>Click 'rerun calibrate' to get the calibrated values within the created_data folder</li>\
     <li>Output files will be in the created_data folder besides the run_app.py file</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a>. Use ftp://massive.ucsd.edu/v01/MSV000091746 as the FTP Download Link</li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
 instructions_isotopes = "<ul><li>Click 'rerun plots' to get the isotopes within the created_data folder</li>\
     <li>Select a row to view the isotopes</li>\
     <li>Graphs will show slice of MS1 data. Plot will show isotopes</li>\
-<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a>. Use ftp://massive.ucsd.edu/v01/MSV000091746 as the FTP Download Link</li>\
+<li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/getting_started/example_data.html'> Example Data Located Here </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://github.com/pnnl/deimos_gui/blob/master/user_guide_deimos.md'> User Guide </a></li>\
 <li> <a target='_blank' rel='noopener noreferrer' href='https://deimos.readthedocs.io/en/latest/'> DEIMoS Guide </a></li>\
     <ul> "
@@ -1512,4 +1512,4 @@ app1 = pn.Tabs(
                 ('Plot Alignment', pn.Row(pn.Column(instructions_align, pn.Row(Align_plots.param, Align_plots.viewable))))\
                 ).servable(title='Deimos App')
 
-app1
+pn.serve(app1)
