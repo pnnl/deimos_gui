@@ -70,9 +70,9 @@ class Deimos_app(pm.Parameterized):
     '''Class to create a parameterized functions that only changes when paramaters are updated'''
     file_name_initial = pm.FileSelector(default = os.path.join("data", file_name_initial_name), path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_data.h5. (Placeholder.csv creates small sample data). Change column values by inputs below', label='Initial Data Default: example_data.h5')
     file_folder_initial =  pm.String(
-        default= "data", doc='Please use forward slashes / and starting from / if absolute. Data folder.', label='Data folder (use /)')
+        default= "data", doc='Please use forward slashes / and start with / if absolute. Data folder.', label='Data folder (use / not \)')
     file_folder_cal =  pm.String(
-        default= "data", doc='Please use forward slashes / and starting from / if absolute ', label='Data folder (use /)')
+        default= "data", doc='Please use forward slashes / and start with / if absolute ', label='Data folder (use / not \)')
     rt_mzML_name = pm.Selector(["scan start time"], doc='Select one of the columns within the mzML file. Only adjust if mz file selected. Select the retention time column name')
     dt_mzML_name = pm.Selector(["ion mobility drift time"], doc='Select one of the columsn within the mzML file. Only adjust if mz file selected. Select the drift time column name')
     # reset the manual filters to the data bounds and reset the rangexy of the plot
@@ -84,9 +84,9 @@ class Deimos_app(pm.Parameterized):
         lambda x: x.param.trigger('reset_filter_iso'), doc = 'Refresh axis ranges to data min and max (will not update plot). Select (re)run to redo plot',
         label='Reset Axis ranges below')
     
-    feature_dt = pm.Selector(default='drift_time', objects = ["drift_time", 'retention_time', 'mz'], label="Drift Time", doc="This should be the name of one feature (drift time is the default) in the data. Change if data is using different column value")
-    feature_rt = pm.Selector(default='retention_time', objects = ["drift_time", 'retention_time', 'mz'], label="Retention Time", doc="This should be the name of one feature (retention time is the default) in the data. Change if data is using different column value")
-    feature_mz = pm.Selector(default='mz', objects = ["drift_time", 'retention_time', 'mz'], label="mz", doc="This should be the name of one feature (mz is the default) in the data. Change if data is using different column value")
+    feature_dt = pm.String(default='drift_time', label="Drift Time", doc="This should be the name of one feature (drift time is the default) in the data. Change if data is using different column value")
+    feature_rt = pm.String(default='retention_time', label="Retention Time", doc="This should be the name of one feature (retention time is the default) in the data. Change if data is using different column value")
+    feature_mz = pm.String(default='mz', label="mz", doc="This should be the name of one feature (mz is the default) in the data. Change if data is using different column value")
 
     feature_intensity = pm.String(default = 'intensity', label='Intensity Feature', doc="This the value that will be summed and visualized in the plots. Change if data is using different column value")
 
@@ -1294,7 +1294,7 @@ class Align_plots(pm.Parameterized):
 
     peak_ref = pm.FileSelector(default = os.path.join("data", peak_ref_name),  path="data/*",  doc='Initial File in .h5, .mzML, or .mzML.gz format. Default: example_alignment.h5 will automatically compare two example files rather than compare example_align with folder contents', label='Initial Data. Default: example_alignment.h5')
     file_folder =  pm.String(
-        default= 'data', doc='Please use forward slashes / and starting from / if absolute. Also can change to refresh peak folder files', label='Location of data folder (use /).')
+        default= 'data', doc='Please use forward slashes / and start with / if absolute. Also can change to refresh peak folder files', label='Location of Data folder (use / not \).')
     peak_folder =  pm.String(
         default= "data", doc='Either relative path to file or absolute path to folder with peak files', label='Location of peak folder')
     align_endswith =  pm.String(default="*.h5", doc='Use * for wildcard (ie. *end.h5)', label='Only use files that end with this value')
@@ -1305,9 +1305,9 @@ class Align_plots(pm.Parameterized):
     pre_threshold_slider = pm.Integer(default=128, label='Pre-Threshold', doc= 'Filter the files to only keep peaks above this intensity before processing')
     rerun_align = pm.Action(lambda x: x.param.trigger('rerun_align'), label='(Re)Run align')
     
-    feature_dt = pm.Selector(default='drift_time', objects = ["drift_time", 'retention_time', 'mz'], label="Drift Time", doc="This should be the name of one feature in the data. Change if data is using different column value")
-    feature_rt = pm.Selector(default='retention_time', objects = ["drift_time", 'retention_time', 'mz'], label="Retention Time", doc="This should be the name of one feature in the data. Change if data is using different column value")
-    feature_mz =  pm.Selector(default='mz', objects = ["drift_time", 'retention_time', 'mz'], label="mz", doc="This should be the name of one feature in the data. Change if data is using different column value")
+    feature_dt = pm.String(default='drift_time', label="Drift Time", doc="This should be the name of one feature in the data. Change if data is using different column value")
+    feature_rt = pm.String(default='retention_time',  label="Retention Time", doc="This should be the name of one feature in the data. Change if data is using different column value")
+    feature_mz =  pm.String(default='mz',label="mz", doc="This should be the name of one feature in the data. Change if data is using different column value")
     feature_intensity = pm.String(default = 'intensity', label='Intensity Feature', doc="Change if data is using different column value")
 
     rt_mzML_name = pm.Selector(["scan start time"], label="mzML file retention time", doc='Only adjust if mz file selected. Select the retention time column name')
