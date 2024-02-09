@@ -685,7 +685,7 @@ class Deimos_app(pm.Parameterized):
                     operation=self.rasterize_rm,
                     streams=[stream_peak],
                 )
-        return ls3(self.rasterized_dr_peak + self.rasterized_rm_peak + self.rasterized_md_peak).opts(shared_axes=True)
+        return ls3(self.rasterized_rm_peak + self.rasterized_dr_peak +  self.rasterized_md_peak).opts(shared_axes=True)
     
     
     @pm.depends('rerun_decon', watch = True)
