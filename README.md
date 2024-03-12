@@ -53,7 +53,11 @@ This research was supported by the National Institutes of Health, National Insti
 Citing DEIMoS
 -------------
 If you would like to reference DEIMoS in an academic paper, we ask you include the following:
-* DEIMoS, version 1.3.3 http://github.com/pnnl/deimos (accessed MMM YYYY)
+*DEIMoS, version 1.3.3 http://github.com/pnnl/deimos (accessed MMM YYYY)
+*Colby, S.M., Chang, C.H., Bade, J.L., Nunez, J.R., Blumer, M.R., Orton, D.J., Bloodsworth, K.J., Nakayasu, E.S., Smith, R.D, Ibrahim, Y.M. and Renslow, R.S., 2022. DEIMoS: an open-source tool for processing high-dimensional mass spectrometry data. Analytical Chemistry, 94(16), pp.6130-6138.
+
+If you would like to reference the DEIMoS GUI (this repository), please cite:
+* Oostrom, Marjolein T., Sean M. Colby, and Thomas O. Metz. "DEIMoS GUI: An Open-Source User Interface for a High-Dimensional Mass Spectrometry Data Processing Tool." Journal of Chemical Information and Modeling (2024).
 
 ## Disclaimer
 
