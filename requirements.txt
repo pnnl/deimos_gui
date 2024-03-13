@@ -10,4 +10,4 @@ pandas==2.0.3
 playwright==1.41.2
 pytest==8.0.0
 pytest-playwright==0.4.4
-dask[dataframe]
+dask[dataframe]==2024.3.0
